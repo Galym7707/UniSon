@@ -1,25 +1,27 @@
 // 📁 lib/supabase/browser.ts
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseConfig, EnvironmentValidationError } from '../env'
 
 export const createBrowserClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    // For build time, return a mock client that won't actually work
-    if (typeof window === 'undefined') {
-      console.warn('Supabase environment variables not found during build')
+  try {
+    const { url, anonKey } = getSupabaseConfig()
+    
+    return createClient(url, anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    })
+  } catch (error) {
+    // For build time, return a mock client when environment validation fails
+    if (typeof window === 'undefined' && error instanceof EnvironmentValidationError) {
+      console.warn('Supabase environment variables not properly configured during build - using placeholder client')
       return createClient('https://placeholder.supabase.co', 'placeholder-key', {
         auth: { persistSession: false, autoRefreshToken: false }
       })
     }
-    throw new Error('Missing Supabase environment variables')
+    
+    // Re-throw the error for runtime usage to get helpful error messages
+    throw error
   }
-
-  return createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  })
 }
