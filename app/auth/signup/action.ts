@@ -2,9 +2,8 @@
 "use server"
 
 import { z } from "zod"
-import { cookies } from "next/headers"
-import { createServerClient } from "@supabase/ssr"
 import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
+import { createServerSupabase } from '@/lib/supabase/server'
 
 const signupSchema = z.object({
   role: z.enum(["employer", "employee"]),
@@ -27,23 +26,7 @@ export async function signupAction(_prev: unknown, formData: FormData) {
       }
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
+    const supabase = await createServerSupabase()
 
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,

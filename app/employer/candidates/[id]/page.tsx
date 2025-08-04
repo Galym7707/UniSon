@@ -54,7 +54,7 @@ type GeminiAnalysis = {
   matchScore: number
 }
 
-export default function CandidateProfile({ params }: { params: { id: string } }) {
+export default function CandidateProfile({ params }: { params: Promise<{ id: string }> }) {
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null)
   const [geminiAnalysis, setGeminiAnalysis] = useState<GeminiAnalysis | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,10 +64,11 @@ export default function CandidateProfile({ params }: { params: { id: string } })
   useEffect(() => {
     const loadCandidate = async () => {
       try {
+        const resolvedParams = await params
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', resolvedParams.id)
           .single()
 
         if (error) {
@@ -87,7 +88,7 @@ export default function CandidateProfile({ params }: { params: { id: string } })
     }
 
     loadCandidate()
-  }, [params.id, supabase])
+  }, [params, supabase])
 
   const analyzeCandidate = async (candidateData: CandidateProfile) => {
     setAnalyzing(true)

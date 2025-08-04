@@ -62,9 +62,6 @@ export function LoginForm() {
               required 
               disabled={isPending}
             />
-            {state?.errors?.email && (
-              <p className="text-xs text-red-500 mt-1">{state.errors.email[0]}</p>
-            )}
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
@@ -75,9 +72,6 @@ export function LoginForm() {
               required 
               disabled={isPending}
             />
-            {state?.errors?.password && (
-              <p className="text-xs text-red-500 mt-1">{state.errors.password[0]}</p>
-            )}
           </div>
 
           {state && !state.success && state.message && (

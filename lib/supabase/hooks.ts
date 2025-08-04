@@ -86,7 +86,11 @@ export const useSupabaseMutation = <T, P = any>(
   const mutate = async (params: P) => {
     const supabase = createBrowserClient()
     return execute(
-      () => mutationFn(supabase, params),
+      async () => {
+        const result = await mutationFn(supabase, params)
+        if (result.error) throw new Error(result.error.message)
+        return result.data
+      },
       'supabase-mutation',
       {
         showToast: options?.showToast,
