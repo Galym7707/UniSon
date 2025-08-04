@@ -18,6 +18,9 @@ import {
   Brain
 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { LoadingSpinner, LoadingButton } from '@/components/ui/loading-spinner'
+import { ErrorDisplay } from '@/components/ui/error-display'
+import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
 
 /* ─────────────── type ─────────────── */
 type Profile = {
@@ -45,8 +48,9 @@ export default function ClientProfileShell({ initial }:{
     skills     : initial?.skills     ?? '',
     resume_url : initial?.resume_url ?? null
   })
-  const [saving,    setSaving]    = useState(false)
+  const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   /* ---------- derived ---------- */
   const completeness = Math.round(
@@ -63,40 +67,78 @@ export default function ClientProfileShell({ initial }:{
   /* ---------- resume upload ---------- */
   async function handleResume(e: ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0]) return
-    setUploading(true)
-    const file = e.target.files[0]
-    const ext  = file.name.split('.').pop()
-    const { data: { user } } = await supabase.auth.getUser()
-    const path = `${user!.id}.${ext}`
+    
+    try {
+      setUploading(true)
+      setError(null)
+      
+      const file = e.target.files[0]
+      const ext = file.name.split('.').pop()
+      
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!user) throw new Error('User not authenticated')
+      
+      const path = `${user.id}.${ext}`
 
-    await supabase.storage.from('resumes').upload(path, file, { upsert: true })
-    const publicUrl = supabase.storage.from('resumes').getPublicUrl(path).data.publicUrl
-    setForm(f => ({ ...f, resume_url: publicUrl }))
-    setUploading(false)
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(path, file, { upsert: true })
+      
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(path)
+      
+      setForm(f => ({ ...f, resume_url: publicUrl }))
+      showSuccessToast('Resume uploaded successfully')
+    } catch (err) {
+      const errorMessage = getUserFriendlyErrorMessage(err)
+      logError('resume-upload', err)
+      setError(errorMessage)
+      showErrorToast(err, 'resume-upload')
+    } finally {
+      setUploading(false)
+    }
   }
 
   /* ---------- save ---------- */
   async function handleSave(e: FormEvent) {
     e.preventDefault()
-    setSaving(true)
+    
+    try {
+      setSaving(true)
+      setError(null)
   
-    /* get the logged-in user */
-    const { data: { user }, error: authErr } = await supabase.auth.getUser()
-    if (authErr || !user) {
+      /* get the logged-in user */
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      if (authErr) throw authErr
+      if (!user) throw new Error('User not authenticated')
+  
+      /* upsert profile */
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({ 
+          id: user.id, 
+          ...form, 
+          updated_at: new Date().toISOString() 
+        })
+  
+      if (upsertError) throw upsertError
+      
+      showSuccessToast('Profile saved successfully')
+    } catch (err) {
+      const errorMessage = getUserFriendlyErrorMessage(err)
+      logError('profile-save', err)
+      setError(errorMessage)
+      showErrorToast(err, 'profile-save')
+    } finally {
       setSaving(false)
-      window.location.href = '/auth/login'
-      return
     }
-  
-    /* upsert profile */
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, ...form, updated_at: new Date().toISOString() })
-  
-    setSaving(false)
-    if (error) return alert(error.message)
   }
-  
+
+  const clearError = () => setError(null)
 
   /* ============================================================ */
   return (
@@ -119,10 +161,23 @@ export default function ClientProfileShell({ initial }:{
       <main className="flex-1 p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-[#0A2540]">My profile</h1>
-          <Button type="submit" form="profileForm" disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+          <Button type="submit" form="profileForm" disabled={saving || uploading}>
+            <LoadingButton isLoading={saving} loadingText="Saving...">
+              Save
+            </LoadingButton>
           </Button>
         </div>
+
+        {/* Error display */}
+        {error && (
+          <div className="mb-6">
+            <ErrorDisplay 
+              error={error}
+              onDismiss={clearError}
+              variant="card"
+            />
+          </div>
+        )}
 
         {/* résumé */}
         <Card className="mb-8">
@@ -131,18 +186,34 @@ export default function ClientProfileShell({ initial }:{
             <CardDescription>PDF, DOC or DOCX</CardDescription>
           </CardHeader>
           <CardContent>
-            <label className="flex flex-col items-center justify-center
+            <label className={`flex flex-col items-center justify-center
                                border-2 border-dashed border-gray-300 rounded-lg
-                               p-8 text-center cursor-pointer hover:border-[#00C49A]">
-              <Upload className="h-12 w-12 text-gray-400 mb-4" />
-              {uploading
-                ? 'Uploading…'
-                : form.resume_url
-                  ? <Link href={form.resume_url} target="_blank" className="text-[#00C49A] underline">
+                               p-8 text-center cursor-pointer hover:border-[#00C49A]
+                               ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {uploading ? (
+                <div className="flex flex-col items-center">
+                  <LoadingSpinner size="lg" className="mb-4" />
+                  <span>Uploading...</span>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                  {form.resume_url ? (
+                    <Link href={form.resume_url} target="_blank" className="text-[#00C49A] underline">
                       Résumé uploaded — click to preview
                     </Link>
-                  : 'Drop a file here or click to choose'}
-              <input hidden type="file" accept=".pdf,.doc,.docx" onChange={handleResume}/>
+                  ) : (
+                    'Drop a file here or click to choose'
+                  )}
+                </>
+              )}
+              <input 
+                hidden 
+                type="file" 
+                accept=".pdf,.doc,.docx" 
+                onChange={handleResume}
+                disabled={uploading}
+              />
             </label>
           </CardContent>
         </Card>
@@ -157,9 +228,9 @@ export default function ClientProfileShell({ initial }:{
         <form id="profileForm" onSubmit={handleSave}>
           <Tabs defaultValue="personal">
             <TabsList>
-              <TabsTrigger value="personal">Personal</TabsTrigger>
-              <TabsTrigger value="experience">Experience</TabsTrigger>
-              <TabsTrigger value="skills">Skills</TabsTrigger>
+              <TabsTrigger value="personal" disabled={saving || uploading}>Personal</TabsTrigger>
+              <TabsTrigger value="experience" disabled={saving || uploading}>Experience</TabsTrigger>
+              <TabsTrigger value="skills" disabled={saving || uploading}>Skills</TabsTrigger>
             </TabsList>
 
             <TabsContent value="personal">
@@ -167,11 +238,31 @@ export default function ClientProfileShell({ initial }:{
                 <CardHeader><CardTitle>Personal information</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="First name" value={form.first_name} onChange={update('first_name')}/>
-                    <Field label="Last name"  value={form.last_name}  onChange={update('last_name')}/>
+                    <Field 
+                      label="First name" 
+                      value={form.first_name} 
+                      onChange={update('first_name')}
+                      disabled={saving || uploading}
+                    />
+                    <Field 
+                      label="Last name"  
+                      value={form.last_name}  
+                      onChange={update('last_name')}
+                      disabled={saving || uploading}
+                    />
                   </div>
-                  <Field label="Desired position" value={form.title} onChange={update('title')}/>
-                  <FieldArea label="About me" value={form.summary} onChange={update('summary')}/>
+                  <Field 
+                    label="Desired position" 
+                    value={form.title} 
+                    onChange={update('title')}
+                    disabled={saving || uploading}
+                  />
+                  <FieldArea 
+                    label="About me" 
+                    value={form.summary} 
+                    onChange={update('summary')}
+                    disabled={saving || uploading}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -179,7 +270,13 @@ export default function ClientProfileShell({ initial }:{
             <TabsContent value="experience">
               <Card>
                 <CardHeader><CardTitle>Work experience</CardTitle></CardHeader>
-                <CardContent><FieldArea value={form.experience} onChange={update('experience')}/></CardContent>
+                <CardContent>
+                  <FieldArea 
+                    value={form.experience} 
+                    onChange={update('experience')}
+                    disabled={saving || uploading}
+                  />
+                </CardContent>
               </Card>
             </TabsContent>
 
@@ -187,7 +284,12 @@ export default function ClientProfileShell({ initial }:{
               <Card>
                 <CardHeader><CardTitle>Key skills</CardTitle></CardHeader>
                 <CardContent>
-                  <Field placeholder="React, TypeScript…" value={form.skills} onChange={update('skills')}/>
+                  <Field 
+                    placeholder="React, TypeScript…" 
+                    value={form.skills} 
+                    onChange={update('skills')}
+                    disabled={saving || uploading}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -199,19 +301,19 @@ export default function ClientProfileShell({ initial }:{
 }
 
 /* ========== tiny helpers ========== */
-function Field({ label, ...rest }: { label?: string } & React.ComponentProps<typeof Input>) {
+function Field({ label, disabled, ...rest }: { label?: string; disabled?: boolean } & React.ComponentProps<typeof Input>) {
   return (
     <div className="space-y-2">
       {label && <Label>{label}</Label>}
-      <Input {...rest}/>
+      <Input disabled={disabled} {...rest}/>
     </div>
   )
 }
-function FieldArea({ label, ...rest }: { label?: string } & React.ComponentProps<typeof Textarea>) {
+function FieldArea({ label, disabled, ...rest }: { label?: string; disabled?: boolean } & React.ComponentProps<typeof Textarea>) {
   return (
     <div className="space-y-2">
       {label && <Label>{label}</Label>}
-      <Textarea rows={4} {...rest}/>
+      <Textarea rows={4} disabled={disabled} {...rest}/>
     </div>
   )
 }

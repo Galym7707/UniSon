@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorDisplay } from "@/components/ui/error-display"
 import { Brain, Target, Users, Lightbulb, TrendingUp, Heart, Download, Share2 } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
 
 type TestResults = {
   scores: {
@@ -27,65 +30,53 @@ export default function PersonalityResults() {
   const [results, setResults] = useState<TestResults | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createBrowserClient()
 
   useEffect(() => {
     const loadResults = async () => {
       try {
-        console.log('Loading test results...')
+        setLoading(true)
+        setError(null)
+        
+        const supabase = createBrowserClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
-        if (authError) {
-          console.error('Auth error:', authError)
-          setError('Authentication error')
-          setLoading(false)
-          return
-        }
-        
-        if (!user) {
-          console.log('No user found')
-          setError('No user found')
-          setLoading(false)
-          return
-        }
+        if (authError) throw authError
+        if (!user) throw new Error('User not authenticated')
 
-        console.log('Fetching profile for user:', user.id)
         const { data, error: profileError } = await supabase
           .from('profiles')
           .select('test_results')
           .eq('id', user.id)
           .single()
 
-        if (profileError) {
-          console.error('Profile fetch error:', profileError)
-          setError('Failed to load profile')
-          setLoading(false)
-          return
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError
         }
 
-        console.log('Profile data:', data)
         if (data?.test_results) {
-          console.log('Test results found:', data.test_results)
           setResults(data.test_results)
-        } else {
-          console.log('No test results found')
         }
-        setLoading(false)
       } catch (err) {
-        console.error('Unexpected error:', err)
-        setError('An unexpected error occurred')
+        const errorMessage = getUserFriendlyErrorMessage(err)
+        logError('personality-results', err)
+        setError(errorMessage)
+      } finally {
         setLoading(false)
       }
     }
 
     loadResults()
-  }, [supabase])
+  }, [])
+
+  const retryLoadResults = () => {
+    window.location.reload()
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
           <p className="text-[#333333]">Loading results...</p>
         </div>
       </div>
@@ -95,11 +86,17 @@ export default function PersonalityResults() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-[#333333] mb-4">Error: {error}</p>
-          <Link href="/job-seeker/test">
-            <Button className="bg-[#00C49A] hover:bg-[#00A085]">Take Test</Button>
-          </Link>
+        <div className="max-w-md w-full">
+          <ErrorDisplay 
+            error={error}
+            onRetry={retryLoadResults}
+            variant="card"
+          />
+          <div className="text-center mt-4">
+            <Link href="/job-seeker/test">
+              <Button className="bg-[#00C49A] hover:bg-[#00A085]">Take Test</Button>
+            </Link>
+          </div>
         </div>
       </div>
     )

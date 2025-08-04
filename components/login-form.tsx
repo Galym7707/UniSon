@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { LoadingButton } from "@/components/ui/loading-spinner"
+import { ErrorDisplay } from "@/components/ui/error-display"
 import Link from "next/link"
 import { loginAction } from "@/app/auth/login/action"
-import { AlertCircle, CheckCircle2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
@@ -52,20 +54,37 @@ export function LoginForm() {
         <form action={formAction} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="you@example.com" required />
-            {state?.errors?.email && <p className="text-xs text-red-500 mt-1">{state.errors.email[0]}</p>}
+            <Input 
+              id="email" 
+              name="email" 
+              type="email" 
+              placeholder="you@example.com" 
+              required 
+              disabled={isPending}
+            />
+            {state?.errors?.email && (
+              <p className="text-xs text-red-500 mt-1">{state.errors.email[0]}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
-            {state?.errors?.password && <p className="text-xs text-red-500 mt-1">{state.errors.password[0]}</p>}
+            <Input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              disabled={isPending}
+            />
+            {state?.errors?.password && (
+              <p className="text-xs text-red-500 mt-1">{state.errors.password[0]}</p>
+            )}
           </div>
 
           {state && !state.success && state.message && (
-            <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              <AlertCircle className="h-4 w-4" />
-              <p>{state.message}</p>
-            </div>
+            <ErrorDisplay 
+              error={state.message}
+              variant="card"
+            />
           )}
 
           <div className="flex items-center justify-between">
@@ -75,7 +94,9 @@ export function LoginForm() {
             </Link>
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Logging in..." : "Login"}
+            <LoadingButton isLoading={isPending} loadingText="Logging in...">
+              Login
+            </LoadingButton>
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

@@ -12,27 +12,66 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ErrorDisplay } from '@/components/ui/error-display'
+import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
 
 export default function JobSeekerDashboard() {
   const [profilePct, setProfilePct] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   /* --- load profile completeness from Supabase --- */
   useEffect(() => {
-    const supabase = createBrowserClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data } = await supabase
-        .from('profiles')
-        .select('first_name,last_name,title,summary,experience,skills')
-        .eq('email', user.email)
-        .single()
+    const loadProfileData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const supabase = createBrowserClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        
+        if (authError) {
+          throw authError
+        }
+        
+        if (!user) {
+          throw new Error('User not authenticated')
+        }
 
-      if (!data) return
-      const filled = Object.values(data).filter(v => v && v !== '').length
-      const total = 6
-      setProfilePct(Math.round((filled / total) * 100))
-    })
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('first_name,last_name,title,summary,experience,skills')
+          .eq('email', user.email)
+          .single()
+
+        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          throw profileError
+        }
+
+        if (data) {
+          const filled = Object.values(data).filter(v => v && v !== '').length
+          const total = 6
+          setProfilePct(Math.round((filled / total) * 100))
+        }
+      } catch (err) {
+        const errorMessage = getUserFriendlyErrorMessage(err)
+        logError('job-seeker-dashboard', err)
+        setError(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProfileData()
   }, [])
+
+  const retryLoadProfile = () => {
+    const event = new Event('profile-retry')
+    window.dispatchEvent(event)
+    // Trigger the useEffect again by calling loadProfileData
+    window.location.reload()
+  }
 
   /* --- static demo data for the rest of the card --- */
   const applications = [
@@ -56,12 +95,12 @@ export default function JobSeekerDashboard() {
             Unison AI
           </div>
           <nav className="px-4 space-y-2">
-                      <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
-          <SidebarLink href="/job-seeker/profile"    icon={User}            text="Profile" />
-          <SidebarLink href="/job-seeker/test"       icon={Brain}           text="Тест" />
-          <SidebarLink href="/job-seeker/search"     icon={Search}          text="Job search" />
-          <SidebarLink href="/job-seeker/saved"      icon={Heart}           text="Saved" />
-          <SidebarLink href="/job-seeker/settings"   icon={Settings}        text="Settings" />
+            <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
+            <SidebarLink href="/job-seeker/profile"    icon={User}            text="Profile" />
+            <SidebarLink href="/job-seeker/test"       icon={Brain}           text="Тест" />
+            <SidebarLink href="/job-seeker/search"     icon={Search}          text="Job search" />
+            <SidebarLink href="/job-seeker/saved"      icon={Heart}           text="Saved" />
+            <SidebarLink href="/job-seeker/settings"   icon={Settings}        text="Settings" />
           </nav>
         </aside>
 
@@ -80,7 +119,7 @@ export default function JobSeekerDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Application status</CardTitle>
-                  <CardDescription>Track every job you’ve applied for</CardDescription>
+                  <CardDescription>Track every job you've applied for</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {applications.map(app => (
@@ -114,19 +153,33 @@ export default function JobSeekerDashboard() {
                   <CardDescription>Complete your profile to get the best matches</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-[#00C49A]">{profilePct} %</span>
-                    <Link href="/job-seeker/profile">
-                      <Button variant="outline" size="sm">Finish profile</Button>
-                    </Link>
-                  </div>
-                  <Progress value={profilePct} className="h-3" />
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <Legend color="green"  text="Personal info"   done={profilePct >= 20} />
-                    <Legend color="green"  text="Work experience" done={profilePct >= 40} />
-                    <Legend color="orange" text="Skills"          done={profilePct >= 60} />
-                    <Legend color="gray"   text="Testing"         done={profilePct >= 80} />
-                  </div>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <LoadingSpinner size="lg" />
+                    </div>
+                  ) : error ? (
+                    <ErrorDisplay 
+                      error={error}
+                      onRetry={retryLoadProfile}
+                      variant="card"
+                    />
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-[#00C49A]">{profilePct} %</span>
+                        <Link href="/job-seeker/profile">
+                          <Button variant="outline" size="sm">Finish profile</Button>
+                        </Link>
+                      </div>
+                      <Progress value={profilePct} className="h-3" />
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <Legend color="green"  text="Personal info"   done={profilePct >= 20} />
+                        <Legend color="green"  text="Work experience" done={profilePct >= 40} />
+                        <Legend color="orange" text="Skills"          done={profilePct >= 60} />
+                        <Legend color="gray"   text="Testing"         done={profilePct >= 80} />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </section>
