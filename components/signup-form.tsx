@@ -1,6 +1,9 @@
 "use client"
 
 import { useActionState, useState, useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,9 +17,61 @@ import { signupAction } from "@/app/auth/signup/action"
 
 type Role = "employer" | "employee"
 
+// Password strength regex: at least 8 chars, 1 uppercase, 1 lowercase, 1 number
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
+
+const baseSignupSchema = z.object({
+  role: z.enum(["employer", "employee"]),
+  fullName: z.string()
+    .min(2, "Full name must be at least 2 characters")
+    .max(50, "Full name must be less than 50 characters")
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Full name can only contain letters, spaces, apostrophes, and hyphens"),
+  email: z.string()
+    .email("Please enter a valid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(passwordRegex, "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number")
+})
+
+const signupSchema = baseSignupSchema.extend({
+  companyName: z.string()
+    .min(2, "Company name must be at least 2 characters")
+    .max(100, "Company name must be less than 100 characters")
+    .regex(/^[a-zA-ZÀ-ÿ0-9\s'.,&-]+$/, "Company name contains invalid characters")
+    .optional()
+}).refine((data) => {
+  if (data.role === "employer" && !data.companyName) {
+    return false
+  }
+  return true
+}, {
+  message: "Company name is required for employers",
+  path: ["companyName"]
+})
+
+type SignupFormData = z.infer<typeof signupSchema>
+
 export function SignupForm() {
   const [state, formAction, isPending] = useActionState(signupAction, null)
   const [role, setRole] = useState<Role>("employer")
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    clearErrors,
+    watch
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    mode: "onChange",
+    defaultValues: {
+      role: "employer"
+    }
+  })
+
+  const watchedRole = watch("role")
 
   useEffect(() => {
     if (state?.success) {
@@ -31,29 +86,52 @@ export function SignupForm() {
     }
   }, [state, role])
 
+  const onSubmit = (data: SignupFormData) => {
+    setIsFormSubmitted(true)
+    clearErrors()
+    
+    const formData = new FormData()
+    formData.append('role', data.role)
+    formData.append('fullName', data.fullName)
+    formData.append('email', data.email)
+    formData.append('password', data.password)
+    if (data.companyName) {
+      formData.append('companyName', data.companyName)
+    }
+    
+    formAction(formData)
+  }
+
+  const handleRoleChange = (newRole: Role) => {
+    if (!isPending) {
+      setRole(newRole)
+    }
+  }
+
   const employerFields = (
     <>
       <div>
         <Label htmlFor="companyName">Company Name</Label>
         <Input 
           id="companyName" 
-          name="companyName" 
           placeholder="Your Company Inc." 
-          required 
           disabled={isPending}
+          {...register("companyName")}
         />
+        {errors.companyName && (
+          <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>
+        )}
       </div>
       <div>
         <Label htmlFor="fullName">Your Full Name</Label>
         <Input 
           id="fullName" 
-          name="fullName" 
           placeholder="John Doe" 
-          required 
           disabled={isPending}
+          {...register("fullName")}
         />
-        {state?.errors?.fullName && (
-          <p className="text-xs text-red-500 mt-1">{state.errors.fullName[0]}</p>
+        {errors.fullName && (
+          <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>
         )}
       </div>
     </>
@@ -64,13 +142,12 @@ export function SignupForm() {
       <Label htmlFor="fullName">Full Name</Label>
       <Input 
         id="fullName" 
-        name="fullName" 
         placeholder="Jane Smith" 
-        required 
         disabled={isPending}
+        {...register("fullName")}
       />
-      {state?.errors?.fullName && (
-        <p className="text-xs text-red-500 mt-1">{state.errors.fullName[0]}</p>
+      {errors.fullName && (
+        <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>
       )}
     </div>
   )
@@ -102,11 +179,11 @@ export function SignupForm() {
         <CardDescription>Choose your role to get started with UnisonAI.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
-          <input type="hidden" name="role" value={role} />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <input type="hidden" {...register("role")} value={role} />
           <div className="mb-6 grid grid-cols-2 gap-4">
             <div
-              onClick={() => !isPending && setRole("employer")}
+              onClick={() => handleRoleChange("employer")}
               className={cn(
                 "relative cursor-pointer rounded-lg border-2 p-4 text-center transition-all hover:bg-gray-50",
                 role === "employer" ? "border-purple-500 bg-purple-50" : "border-gray-200",
@@ -118,7 +195,7 @@ export function SignupForm() {
               <p className="font-semibold">Employer</p>
             </div>
             <div
-              onClick={() => !isPending && setRole("employee")}
+              onClick={() => handleRoleChange("employee")}
               className={cn(
                 "relative cursor-pointer rounded-lg border-2 p-4 text-center transition-all hover:bg-gray-50",
                 role === "employee" ? "border-purple-500 bg-purple-50" : "border-gray-200",
@@ -132,32 +209,35 @@ export function SignupForm() {
           </div>
 
           {role === "employer" ? employerFields : employeeFields}
+          
           <div>
             <Label htmlFor="email">Email</Label>
             <Input 
               id="email" 
-              name="email" 
               type="email" 
               placeholder="you@example.com" 
-              required 
               disabled={isPending}
+              {...register("email")}
             />
-            {state?.errors?.email && (
-              <p className="text-xs text-red-500 mt-1">{state.errors.email[0]}</p>
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
             )}
           </div>
+          
           <div>
             <Label htmlFor="password">Password</Label>
             <Input 
               id="password" 
-              name="password" 
               type="password" 
-              required 
               disabled={isPending}
+              {...register("password")}
             />
-            {state?.errors?.password && (
-              <p className="text-xs text-red-500 mt-1">{state.errors.password[0]}</p>
+            {errors.password && (
+              <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
             )}
+            <p className="text-xs text-gray-500 mt-1">
+              Password must be at least 8 characters with uppercase, lowercase, and number
+            </p>
           </div>
 
           {state && !state.success && state.message && (
@@ -167,7 +247,11 @@ export function SignupForm() {
             />
           )}
 
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isPending || (isFormSubmitted && !isValid)}
+          >
             <LoadingButton isLoading={isPending} loadingText="Creating Account...">
               Create Account
             </LoadingButton>
@@ -175,7 +259,7 @@ export function SignupForm() {
         </form>
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-purple-600 hover:underline">
+          <Link href="/auth/login" className="font-medium text-purple-600 hover:underline">
             Login
           </Link>
         </div>

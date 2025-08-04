@@ -1,7 +1,10 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +15,27 @@ import Link from "next/link"
 import { loginAction } from "@/app/auth/login/action"
 import { CheckCircle2 } from "lucide-react"
 
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required")
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
+
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false)
   const router = useRouter()
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    clearErrors
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange"
+  })
 
   useEffect(() => {
     if (state?.success) {
@@ -24,6 +45,17 @@ export function LoginForm() {
       }, 1000)
     }
   }, [state, router])
+
+  const onSubmit = (data: LoginFormData) => {
+    setIsFormSubmitted(true)
+    clearErrors()
+    
+    const formData = new FormData()
+    formData.append('email', data.email)
+    formData.append('password', data.password)
+    
+    formAction(formData)
+  }
 
   if (state?.success) {
     return (
@@ -51,27 +83,31 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
             <Input 
               id="email" 
-              name="email" 
               type="email" 
               placeholder="you@example.com" 
-              required 
               disabled={isPending}
+              {...register("email")}
             />
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
             <Input 
               id="password" 
-              name="password" 
               type="password" 
-              required 
               disabled={isPending}
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+            )}
           </div>
 
           {state && !state.success && state.message && (
@@ -87,7 +123,11 @@ export function LoginForm() {
               Forgot password?
             </Link>
           </div>
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isPending || (isFormSubmitted && !isValid)}
+          >
             <LoadingButton isLoading={isPending} loadingText="Logging in...">
               Login
             </LoadingButton>
