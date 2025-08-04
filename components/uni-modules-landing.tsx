@@ -2,14 +2,25 @@
 
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
+import { ImageErrorBoundaryWrapper } from "@/components/ui/image-error-boundary";
 import { motion } from "framer-motion";
 
 
 // Module data
 const programData = [
   {
-    logo: <img src="/uni hiring.png" alt="Uni-Hiring Logo" width={75} height={75} />,
+    logo: (
+      <OptimizedImage
+        src="/uni hiring.png"
+        alt="Uni-Hiring Logo"
+        width={75}
+        height={75}
+        fallbackSrc="/placeholder-logo.svg"
+        showLoadingState={false}
+        validateImageExists={true}
+      />
+    ),
     title: "Uni-Hiring",
     image: "/unihiring_tests.png",
     alt: "UnisonAI Hiring dashboard",
@@ -29,7 +40,17 @@ const programData = [
     ]
   },
   {
-    logo: <img src="/uni mngmnt.png" alt="Uni-Management Logo" width={48} height={48} />,
+    logo: (
+      <OptimizedImage
+        src="/uni mngmnt.png"
+        alt="Uni-Management Logo"
+        width={48}
+        height={48}
+        fallbackSrc="/placeholder-logo.svg"
+        showLoadingState={false}
+        validateImageExists={true}
+      />
+    ),
     title: "Uni-Management",
     image: "/uni management_ calendar.png",
     alt: "UnisonAI Management dashboard",
@@ -49,7 +70,17 @@ const programData = [
     ]
   },
   {
-    logo: <img src="/uni profile.png" alt="Uni-Profile Logo" width={90} height={90} />,
+    logo: (
+      <OptimizedImage
+        src="/uni profile.png"
+        alt="Uni-Profile Logo"
+        width={90}
+        height={90}
+        fallbackSrc="/placeholder-logo.svg"
+        showLoadingState={false}
+        validateImageExists={true}
+      />
+    ),
     title: "Uni-Profile",
     image: "/uni profile courses screen.png",
     alt: "UnisonAI Profile dashboard",
@@ -69,7 +100,17 @@ const programData = [
     ]
   },
   {
-    logo: <img src="/uni crm.png" alt="Uni-CRM Logo" width={50} height={50} />,
+    logo: (
+      <OptimizedImage
+        src="/uni crm.png"
+        alt="Uni-CRM Logo"
+        width={50}
+        height={50}
+        fallbackSrc="/placeholder-logo.svg"
+        showLoadingState={false}
+        validateImageExists={true}
+      />
+    ),
     title: "Uni-CRM",
     image: "/uni crm tasks.png",
     alt: "UnisonAI CRM dashboard",
@@ -141,7 +182,6 @@ export function UniModules() {
                   ))}
                 </div>
               </div>
-              {/* Image */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -149,15 +189,20 @@ export function UniModules() {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="flex justify-center"
               >
-                <Image
-                  src={program.image}
-                  alt={program.alt}
-                  width={2340}
-                  height={1560}
-                  className="rounded-2xl w-full max-w-5xl"
-                  style={{ maxHeight: 910, objectFit: "contain" }}
-                  priority={index === 0}
-                />
+                <ImageErrorBoundaryWrapper>
+                  <OptimizedImage
+                    src={program.image}
+                    alt={program.alt}
+                    width={2340}
+                    height={1560}
+                    className="rounded-2xl w-full max-w-5xl"
+                    style={{ maxHeight: 910, objectFit: "contain" }}
+                    priority={index === 0}
+                    fallbackSrc="/placeholder.svg"
+                    showLoadingState={true}
+                    validateImageExists={true}
+                  />
+                </ImageErrorBoundaryWrapper>
               </motion.div>
             </motion.div>
           ))}

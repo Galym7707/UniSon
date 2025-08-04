@@ -1,6 +1,7 @@
 "use client";
 
-import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
+import { ImageErrorBoundaryWrapper } from "@/components/ui/image-error-boundary";
 import { motion, easeInOut } from "framer-motion";
 
 const fadeInUp = {
@@ -28,23 +29,28 @@ export function Features() {
         >
           <div className="space-y-4">
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
-                          Unified digital platform
-                        </h2>
-                        <p className="text-base md:text-lg text-gray-700">
+              Unified digital platform
+            </h2>
+            <p className="text-base md:text-lg text-gray-700">
               All-in-one business solution to manage people, projects, and documents. A single working environment that unites the entire team and creates a common information space.
             </p>
           </div>
           <div className="px-2">
             <motion.div whileHover={{ scale: 1.01 }} transition={{ duration: 0.3 }}>
-              <Image
-                src="/unified digital platform2.png"
-                alt="Project Overview Dashboard"
-                width={1600}
-                height={1100}
-                className="w-full h-auto mx-auto"
-                priority
-                draggable={false}
-              />
+              <ImageErrorBoundaryWrapper>
+                <OptimizedImage
+                  src="/unified digital platform2.png"
+                  alt="Project Overview Dashboard"
+                  width={1600}
+                  height={1100}
+                  className="w-full h-auto mx-auto"
+                  priority
+                  draggable={false}
+                  fallbackSrc="/placeholder.svg"
+                  showLoadingState={true}
+                  validateImageExists={true}
+                />
+              </ImageErrorBoundaryWrapper>
             </motion.div>
           </div>
         </motion.div>
@@ -75,15 +81,20 @@ export function Features() {
               custom={i + 1}
             >
               <h3 className="text-xl md:text-2xl font-bold">{block.title}</h3>
-                            <p className="text-sm md:text-base text-gray-700">{block.desc}</p>
+              <p className="text-sm md:text-base text-gray-700">{block.desc}</p>
               <motion.div whileHover={{ scale: 1.01 }} transition={{ duration: 0.3 }}>
-                <Image
-                  src={block.src}
-                  alt={block.alt}
-                  width={block.src === "/team management.png" ? 1800 : 1300}
-                  height={block.src === "/team management.png" ? 900 : 900}
-                  className={`mx-auto h-auto ${block.src === "/team management.png" ? "w-full max-w-[98vw]" : "w-full"}`}
-                />
+                <ImageErrorBoundaryWrapper>
+                  <OptimizedImage
+                    src={block.src}
+                    alt={block.alt}
+                    width={block.src === "/team management.png" ? 1800 : 1300}
+                    height={block.src === "/team management.png" ? 900 : 900}
+                    className={`mx-auto h-auto ${block.src === "/team management.png" ? "w-full max-w-[98vw]" : "w-full"}`}
+                    fallbackSrc="/placeholder.svg"
+                    showLoadingState={true}
+                    validateImageExists={true}
+                  />
+                </ImageErrorBoundaryWrapper>
               </motion.div>
             </motion.div>
           ))}
@@ -115,15 +126,20 @@ export function Features() {
               custom={i + 3}
             >
               <h3 className="text-xl md:text-2xl font-bold">{block.title}</h3>
-                            <p className="text-sm md:text-base text-gray-700">{block.desc}</p>
+              <p className="text-sm md:text-base text-gray-700">{block.desc}</p>
               <motion.div whileHover={{ scale: 1.01 }} transition={{ duration: 0.3 }}>
-                <Image
-                  src={block.src}
-                  alt={block.alt}
-                  width={1300}
-                  height={900}
-                  className="w-full h-auto mx-auto"
-                />
+                <ImageErrorBoundaryWrapper>
+                  <OptimizedImage
+                    src={block.src}
+                    alt={block.alt}
+                    width={1300}
+                    height={900}
+                    className="w-full h-auto mx-auto"
+                    fallbackSrc="/placeholder.svg"
+                    showLoadingState={true}
+                    validateImageExists={true}
+                  />
+                </ImageErrorBoundaryWrapper>
               </motion.div>
             </motion.div>
           ))}
@@ -139,20 +155,25 @@ export function Features() {
           custom={5}
         >
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
-                      Transparent Audit & Trust
-                    </h2>
-                    <p className="mx-auto max-w-2xl text-base md:text-lg text-gray-700">
+            Transparent Audit & Trust
+          </h2>
+          <p className="mx-auto max-w-2xl text-base md:text-lg text-gray-700">
             Full transparency of factors, tracking HR processes via web3, and anti-ghost protocols.
           </p>
           <div className="px-2">
             <motion.div whileHover={{ scale: 1.01 }} transition={{ duration: 0.3 }}>
-              <Image
-                src="/team management.png"
-                alt="Team Management Dashboard"
-                width={1800}
-                height={900}
-                className="w-full max-w-[98vw] h-auto mx-auto"
-              />
+              <ImageErrorBoundaryWrapper>
+                <OptimizedImage
+                  src="/team management.png"
+                  alt="Team Management Dashboard"
+                  width={1800}
+                  height={900}
+                  className="w-full max-w-[98vw] h-auto mx-auto"
+                  fallbackSrc="/placeholder.svg"
+                  showLoadingState={true}
+                  validateImageExists={true}
+                />
+              </ImageErrorBoundaryWrapper>
             </motion.div>
           </div>
         </motion.div>
@@ -167,20 +188,25 @@ export function Features() {
           custom={6}
         >
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
-                      Continuous Growth Engine
-                    </h2>
-                    <p className="mx-auto max-w-2xl text-base md:text-lg text-gray-700">
+            Continuous Growth Engine
+          </h2>
+          <p className="mx-auto max-w-2xl text-base md:text-lg text-gray-700">
             Use Profile as a main growth driver for employees. AI analyzes skills, defines goals, and builds progress back into productivity and deal success.
           </p>
           <div className="px-2">
             <motion.div whileHover={{ scale: 1.01 }} transition={{ duration: 0.3 }}>
-              <Image
-                src="/team productivity trend.png"
-                alt="Team Productivity Trend Graph"
-                width={1800}
-                height={600}
-                className="w-full max-w-[98vw] h-auto mx-auto"
-              />
+              <ImageErrorBoundaryWrapper>
+                <OptimizedImage
+                  src="/team productivity trend.png"
+                  alt="Team Productivity Trend Graph"
+                  width={1800}
+                  height={600}
+                  className="w-full max-w-[98vw] h-auto mx-auto"
+                  fallbackSrc="/placeholder.svg"
+                  showLoadingState={true}
+                  validateImageExists={true}
+                />
+              </ImageErrorBoundaryWrapper>
             </motion.div>
           </div>
         </motion.div>

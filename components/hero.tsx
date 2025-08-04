@@ -2,7 +2,8 @@
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, PlayCircle } from "lucide-react"
-import Image from "next/image"
+import { OptimizedImage } from "@/components/ui/optimized-image"
+import { ImageErrorBoundaryWrapper } from "@/components/ui/image-error-boundary"
 import { motion } from "framer-motion"
 
 export function Hero() {
@@ -49,26 +50,29 @@ export function Hero() {
         </div>
       </motion.div>
       <div className="container mx-auto px-4 pb-20 md:px-6 md:pb-32 relative z-10 flex flex-col items-center gap-8">
-        {/* Hero image card, no container, no shadow, no ring, no blur */}
-        <Image
-          src="/hero page find your next role1.png"
-          alt="Find your next role preview"
-          width={1920}
-          height={600}
-          className="w-[98vw] max-w-[1920px] mx-auto rounded-2xl"
-          priority
-          draggable={false}
-          style={{
-            width: "98vw",
-            maxWidth: "1920px",
-            height: "auto",
-            display: "block",
-            marginLeft: "auto",
-            marginRight: "auto",
-            borderRadius: "1.5rem",
-          }}
-        />
-        {/* Video with play button overlay */}
+        <ImageErrorBoundaryWrapper>
+          <OptimizedImage
+            src="/hero page find your next role1.png"
+            alt="Find your next role preview"
+            width={1920}
+            height={600}
+            className="w-[98vw] max-w-[1920px] mx-auto rounded-2xl"
+            priority
+            draggable={false}
+            fallbackSrc="/placeholder.svg"
+            showLoadingState={true}
+            validateImageExists={true}
+            style={{
+              width: "98vw",
+              maxWidth: "1920px",
+              height: "auto",
+              display: "block",
+              marginLeft: "auto",
+              marginRight: "auto",
+              borderRadius: "1.5rem",
+            }}
+          />
+        </ImageErrorBoundaryWrapper>
       </div>
     </section>
   )
