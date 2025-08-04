@@ -1,6 +1,6 @@
 //app/layout.tsx
 
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { GlobalErrorBoundary } from '@/components/error-boundary'
@@ -17,9 +17,30 @@ try {
 }
 
 export const metadata: Metadata = {
-  title: 'Unison-AI',
-  description: 'Unison-AI platform for AI-powered tools and modules',
+  title: 'Unison-AI - AI-Powered Platform for Recruitment and Team Management',
+  description: 'UnisonAI unifies recruiting, CRM & projects in one powerful platform. Advance your entire organization with intelligent automation and AI-driven people analytics.',
   generator: 'Unison-AI',
+  keywords: 'AI recruitment, team management, CRM, project management, hiring platform, automation',
+  authors: [{ name: 'UnisonAI' }],
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: 'Unison-AI - AI-Powered Platform for Recruitment and Team Management',
+    description: 'UnisonAI unifies recruiting, CRM & projects in one powerful platform.',
+    type: 'website',
+    siteName: 'UnisonAI',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#0A2540',
 }
 
 export default function RootLayout({
@@ -29,7 +50,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="antialiased">
+        <a 
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-black focus:text-white focus:rounded focus:outline-none focus:ring-2 focus:ring-white"
+        >
+          Skip to main content
+        </a>
         <GlobalErrorBoundary>
           {children}
           <Toaster />

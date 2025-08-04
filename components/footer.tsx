@@ -1,88 +1,154 @@
 import { Logotype } from "@/components/logotype"
+import Link from "next/link"
 
 export function Footer() {
   return (
-    <footer id="footer" className="border-t border-gray-200 bg-white">
-      <div className="container mx-auto px-4 py-12 md:px-6">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="flex flex-col gap-4">
-            <a href="#" className="flex items-center gap-2">
+    <footer 
+      id="footer" 
+      className="border-t border-gray-200 bg-white" 
+      role="contentinfo"
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <div className="flex flex-col gap-4 sm:col-span-2 md:col-span-1">
+            <Link 
+              href="#" 
+              className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded"
+            >
               <Logotype className="h-8 w-8" />
               <span className="text-xl font-bold">UnisonAI</span>
-            </a>
-            <p className="text-sm text-gray-600">The all-in-one platform for high-performance teams.</p>
+            </Link>
+            <p className="text-sm text-gray-600 max-w-xs">
+              The all-in-one platform for high-performance teams.
+            </p>
           </div>
-          <div>
-            <h4 className="font-semibold">Product</h4>
-            <ul className="mt-4 space-y-2 text-sm">
+          
+          <nav className="space-y-4" aria-label="Product links">
+            <h4 className="font-semibold text-gray-900">Product</h4>
+            <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#features" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Features
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#pricing" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Pricing
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Integrations
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Changelog
-                </a>
+                </Link>
               </li>
             </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold">Company</h4>
-            <ul className="mt-4 space-y-2 text-sm">
+          </nav>
+          
+          <nav className="space-y-4" aria-label="Company links">
+            <h4 className="font-semibold text-gray-900">Company</h4>
+            <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   About
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Careers
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Blog
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Contact
-                </a>
+                </Link>
               </li>
             </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold">Legal</h4>
-            <ul className="mt-4 space-y-2 text-sm">
+          </nav>
+          
+          <nav className="space-y-4" aria-label="Legal links">
+            <h4 className="font-semibold text-gray-900">Legal</h4>
+            <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
+                <Link 
+                  href="#" 
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                >
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
-        <div className="mt-8 border-t border-gray-200 pt-8 text-center text-sm text-gray-500">
-          <p>Contact us:</p>
-          <p>Email: unisonai.app@gmail.com</p>
-          <p>Instagram: <a href="https://instagram.com/unisonai.app">@unisonai.app</a></p>
-          <p>&copy; {new Date().getFullYear()} UnisonAI, Inc. All rights reserved.</p>
+        
+        <div className="mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-500 space-y-2">
+          <div className="space-y-1">
+            <p><strong>Contact us:</strong></p>
+            <p>
+              Email: 
+              <a 
+                href="mailto:unisonai.app@gmail.com"
+                className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded ml-1 transition-colors"
+              >
+                unisonai.app@gmail.com
+              </a>
+            </p>
+            <p>
+              Instagram: 
+              <a 
+                href="https://instagram.com/unisonai.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded ml-1 transition-colors"
+              >
+                @unisonai.app
+              </a>
+            </p>
+          </div>
+          <p className="pt-4">
+            &copy; {new Date().getFullYear()} UnisonAI, Inc. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
