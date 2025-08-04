@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { logError, ErrorType } from '@/lib/error-handling'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +23,17 @@ export async function GET() {
 
     return NextResponse.json({ score: data?.score ?? null })
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Ошибка получения результата' }, { status: 500 })
+    const structuredError = logError('api-assessment-latest', err)
+    
+    // Return appropriate error response based on error type
+    const statusCode = structuredError.type === ErrorType.DATABASE ? 503 : 500
+    const message = structuredError.type === ErrorType.DATABASE 
+      ? 'Database temporarily unavailable' 
+      : 'Internal server error'
+    
+    return NextResponse.json({ 
+      error: message,
+      errorId: structuredError.id 
+    }, { status: statusCode })
   }
 }

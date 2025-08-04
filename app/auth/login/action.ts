@@ -68,19 +68,24 @@ export async function loginAction(_prev: any, form: FormData) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      logError('login-action', error)
+      const structuredError = logError('login-action', error, {
+        email: sanitizedEmail,
+        attemptedAt: new Date().toISOString()
+      })
       return { 
         success: false, 
-        message: getUserFriendlyErrorMessage(error)
+        message: getUserFriendlyErrorMessage(error),
+        errorId: structuredError.id
       }
     }
 
     return { success: true, message: 'Logged in successfully' }
   } catch (error) {
-    logError('login-action', error)
+    const structuredError = logError('login-action', error)
     return { 
       success: false, 
-      message: 'An unexpected error occurred. Please try again.' 
+      message: 'An unexpected error occurred. Please try again.',
+      errorId: structuredError.id
     }
   }
 }

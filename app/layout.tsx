@@ -3,6 +3,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
+import { GlobalErrorBoundary } from '@/components/error-boundary'
 
 // Validate environment variables at application startup
 import { getEnvironmentConfig } from '../lib/env'
@@ -29,8 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        <Toaster />
+        <GlobalErrorBoundary>
+          {children}
+          <Toaster />
+        </GlobalErrorBoundary>
       </body>
     </html>
   )

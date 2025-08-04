@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logError, ErrorType } from '@/lib/error-handling'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
@@ -8,7 +9,11 @@ export async function POST(req: NextRequest) {
     const { candidateProfile, jobRequirements } = await req.json()
 
     if (!GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 })
+      const structuredError = logError('gemini-api-config', new Error('Gemini API key not configured'))
+      return NextResponse.json({ 
+        error: 'Service configuration error',
+        errorId: structuredError.id 
+      }, { status: 500 })
     }
 
     const prompt = `
@@ -52,7 +57,23 @@ ${jobRequirements}
     })
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`)
+      const errorMessage = `HTTP ${response.status}: ${response.statusText}`
+      const structuredError = logError('gemini-api-request', new Error(errorMessage), {
+        status: response.status,
+        statusText: response.statusText,
+        apiUrl: GEMINI_API_URL
+      })
+      
+      const statusCode = response.status === 429 ? 429 : 
+                        response.status >= 500 ? 503 : 400
+      const message = response.status === 429 ? 'AI service rate limit exceeded. Please try again later.' :
+                     response.status >= 500 ? 'AI service temporarily unavailable' :
+                     'Invalid request to AI service'
+      
+      return NextResponse.json({ 
+        error: message,
+        errorId: structuredError.id 
+      }, { status: statusCode })
     }
 
     const data = await response.json()
@@ -65,10 +86,23 @@ ${jobRequirements}
     })
 
   } catch (error) {
-    console.error('Gemini analysis error:', error)
+    const structuredError = logError('gemini-analysis-error', error, {
+      hasApiKey: !!GEMINI_API_KEY,
+      candidateId: (req as any).candidateProfile?.id
+    })
+    
+    // Determine appropriate error response
+    const isNetworkError = error instanceof Error && 
+      (error.message.includes('fetch') || error.message.includes('network'))
+    
+    const statusCode = isNetworkError ? 503 : 500
+    const message = isNetworkError ? 
+      'Network error communicating with AI service' : 
+      'Failed to analyze candidate'
+    
     return NextResponse.json({ 
-      error: 'Failed to analyze candidate',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+      error: message,
+      errorId: structuredError.id
+    }, { status: statusCode })
   }
-} 
+}

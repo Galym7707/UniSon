@@ -123,10 +123,15 @@ export async function signupAction(_prev: unknown, formData: FormData) {
     })
 
     if (error) {
-      logError('signup-action', error)
+      const structuredError = logError('signup-action', error, {
+        email: parsed.data.email,
+        role: parsed.data.role,
+        attemptedAt: new Date().toISOString()
+      })
       return { 
         success: false, 
-        message: getUserFriendlyErrorMessage(error)
+        message: getUserFriendlyErrorMessage(error),
+        errorId: structuredError.id
       }
     }
 
@@ -136,10 +141,11 @@ export async function signupAction(_prev: unknown, formData: FormData) {
       role: parsed.data.role 
     }
   } catch (error) {
-    logError('signup-action', error)
+    const structuredError = logError('signup-action', error)
     return { 
       success: false, 
-      message: 'An unexpected error occurred. Please try again.' 
+      message: 'An unexpected error occurred. Please try again.',
+      errorId: structuredError.id
     }
   }
 }
