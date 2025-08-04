@@ -1,51 +1,21 @@
-"use server"
+'use server'
 
-import { z } from "zod"
-import { findUserByEmail } from "@/lib/db"
+import { createServerActionClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-})
+export async function loginAction(_prev: any, form: FormData) {
+  const email    = form.get('email') as string | null
+  const password = form.get('password') as string | null
 
-export async function loginAction(prevState: any, formData: FormData) {
-  const data = Object.fromEntries(formData)
-  const parsed = loginSchema.safeParse(data)
+  if (!email || !password)
+    return { success: false, message: 'Email and password are required' }
 
-  if (!parsed.success) {
-    return {
-      success: false,
-      message: "Invalid form data.",
-      errors: parsed.error.flatten().fieldErrors,
-    }
-  }
+  /* ───── важно:  БЕЗ await ───── */
+  const supabase = createServerActionClient({ cookies })
 
-  try {
-    // Simulate a network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    // Find the user in our mock database
-    const user = await findUserByEmail(parsed.data.email)
-
-    // In a real app, you would compare hashed passwords here.
-    // For this demo, we'll just check if the user exists.
-    if (!user) {
-      return {
-        success: false,
-        message: "Invalid email or password.",
-      }
-    }
-
-    // On success, return the user's role for redirection
-    return {
-      success: true,
-      message: "Login successful!",
-      role: user.role,
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: "An unexpected error occurred. Please try again.",
-    }
-  }
+  return error
+    ? { success: false, message: error.message }
+    : { success: true,  message: 'Logged in successfully' }
 }

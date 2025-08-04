@@ -1,47 +1,41 @@
+// 📁 app/auth/signup/action.ts
 "use server"
 
 import { z } from "zod"
-import { createUser } from "@/lib/db"
+import { cookies } from "next/headers"
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
 
 const signupSchema = z.object({
   role: z.enum(["employer", "employee"]),
   companyName: z.string().optional(),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  fullName: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(8),
 })
 
-export async function signupAction(prevState: any, formData: FormData) {
+export async function signupAction(_prev: unknown, formData: FormData) {
   const data = Object.fromEntries(formData)
   const parsed = signupSchema.safeParse(data)
+  if (!parsed.success)
+    return { success: false, message: "Invalid data", errors: parsed.error.flatten().fieldErrors }
 
-  if (!parsed.success) {
-    return {
-      success: false,
-      message: "Invalid form data. Please check your entries.",
-      errors: parsed.error.flatten().fieldErrors,
-    }
-  }
+  const cookieStore = await cookies()
+  const supabase = createServerActionClient({ cookies: () => cookieStore })
 
-  try {
-    // Simulate a delay for network latency
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+  const { error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      // сохраняем роль и прочее в user_metadata
+      data: {
+        role: parsed.data.role,
+        fullName: parsed.data.fullName,
+        companyName: parsed.data.companyName ?? null,
+      },
+    },
+  })
 
-    // Simulate creating a user in the database
-    const user = await createUser(parsed.data)
-    console.log("User created:", user)
+  if (error) return { success: false, message: error.message }
 
-    // On success, return a success message and the user's role
-    // In a real app, you would redirect the user here.
-    return {
-      success: true,
-      message: "Account created successfully!",
-      role: parsed.data.role,
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: "Failed to create account. Please try again.",
-    }
-  }
+  return { success: true, message: "Account created!", role: parsed.data.role }
 }

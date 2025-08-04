@@ -1,3 +1,5 @@
+//app/employer/dashboard/page.tsx
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +74,13 @@ export default function EmployerDashboard() {
             >
               <Building2 className="w-5 h-5 mr-3" />
               Профиль компании
+            </Link>
+            <Link
+              href="/employer/candidates"
+              className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+            >
+              <Users className="w-5 h-5 mr-3" />
+              Кандидаты
             </Link>
           </nav>
         </div>

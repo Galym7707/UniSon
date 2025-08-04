@@ -1,3 +1,5 @@
+//app/auth/signup/page.tsx
+
 import { SignupForm } from "@/components/signup-form"
 import { Logotype } from "@/components/logotype"
 import Link from "next/link"

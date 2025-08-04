@@ -1,88 +1,127 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, ArrowRight } from "lucide-react"
-import Link from "next/link"
+// 📁 app/job-seeker/test/page.tsx
+// Updated psychological test page (10 questions, Likert scale)
 
-export default function PersonalityTest() {
-  const currentStep = 1
-  const totalSteps = 5
-  const progress = (currentStep / totalSteps) * 100
+'use client'
+
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { useRouter } from 'next/navigation'
+
+const questions = [
+  { q: 'Before making a decision, I thoroughly analyze all aspects of the problem.' },
+  { q: 'I enjoy working in a team to achieve a common goal.' },
+  { q: 'I often suggest new and unconventional ideas for solving work tasks.' },
+  { q: 'I show initiative and take on new tasks independently without instructions.' },
+  { q: 'I quickly adapt to changes in the work environment.' },
+  { q: 'I easily understand the emotions and feelings of other people.' },
+  { q: 'I can clearly and understandably express my thoughts when communicating with colleagues.' },
+  { q: 'I am responsible in fulfilling my duties.' },
+  { q: 'I can plan my time and complete tasks on time.' },
+  { q: 'In stressful situations, I remain calm and efficient.' }
+]
+
+export default function TestPage() {
+  const [answers, setAnswers] = useState<number[]>(Array(10).fill(0))
+  const [current, setCurrent] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+
+  const handleSelect = (val: number) => {
+    const newAnswers = [...answers]
+    newAnswers[current] = val
+    setAnswers(newAnswers)
+  }
+
+  const handleNext = async () => {
+    if (current < questions.length - 1) {
+      setCurrent(current + 1)
+    } else {
+      setSubmitting(true)
+      setError(null)
+      
+      try {
+        console.log('Submitting test answers:', answers)
+        const response = await fetch('/api/assessment/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answers }),
+        })
+
+        const result = await response.json()
+        console.log('API response:', result)
+
+        if (!response.ok) {
+          throw new Error(result.error || result.details || 'Failed to submit test')
+        }
+
+        if (result.success) {
+          router.push('/job-seeker/results')
+        } else {
+          throw new Error(result.error || 'Failed to save results')
+        }
+      } catch (err) {
+        console.error('Test submission error:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        setSubmitting(false)
+      }
+    }
+  }
+
+  const progress = ((current + 1) / questions.length) * 100
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
       <div className="w-full max-w-3xl">
-        <div className="text-center mb-8">
-          <Link href="/job-seeker/dashboard" className="text-xl font-bold text-[#0A2540]">
-            Unison AI
-          </Link>
-          <p className="text-[#333333] mt-2">Анализ личности для лучшего подбора вакансий</p>
-        </div>
-
         <Card className="shadow-xl border-0">
-          <CardHeader className="text-center pb-6">
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-sm text-[#333333] mb-2">
-                <span>
-                  Шаг {currentStep} из {totalSteps}
-                </span>
-                <span>{Math.round(progress)}% завершено</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-[#0A2540]">Расскажите о себе</CardTitle>
-            <CardDescription className="text-[#333333]">
-              Ваши ответы помогут нам лучше понять вашу личность и подобрать идеальные вакансии
-            </CardDescription>
+          <CardHeader>
+            <CardTitle className="text-center text-2xl font-bold text-[#0A2540]">
+              Psychological Test ({current + 1} / {questions.length})
+            </CardTitle>
+            <Progress value={progress} className="mt-4" />
           </CardHeader>
-
-          <CardContent className="space-y-8">
-            <div className="bg-gradient-to-r from-[#00C49A]/10 to-[#FF7A00]/10 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-[#0A2540] mb-4">
-                Опишите ваш самый большой провал и чему он вас научил?
-              </h3>
-              <p className="text-sm text-[#333333] mb-4">
-                Будьте честны и конкретны. Расскажите о ситуации, ваших действиях, результате и выводах, которые вы
-                сделали.
-              </p>
-
-              <Textarea
-                placeholder="Начните писать здесь... Например: 'В моем первом проекте я недооценил сложность задачи и не смог уложиться в дедлайн. Это научило меня...'"
-                className="min-h-[200px] border-gray-200 focus:border-[#00C49A] focus:ring-[#00C49A] text-base"
-              />
+          <CardContent className="space-y-6">
+            <h2 className="text-lg font-semibold text-[#0A2540]">
+              {questions[current].q}
+            </h2>
+            <div className="flex justify-between">
+              {[1, 2, 3, 4, 5].map(value => (
+                <Button
+                  key={value}
+                  variant={answers[current] === value ? 'default' : 'outline'}
+                  className="w-12 h-12"
+                  onClick={() => handleSelect(value)}
+                  disabled={submitting}
+                >
+                  {value}
+                </Button>
+              ))}
             </div>
-
-            <div className="flex items-center justify-between pt-6">
-              <Button
-                variant="outline"
-                className="flex items-center border-gray-300 text-[#333333] bg-transparent"
-                disabled={currentStep === 1}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Назад
-              </Button>
-
-              <div className="flex space-x-2">
-                {Array.from({ length: totalSteps }, (_, i) => (
-                  <div
-                    key={i}
-                    className={`w-3 h-3 rounded-full ${i + 1 <= currentStep ? "bg-[#00C49A]" : "bg-gray-200"}`}
-                  />
-                ))}
+            
+            {error && (
+              <div className="text-center text-red-600 bg-red-50 p-3 rounded-lg">
+                {error}
               </div>
-
-              <Button className="flex items-center bg-[#00C49A] hover:bg-[#00A085]">
-                Далее
-                <ArrowRight className="w-4 h-4 ml-2" />
+            )}
+            
+            <div className="text-center">
+              <Button
+                className="bg-[#00C49A] hover:bg-[#00A085]"
+                disabled={answers[current] === 0 || submitting}
+                onClick={handleNext}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : current === questions.length - 1 ? 'Complete' : 'Next'}
               </Button>
             </div>
           </CardContent>
         </Card>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-[#333333]">Все ваши ответы конфиденциальны и используются только для анализа</p>
-        </div>
       </div>
     </div>
   )

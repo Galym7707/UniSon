@@ -1,3 +1,7 @@
+//app/employer/candidates/[id]/page.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,53 +25,128 @@ import {
   TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
+import { createBrowserClient } from '@/lib/supabase/browser'
 
-export default function CandidateProfile() {
-  const candidate = {
-    name: "Алексей Петров",
-    avatar: "/placeholder.svg?height=80&width=80",
-    title: "Senior Frontend Developer",
-    location: "Москва",
-    email: "alexey.petrov@email.com",
-    phone: "+7 (999) 123-45-67",
-    experience: "5 лет",
-    matchScore: 92,
-    skills: ["React", "TypeScript", "Node.js", "GraphQL", "Docker", "AWS"],
-    summary:
-      "Опытный фронтенд-разработчик с 5-летним стажем в создании современных веб-приложений. Специализируюсь на React и TypeScript, имею опыт работы с микросервисной архитектурой и облачными технологиями.",
-    experience_details: [
-      {
-        position: "Senior Frontend Developer",
-        company: "TechStart",
-        period: "2022 - настоящее время",
-        description:
-          "Разработка и поддержка крупного SaaS-продукта на React/TypeScript. Руководство командой из 3 разработчиков, внедрение best practices и code review процессов.",
-      },
-      {
-        position: "Frontend Developer",
-        company: "WebStudio",
-        period: "2020 - 2022",
-        description:
-          "Создание интерактивных веб-приложений для e-commerce. Оптимизация производительности, интеграция с REST API и GraphQL.",
-      },
-    ],
-    education: [
-      {
-        degree: "Бакалавр",
-        field: "Информатика и вычислительная техника",
-        institution: "МГУ им. М.В. Ломоносова",
-        year: "2019",
-      },
-    ],
-    aiAnalysis: {
-      problemSolving: 88,
-      initiative: 92,
-      teamwork: 85,
-      adaptability: 90,
-      culturalFit: 87,
-      summary:
-        "Кандидат демонстрирует высокий уровень технических навыков и лидерских качеств. Аналитический склад ума и проактивный подход к решению задач делают его идеальным для senior-позиций. Хорошо работает в команде, но также способен принимать самостоятельные решения.",
-    },
+type CandidateProfile = {
+  id: string
+  first_name: string
+  last_name: string
+  title: string
+  summary: string
+  experience: string
+  skills: string
+  resume_url: string | null
+  test_results?: {
+    scores: {
+      analytical_thinking: number
+      teamwork: number
+      creativity: number
+      initiative: number
+      adaptability: number
+      empathy: number
+    }
+    overall_score: number
+  }
+}
+
+type GeminiAnalysis = {
+  analysis: string
+  matchScore: number
+}
+
+export default function CandidateProfile({ params }: { params: { id: string } }) {
+  const [candidate, setCandidate] = useState<CandidateProfile | null>(null)
+  const [geminiAnalysis, setGeminiAnalysis] = useState<GeminiAnalysis | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [analyzing, setAnalyzing] = useState(false)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const loadCandidate = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', params.id)
+          .single()
+
+        if (error) {
+          console.error('Error loading candidate:', error)
+          return
+        }
+
+        setCandidate(data)
+        
+        // Try to get existing analysis or create new one
+        await analyzeCandidate(data)
+      } catch (error) {
+        console.error('Error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCandidate()
+  }, [params.id, supabase])
+
+  const analyzeCandidate = async (candidateData: CandidateProfile) => {
+    setAnalyzing(true)
+    try {
+      // Mock job requirements for now - in real app this would come from job posting
+      const jobRequirements = `
+        Требования к позиции Senior Frontend Developer:
+        - Опыт работы с React, TypeScript
+        - Знание современных инструментов разработки
+        - Умение работать в команде
+        - Инициативность и самостоятельность
+        - Адаптивность к изменениям
+      `
+
+      const response = await fetch('/api/gemini/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateProfile: candidateData,
+          jobRequirements
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGeminiAnalysis({
+          analysis: data.analysis,
+          matchScore: candidateData.test_results?.overall_score || 75
+        })
+      }
+    } catch (error) {
+      console.error('Error analyzing candidate:', error)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+          <p className="text-[#333333]">Загрузка профиля кандидата...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!candidate) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#333333] mb-4">Кандидат не найден</p>
+          <Link href="/employer/dashboard">
+            <Button className="bg-[#00C49A] hover:bg-[#00A085]">Вернуться к дашборду</Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -93,29 +172,20 @@ export default function CandidateProfile() {
               <CardContent className="p-6">
                 <div className="flex items-start space-x-6">
                   <Avatar className="w-20 h-20">
-                    <AvatarImage src={candidate.avatar || "/placeholder.svg"} />
+                    <AvatarImage src={candidate.resume_url || "/placeholder.svg"} />
                     <AvatarFallback>
-                      {candidate.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {candidate.first_name?.[0]}{candidate.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-[#0A2540] mb-2">{candidate.name}</h2>
+                    <h2 className="text-2xl font-bold text-[#0A2540] mb-2">
+                      {candidate.first_name} {candidate.last_name}
+                    </h2>
                     <p className="text-lg text-[#333333] mb-3">{candidate.title}</p>
                     <div className="flex items-center space-x-6 text-sm text-[#333333]">
                       <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {candidate.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-1" />
-                        {candidate.email}
-                      </div>
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-1" />
-                        {candidate.phone}
+                        <Briefcase className="w-4 h-4 mr-1" />
+                        {candidate.experience || 'Опыт не указан'}
                       </div>
                     </div>
                   </div>
@@ -153,51 +223,17 @@ export default function CandidateProfile() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {candidate.experience_details.map((exp, index) => (
-                    <div key={index} className="relative">
-                      {index !== candidate.experience_details.length - 1 && (
-                        <div className="absolute left-4 top-8 w-px h-16 bg-gray-200"></div>
-                      )}
-                      <div className="flex items-start space-x-4">
-                        <div className="w-8 h-8 bg-[#FF7A00] rounded-full flex items-center justify-center flex-shrink-0">
-                          <div className="w-3 h-3 bg-white rounded-full"></div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-[#0A2540]">{exp.position}</h4>
-                          <p className="text-[#333333] font-medium">{exp.company}</p>
-                          <p className="text-sm text-gray-500 mb-2">{exp.period}</p>
-                          <p className="text-sm text-[#333333] leading-relaxed">{exp.description}</p>
-                        </div>
-                      </div>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-8 bg-[#FF7A00] rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Education */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#0A2540] flex items-center">
-                  <GraduationCap className="w-5 h-5 mr-2" />
-                  Образование
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {candidate.education.map((edu, index) => (
-                  <div key={index} className="flex items-start space-x-4">
-                    <div className="w-8 h-8 bg-[#00C49A] rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-[#0A2540]">{edu.degree}</h4>
-                      <p className="text-[#333333]">{edu.field}</p>
-                      <p className="text-sm text-gray-500">
-                        {edu.institution} • {edu.year}
+                    <div className="flex-1">
+                      <p className="text-sm text-[#333333] leading-relaxed">
+                        {candidate.experience || 'Опыт работы не указан'}
                       </p>
                     </div>
                   </div>
-                ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -208,11 +244,13 @@ export default function CandidateProfile() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {candidate.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="px-3 py-1">
-                      {skill}
+                  {candidate.skills ? candidate.skills.split(',').map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="px-3 py-1">
+                      {skill.trim()}
                     </Badge>
-                  ))}
+                  )) : (
+                    <p className="text-gray-500">Навыки не указаны</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -239,14 +277,18 @@ export default function CandidateProfile() {
                       fill="none"
                       stroke="#FF7A00"
                       strokeWidth="2"
-                      strokeDasharray={`${candidate.matchScore}, 100`}
+                      strokeDasharray={`${geminiAnalysis?.matchScore || candidate.test_results?.overall_score || 75}, 100`}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-[#FF7A00]">{candidate.matchScore}</span>
+                    <span className="text-3xl font-bold text-[#FF7A00]">
+                      {geminiAnalysis?.matchScore || candidate.test_results?.overall_score || 75}
+                    </span>
                   </div>
                 </div>
-                <p className="text-[#333333]">Отличное соответствие позиции</p>
+                <p className="text-[#333333]">
+                  {analyzing ? 'Анализируем...' : 'Соответствие позиции'}
+                </p>
               </CardContent>
             </Card>
 
@@ -256,58 +298,75 @@ export default function CandidateProfile() {
                 <CardTitle className="text-[#0A2540]">ИИ-анализ личности</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Brain className="w-4 h-4 text-[#FF7A00]" />
-                      <span className="text-sm">Решение проблем</span>
+                {candidate.test_results ? (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Brain className="w-4 h-4 text-[#FF7A00]" />
+                          <span className="text-sm">Аналитическое мышление</span>
+                        </div>
+                        <span className="text-sm font-medium">{candidate.test_results.scores.analytical_thinking}%</span>
+                      </div>
+                      <Progress value={candidate.test_results.scores.analytical_thinking} className="h-2" />
                     </div>
-                    <span className="text-sm font-medium">{candidate.aiAnalysis.problemSolving}%</span>
-                  </div>
-                  <Progress value={candidate.aiAnalysis.problemSolving} className="h-2" />
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Target className="w-4 h-4 text-[#00C49A]" />
-                      <span className="text-sm">Инициативность</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Target className="w-4 h-4 text-[#00C49A]" />
+                          <span className="text-sm">Инициативность</span>
+                        </div>
+                        <span className="text-sm font-medium">{candidate.test_results.scores.initiative}%</span>
+                      </div>
+                      <Progress value={candidate.test_results.scores.initiative} className="h-2" />
                     </div>
-                    <span className="text-sm font-medium">{candidate.aiAnalysis.initiative}%</span>
-                  </div>
-                  <Progress value={candidate.aiAnalysis.initiative} className="h-2" />
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-[#0A2540]" />
-                      <span className="text-sm">Командная работа</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-4 h-4 text-[#0A2540]" />
+                          <span className="text-sm">Командная работа</span>
+                        </div>
+                        <span className="text-sm font-medium">{candidate.test_results.scores.teamwork}%</span>
+                      </div>
+                      <Progress value={candidate.test_results.scores.teamwork} className="h-2" />
                     </div>
-                    <span className="text-sm font-medium">{candidate.aiAnalysis.teamwork}%</span>
-                  </div>
-                  <Progress value={candidate.aiAnalysis.teamwork} className="h-2" />
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-4 h-4 text-[#FF7A00]" />
-                      <span className="text-sm">Адаптивность</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="w-4 h-4 text-[#FF7A00]" />
+                          <span className="text-sm">Адаптивность</span>
+                        </div>
+                        <span className="text-sm font-medium">{candidate.test_results.scores.adaptability}%</span>
+                      </div>
+                      <Progress value={candidate.test_results.scores.adaptability} className="h-2" />
                     </div>
-                    <span className="text-sm font-medium">{candidate.aiAnalysis.adaptability}%</span>
-                  </div>
-                  <Progress value={candidate.aiAnalysis.adaptability} className="h-2" />
-                </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-center">Результаты теста недоступны</p>
+                )}
 
                 <Separator />
 
-                <div className="bg-gradient-to-r from-[#00C49A]/10 to-[#FF7A00]/10 p-4 rounded-lg">
-                  <h4 className="font-semibold text-[#0A2540] mb-2">
-                    Культурное соответствие: {candidate.aiAnalysis.culturalFit}%
-                  </h4>
-                  <p className="text-sm text-[#333333] leading-relaxed">{candidate.aiAnalysis.summary}</p>
-                </div>
+                {analyzing ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C49A] mx-auto mb-2"></div>
+                    <p className="text-sm text-[#333333]">Анализируем кандидата...</p>
+                  </div>
+                ) : geminiAnalysis ? (
+                  <div className="bg-gradient-to-r from-[#00C49A]/10 to-[#FF7A00]/10 p-4 rounded-lg">
+                    <h4 className="font-semibold text-[#0A2540] mb-2">Анализ Gemini</h4>
+                    <div className="text-sm text-[#333333] leading-relaxed whitespace-pre-line">
+                      {geminiAnalysis.analysis}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">Анализ недоступен</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

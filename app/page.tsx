@@ -1,3 +1,5 @@
+//app/page.tsx
+
 "use client";
 
 import { Hero } from "@/components/hero"

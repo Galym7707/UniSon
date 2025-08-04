@@ -1,6 +1,7 @@
 "use client"
 
 import { useActionState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,19 +12,16 @@ import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
+  const router = useRouter()
 
   useEffect(() => {
     if (state?.success) {
-      // Redirect based on role
-      if (state.role === "employer") {
-        window.location.href = "/employer/dashboard"
-      } else if (state.role === "employee" || state.role === "job-seeker") {
-        window.location.href = "/job-seeker/dashboard"
-      } else {
-        window.location.href = "/"
-      }
+      // Wait a bit for cookies to be set, then redirect
+      setTimeout(() => {
+        router.push("/job-seeker/dashboard")
+      }, 1000)
     }
-  }, [state])
+  }, [state, router])
 
   if (state?.success) {
     return (
@@ -59,7 +57,7 @@ export function LoginForm() {
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required defaultValue="password" />
+            <Input id="password" name="password" type="password" required />
             {state?.errors?.password && <p className="text-xs text-red-500 mt-1">{state.errors.password[0]}</p>}
           </div>
 
@@ -82,7 +80,7 @@ export function LoginForm() {
         </form>
         <div className="mt-4 text-center text-sm">
           Don't have an account?{" "}
-          <Link href="/signup" className="font-medium text-purple-600 hover:underline">
+          <Link href="/auth/signup" className="font-medium text-purple-600 hover:underline">
             Sign up
           </Link>
         </div>

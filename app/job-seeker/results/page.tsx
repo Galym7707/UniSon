@@ -1,18 +1,130 @@
+// 📁 app/job-seeker/results/page.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Brain, Target, Users, Lightbulb, TrendingUp, Heart, Download, Share2 } from "lucide-react"
 import Link from "next/link"
+import { createBrowserClient } from '@/lib/supabase/browser'
+
+type TestResults = {
+  scores: {
+    analytical_thinking: number
+    teamwork: number
+    creativity: number
+    initiative: number
+    adaptability: number
+    empathy: number
+  }
+  overall_score: number
+  completed_at: string
+}
 
 export default function PersonalityResults() {
+  const [results, setResults] = useState<TestResults | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const loadResults = async () => {
+      try {
+        console.log('Loading test results...')
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        
+        if (authError) {
+          console.error('Auth error:', authError)
+          setError('Authentication error')
+          setLoading(false)
+          return
+        }
+        
+        if (!user) {
+          console.log('No user found')
+          setError('No user found')
+          setLoading(false)
+          return
+        }
+
+        console.log('Fetching profile for user:', user.id)
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('test_results')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Profile fetch error:', profileError)
+          setError('Failed to load profile')
+          setLoading(false)
+          return
+        }
+
+        console.log('Profile data:', data)
+        if (data?.test_results) {
+          console.log('Test results found:', data.test_results)
+          setResults(data.test_results)
+        } else {
+          console.log('No test results found')
+        }
+        setLoading(false)
+      } catch (err) {
+        console.error('Unexpected error:', err)
+        setError('An unexpected error occurred')
+        setLoading(false)
+      }
+    }
+
+    loadResults()
+  }, [supabase])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+          <p className="text-[#333333]">Loading results...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#333333] mb-4">Error: {error}</p>
+          <Link href="/job-seeker/test">
+            <Button className="bg-[#00C49A] hover:bg-[#00A085]">Take Test</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!results) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#333333] mb-4">No test results found</p>
+          <Link href="/job-seeker/test">
+            <Button className="bg-[#00C49A] hover:bg-[#00A085]">Take Test</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const personalityTraits = [
-    { name: "Аналитическое мышление", score: 85, icon: Brain, color: "bg-blue-500" },
-    { name: "Командная работа", score: 78, icon: Users, color: "bg-green-500" },
-    { name: "Инициативность", score: 92, icon: Target, color: "bg-purple-500" },
-    { name: "Креативность", score: 71, icon: Lightbulb, color: "bg-yellow-500" },
-    { name: "Адаптивность", score: 88, icon: TrendingUp, color: "bg-orange-500" },
-    { name: "Эмпатия", score: 76, icon: Heart, color: "bg-pink-500" },
+    { name: "Analytical Thinking", score: results.scores.analytical_thinking, icon: Brain, color: "bg-blue-500" },
+    { name: "Teamwork", score: results.scores.teamwork, icon: Users, color: "bg-green-500" },
+    { name: "Initiative", score: results.scores.initiative, icon: Target, color: "bg-purple-500" },
+    { name: "Creativity", score: results.scores.creativity, icon: Lightbulb, color: "bg-yellow-500" },
+    { name: "Adaptability", score: results.scores.adaptability, icon: TrendingUp, color: "bg-orange-500" },
+    { name: "Empathy", score: results.scores.empathy, icon: Heart, color: "bg-pink-500" },
   ]
 
   return (
@@ -22,7 +134,7 @@ export default function PersonalityResults() {
           <Link href="/job-seeker/dashboard" className="text-2xl font-bold text-[#0A2540]">
             Unison AI
           </Link>
-          <p className="text-[#333333] mt-2">Результаты анализа личности</p>
+          <p className="text-[#333333] mt-2">Personality Analysis Results</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -31,15 +143,15 @@ export default function PersonalityResults() {
             {/* Overall Score */}
             <Card className="shadow-xl border-0">
               <CardHeader className="text-center">
-                <CardTitle className="text-3xl font-bold text-[#0A2540]">Ваши сильные стороны</CardTitle>
-                <CardDescription className="text-lg">Анализ на основе ваших ответов и опыта</CardDescription>
+                <CardTitle className="text-3xl font-bold text-[#0A2540]">Your Strengths</CardTitle>
+                <CardDescription className="text-lg">Analysis based on your answers and experience</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center mb-8">
                   <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-r from-[#00C49A] to-[#FF7A00] text-white text-4xl font-bold mb-4">
-                    82%
+                    {results.overall_score}%
                   </div>
-                  <p className="text-[#333333] text-lg">Общий показатель соответствия IT-сфере</p>
+                  <p className="text-[#333333] text-lg">Overall IT field compatibility score</p>
                 </div>
               </CardContent>
             </Card>
@@ -47,8 +159,8 @@ export default function PersonalityResults() {
             {/* Personality Traits */}
             <Card className="shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-[#0A2540]">Детальный анализ личности</CardTitle>
-                <CardDescription>Ваши ключевые характеристики и их влияние на работу</CardDescription>
+                <CardTitle className="text-[#0A2540]">Detailed Personality Analysis</CardTitle>
+                <CardDescription>Your key characteristics and their impact on work</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-6">
@@ -78,18 +190,18 @@ export default function PersonalityResults() {
             {/* Problem Solving Style */}
             <Card className="shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-[#0A2540]">Стиль решения проблем</CardTitle>
+                <CardTitle className="text-[#0A2540]">Problem Solving Style</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="bg-gradient-to-r from-[#00C49A]/10 to-[#FF7A00]/10 p-6 rounded-lg">
                   <div className="flex items-center space-x-3 mb-4">
                     <Brain className="w-8 h-8 text-[#00C49A]" />
-                    <h3 className="text-xl font-semibold text-[#0A2540]">Аналитический подход</h3>
+                    <h3 className="text-xl font-semibold text-[#0A2540]">Analytical Approach</h3>
                   </div>
                   <p className="text-[#333333] leading-relaxed">
-                    Вы предпочитаете тщательно анализировать проблемы, собирать данные и принимать взвешенные решения.
-                    Ваш подход к решению задач основан на логике и фактах, что делает вас ценным специалистом в
-                    технических проектах.
+                    You prefer to thoroughly analyze problems, gather data, and make informed decisions.
+                    Your approach to problem-solving is based on logic and facts, making you a valuable
+                    specialist in technical projects.
                   </p>
                 </div>
               </CardContent>
@@ -101,16 +213,16 @@ export default function PersonalityResults() {
             {/* Work Style */}
             <Card className="shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-[#0A2540]">Предпочтительный стиль работы</CardTitle>
+                <CardTitle className="text-[#0A2540]">Preferred Work Style</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 bg-[#00C49A]/10 rounded-lg">
                   <Users className="w-6 h-6 text-[#00C49A]" />
-                  <span className="font-medium text-[#0A2540]">Командный игрок</span>
+                  <span className="font-medium text-[#0A2540]">Team Player</span>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-100 rounded-lg">
                   <Target className="w-6 h-6 text-gray-500" />
-                  <span className="text-[#333333]">Независимый специалист</span>
+                  <span className="text-[#333333]">Independent Specialist</span>
                 </div>
               </CardContent>
             </Card>
@@ -118,13 +230,13 @@ export default function PersonalityResults() {
             {/* Motivational Factors */}
             <Card className="shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-[#0A2540]">Мотивационные факторы</CardTitle>
+                <CardTitle className="text-[#0A2540]">Motivational Factors</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <Badge className="w-full justify-center py-2 bg-[#00C49A] text-white">Профессиональный рост</Badge>
-                  <Badge className="w-full justify-center py-2 bg-[#FF7A00] text-white">Интересные задачи</Badge>
-                  <Badge className="w-full justify-center py-2 bg-[#0A2540] text-white">Командная работа</Badge>
+                  <Badge className="w-full justify-center py-2 bg-[#00C49A] text-white">Professional Growth</Badge>
+                  <Badge className="w-full justify-center py-2 bg-[#FF7A00] text-white">Interesting Tasks</Badge>
+                  <Badge className="w-full justify-center py-2 bg-[#0A2540] text-white">Teamwork</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -132,23 +244,23 @@ export default function PersonalityResults() {
             {/* Actions */}
             <Card className="shadow-xl border-0">
               <CardHeader>
-                <CardTitle className="text-[#0A2540]">Действия</CardTitle>
+                <CardTitle className="text-[#0A2540]">Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button className="w-full bg-[#00C49A] hover:bg-[#00A085]">
                   <Download className="w-4 h-4 mr-2" />
-                  Скачать отчет
+                  Download Report
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full border-[#FF7A00] text-[#FF7A00] hover:bg-[#FF7A00] hover:text-white bg-transparent"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Поделиться
+                  Share
                 </Button>
                 <Link href="/job-seeker/search" className="block">
                   <Button variant="outline" className="w-full bg-transparent">
-                    Найти подходящие вакансии
+                    Find Suitable Jobs
                   </Button>
                 </Link>
               </CardContent>
