@@ -162,6 +162,12 @@ const getUserContext = (): ErrorContext => {
   return context
 }
 
+export const logInfo = (ctx: string, payload: any) => {
+  console.info(`ℹ️ [${ctx}]`, payload)
+  /* optionally insert into Supabase edge_logs */
+}
+
+
 // Enhanced centralized error logging
 export const logError = (context: string, error: any, userContext?: ErrorContext): StructuredError => {
   const errorType = classifyError(error)
@@ -217,6 +223,10 @@ export const getUserFriendlyErrorMessage = (error: any): string => {
   const message = getErrorMessage(error)
   
   // Common Supabase auth errors
+  if (message.includes('User already registered')) return 'E-mail already registered'
+
+  if (message.includes('Email rate limit')) return 'Too many signup attempts – try later'
+
   if (message.includes('Invalid login credentials')) {
     return 'Invalid email or password. Please check your credentials and try again.'
   }

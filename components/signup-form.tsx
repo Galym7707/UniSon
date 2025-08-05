@@ -15,157 +15,134 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { signupAction } from "@/app/auth/signup/action"
 
-type Role = "employer" | "employee"
+// --------------
+// Типы и схемы
+// --------------
 
-// Password strength regex: at least 8 chars, 1 uppercase, 1 lowercase, 1 number
+/** Возможные роли пользователя */
+export type Role = "employer" | "job-seeker"
+
+// пароль: ≥ 8 символов, 1 верхний, 1 нижний регистр, цифра
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
 
-const baseSignupSchema = z.object({
-  role: z.enum(["employer", "employee"]),
-  fullName: z.string()
+const baseSchema = z.object({
+  role: z.enum(["employer", "job-seeker"]),
+  fullName: z
+    .string()
     .min(2, "Full name must be at least 2 characters")
     .max(50, "Full name must be less than 50 characters")
     .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Full name can only contain letters, spaces, apostrophes, and hyphens"),
-  email: z.string()
-    .email("Please enter a valid email address")
-    .max(255, "Email must be less than 255 characters"),
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(passwordRegex, "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number")
+  email: z.string().email("Please enter a valid email address").max(255),
+  password: z.string().regex(passwordRegex, {
+    message: "Password must be at least 8 characters and include upper‑ & lowercase letters and a number",
+  }),
 })
 
-const signupSchema = baseSignupSchema.extend({
-  companyName: z.string()
-    .min(2, "Company name must be at least 2 characters")
-    .max(100, "Company name must be less than 100 characters")
-    .regex(/^[a-zA-ZÀ-ÿ0-9\s'.,&-]+$/, "Company name contains invalid characters")
-    .optional()
-}).refine((data) => {
-  if (data.role === "employer" && !data.companyName) {
-    return false
-  }
-  return true
-}, {
-  message: "Company name is required for employers",
-  path: ["companyName"]
-})
+const signupSchema = baseSchema
+  .extend({
+    companyName: z
+      .string()
+      .min(2, "Company name must be at least 2 characters")
+      .max(100, "Company name must be less than 100 characters")
+      .regex(/^[a-zA-ZÀ-ÿ0-9\s'.,&-]+$/, "Company name contains invalid characters")
+      .optional(),
+  })
+  .refine(
+    (data) => (data.role === "employer" ? !!data.companyName : true),
+    {
+      message: "Company name is required for employers",
+      path: ["companyName"],
+    },
+  )
 
-type SignupFormData = z.infer<typeof signupSchema>
+export type SignupFormData = z.infer<typeof signupSchema>
 
+// --------------------------
+// Компонент формы регистрации
+// --------------------------
 export function SignupForm() {
   const [state, formAction, isPending] = useActionState(signupAction, null)
   const [role, setRole] = useState<Role>("employer")
-  const [isFormSubmitted, setIsFormSubmitted] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
+  // react‑hook‑form
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
     clearErrors,
-    watch
+    watch,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     mode: "onChange",
-    defaultValues: {
-      role: "employer"
-    }
+    defaultValues: { role: "employer" },
   })
 
+  // следим за значением из формы, чтобы schema не расходилась
   const watchedRole = watch("role")
 
+  // перенаправление после успешной регистрации
   useEffect(() => {
-    if (state?.success) {
-      // Redirect based on selected role
-      if (role === "employer") {
-        window.location.href = "/employer/dashboard"
-      } else if (role === "employee" || role === "job-seeker") {
-        window.location.href = "/job-seeker/dashboard"
-      } else {
-        window.location.href = "/"
-      }
-    }
+    if (!state?.success) return
+
+    const url = role === "employer" ? "/employer/dashboard" : "/job-seeker/dashboard"
+    const timer = setTimeout(() => (window.location.href = url), 1200)
+    return () => clearTimeout(timer)
   }, [state, role])
 
+  // ---------------- handlers ----------------
   const onSubmit = (data: SignupFormData) => {
-    setIsFormSubmitted(true)
+    setSubmitted(true)
     clearErrors()
-    
-    const formData = new FormData()
-    formData.append('role', data.role)
-    formData.append('fullName', data.fullName)
-    formData.append('email', data.email)
-    formData.append('password', data.password)
-    if (data.companyName) {
-      formData.append('companyName', data.companyName)
-    }
-    
-    formAction(formData)
+
+    const fd = new FormData()
+    fd.append("role", data.role)
+    fd.append("fullName", data.fullName)
+    fd.append("email", data.email)
+    fd.append("password", data.password)
+    if (data.companyName) fd.append("companyName", data.companyName)
+
+    formAction(fd)
   }
 
-  const handleRoleChange = (newRole: Role) => {
-    if (!isPending) {
-      setRole(newRole)
-    }
-  }
+  const handleRolePick = (picked: Role) => !isPending && setRole(picked)
 
-  const employerFields = (
+  // ---------------- UI helpers ----------------
+  const EmployerExtraFields = (
     <>
       <div>
         <Label htmlFor="companyName">Company Name</Label>
-        <Input 
-          id="companyName" 
-          placeholder="Your Company Inc." 
-          disabled={isPending}
-          {...register("companyName")}
-        />
-        {errors.companyName && (
-          <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>
-        )}
+        <Input id="companyName" placeholder="Your Company Inc." disabled={isPending} {...register("companyName")} />
+        {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
       </div>
       <div>
         <Label htmlFor="fullName">Your Full Name</Label>
-        <Input 
-          id="fullName" 
-          placeholder="John Doe" 
-          disabled={isPending}
-          {...register("fullName")}
-        />
-        {errors.fullName && (
-          <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>
-        )}
+        <Input id="fullName" placeholder="John Doe" disabled={isPending} {...register("fullName")} />
+        {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
       </div>
     </>
   )
 
-  const employeeFields = (
+  const JobSeekerExtraFields = (
     <div>
       <Label htmlFor="fullName">Full Name</Label>
-      <Input 
-        id="fullName" 
-        placeholder="Jane Smith" 
-        disabled={isPending}
-        {...register("fullName")}
-      />
-      {errors.fullName && (
-        <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>
-      )}
+      <Input id="fullName" placeholder="Jane Smith" disabled={isPending} {...register("fullName")} />
+      {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
     </div>
   )
 
+  // ---------------- Render ----------------
   if (state?.success) {
     return (
       <Card>
-        <CardHeader className="text-center">
+        <CardHeader className="text-center space-y-2">
           <CheckCircle2 className="mx-auto h-12 w-12 text-green-500" />
           <CardTitle className="text-2xl">Success!</CardTitle>
           <CardDescription>{state.message}</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-sm text-gray-600">
-            You will be redirected shortly. If not, click the button below.
-          </p>
           <Button asChild className="w-full mt-4">
-            <Link href="/construction">Continue</Link>
+            <Link href="/">Continue</Link>
           </Button>
         </CardContent>
       </Card>
@@ -176,94 +153,84 @@ export function SignupForm() {
     <Card>
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Create an account</CardTitle>
-        <CardDescription>Choose your role to get started with UnisonAI.</CardDescription>
+        <CardDescription>Select your role to start using Unison AI.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <input type="hidden" {...register("role")} value={role} />
-          <div className="mb-6 grid grid-cols-2 gap-4">
+          {/* скрытое поле роли, чтобы react-hook-form видел актуальное значение */}
+          <input type="hidden" value={role} {...register("role")} />
+
+          {/* ---- выбор роли ---- */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {/* Employer */}
             <div
-              onClick={() => handleRoleChange("employer")}
+              onClick={() => handleRolePick("employer")}
               className={cn(
                 "relative cursor-pointer rounded-lg border-2 p-4 text-center transition-all hover:bg-gray-50",
                 role === "employer" ? "border-purple-500 bg-purple-50" : "border-gray-200",
-                isPending && "opacity-50 cursor-not-allowed"
+                isPending && "opacity-50 cursor-not-allowed",
               )}
             >
               {role === "employer" && <CheckCircle2 className="absolute right-2 top-2 h-5 w-5 text-purple-600" />}
               <Building2 className="mx-auto mb-2 h-8 w-8 text-gray-600" />
               <p className="font-semibold">Employer</p>
             </div>
+
+            {/* Job‑seeker */}
             <div
-              onClick={() => handleRoleChange("employee")}
+              onClick={() => handleRolePick("job-seeker")}
               className={cn(
                 "relative cursor-pointer rounded-lg border-2 p-4 text-center transition-all hover:bg-gray-50",
-                role === "employee" ? "border-purple-500 bg-purple-50" : "border-gray-200",
-                isPending && "opacity-50 cursor-not-allowed"
+                role === "job-seeker" ? "border-purple-500 bg-purple-50" : "border-gray-200",
+                isPending && "opacity-50 cursor-not-allowed",
               )}
             >
-              {role === "employee" && <CheckCircle2 className="absolute right-2 top-2 h-5 w-5 text-purple-600" />}
+              {role === "job-seeker" && <CheckCircle2 className="absolute right-2 top-2 h-5 w-5 text-purple-600" />}
               <User className="mx-auto mb-2 h-8 w-8 text-gray-600" />
-              <p className="font-semibold">Employee</p>
+              <p className="font-semibold">Job seeker</p>
             </div>
           </div>
 
-          {role === "employer" ? employerFields : employeeFields}
-          
+          {/* ---- специфичные поля ---- */}
+          {role === "employer" ? EmployerExtraFields : JobSeekerExtraFields}
+
+          {/* ---- e‑mail ---- */}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="you@example.com" 
-              disabled={isPending}
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
-            )}
+            <Input id="email" type="email" placeholder="you@example.com" disabled={isPending} {...register("email")} />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
           </div>
-          
+
+          {/* ---- пароль ---- */}
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password" 
-              type="password" 
-              disabled={isPending}
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Password must be at least 8 characters with uppercase, lowercase, and number
-            </p>
+            <Input id="password" type="password" disabled={isPending} {...register("password")} />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+            <p className="text-xs text-gray-500 mt-1">At least 8 chars with upper/lowercase and a number</p>
           </div>
 
+          {/* ---- ошибки ---- */}
           {state && !state.success && state.message && (
-            <ErrorDisplay 
-              error={state.message}
-              variant="card"
-            />
+            <ErrorDisplay error={state.message} variant="card" />
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isPending || (isFormSubmitted && !isValid)}
-          >
-            <LoadingButton isLoading={isPending} loadingText="Creating Account...">
-              Create Account
+          {/* ---- submit ---- */}
+          <Button type="submit" className="w-full" disabled={isPending || (submitted && !isValid)}>
+            <LoadingButton isLoading={isPending} loadingText="Creating…">
+              Create account
             </LoadingButton>
           </Button>
         </form>
-        <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
+
+        <p className="mt-4 text-center text-sm">
+          Already have an account?{' '}
           <Link href="/auth/login" className="font-medium text-purple-600 hover:underline">
-            Login
+            Log&nbsp;in
           </Link>
-        </div>
+        </p>
       </CardContent>
     </Card>
   )
 }
+
+export default SignupForm

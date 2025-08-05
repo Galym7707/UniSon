@@ -87,11 +87,45 @@ export default function JobSeekerSettings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const supabase = createBrowserClient()
+  const [deleting, setDeleting]   = useState(false)
+  const [deleteMsg, setDeleteMsg] = useState<{type:'success'|'error',text:string}|null>(null)
 
   useEffect(() => {
     loadSettings()
   }, [])
 
+  const handleDeleteAccount = async () => {
+    if (!confirm('Delete account and all data? This cannot be undone.')) return
+    try {
+      setDeleting(true)
+      setDeleteMsg(null)
+  
+      const res = await fetch('/api/user/delete', { method: 'DELETE' })
+      if (!res.ok) throw new Error(await res.text())
+  
+      setDeleteMsg({ type: 'success', text: 'Account deleted — goodbye!' })
+      await supabase.auth.signOut()
+      window.location.href = '/'
+    } catch (err) {
+      console.error(err)
+      setDeleteMsg({ type: 'error', text: 'Failed to delete account.' })
+    } finally {
+      setDeleting(false)
+    }
+  }
+  {/* Replace the Delete Account button with the following */}
+  <Button
+    variant="destructive"
+    disabled={deleting}
+    onClick={handleDeleteAccount}
+  >
+    {deleting ? 'Deleting…' : 'Delete account'}
+  </Button>
+  {deleteMsg && (
+    <p className={`mt-2 text-sm ${deleteMsg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+      {deleteMsg.text}
+    </p>
+  )}
   const loadSettings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
