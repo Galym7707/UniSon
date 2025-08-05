@@ -21,3 +21,19 @@ export function getSupabaseServer() {
   }
   return _supabase;
 }
+
+export function createServerSupabase() {
+  const cookieStore = cookies();   // ← awaited implicitly in async RSC
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => cookieStore.get(name)?.value,
+        set: async (name, value, options) => cookieStore.set({ name, value, ...options }),
+        remove: async (name, options) => cookieStore.delete({ name, ...options }),
+      },
+    },
+  );
+}
