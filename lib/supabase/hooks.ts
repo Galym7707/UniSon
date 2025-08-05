@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from './browser'
+import { supabase } from './browser'
 import { useAsyncOperation } from '../error-handling'
 
 // Hook for getting current user with error handling
@@ -9,7 +9,6 @@ export const useUser = () => {
 
   useEffect(() => {
     const loadUser = async () => {
-      const supabase = createBrowserClient()
       return supabase.auth.getUser()
     }
 
@@ -28,8 +27,6 @@ export const useAuthState = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createBrowserClient()
-    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -59,7 +56,6 @@ export const useSupabaseQuery = <T>(
   const { isLoading, error, execute } = useAsyncOperation()
 
   const refetch = () => {
-    const supabase = createBrowserClient()
     execute(() => queryFn(supabase), 'supabase-query', {
       onSuccess: (result) => setData(result.data),
     })
@@ -84,7 +80,6 @@ export const useSupabaseMutation = <T, P = any>(
   const { isLoading, error, execute } = useAsyncOperation()
 
   const mutate = async (params: P) => {
-    const supabase = createBrowserClient()
     return execute(
       async () => {
         const result = await mutationFn(supabase, params)

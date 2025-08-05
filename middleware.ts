@@ -64,13 +64,12 @@ export async function middleware(req: NextRequest) {
     })
   }
 
-  if (isProtected && !session) {
-    // Bounce unauthenticated users to the login page and remember where they
-    // came from so we can send them back afterwards.
-    const loginUrl = req.nextUrl.clone()
-    loginUrl.pathname = '/auth/login'
-    loginUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
-    return NextResponse.redirect(loginUrl)
+  // 🚧 пускаем только если email подтверждён
+  const isConfirmed = !!session?.user?.email_confirmed_at
+
+  if (isProtected && (!session || !isConfirmed)) {
+    const url = isConfirmed ? "/auth/login" : "/auth/verify-email"
+    return NextResponse.redirect(new URL(url, req.url))
   }
 
   // Everything OK → continue.

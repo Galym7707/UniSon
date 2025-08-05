@@ -11,69 +11,61 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@/lib/supabase/browser'
+import { getSupabaseBrowser } from '@/lib/supabase/browser'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
-import { ensureUserProfile } from '@/lib/profile-fallback'
 
 export default function JobSeekerDashboard() {
+  /* state */
   const [profilePct, setProfilePct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [profileCreated, setProfileCreated] = useState(false)
 
-  /* ───────── fetch profile completeness ───────── */
+  /* --- load profile --- */
   useEffect(() => {
+    let isMounted = true
+
     const loadProfileData = async () => {
       try {
         setLoading(true)
-        setError(null)
+        const supabase = getSupabaseBrowser()
 
-        // Use profile fallback to ensure profile exists
-        const { profile, error: fallbackError, wasCreated } = await ensureUserProfile()
+        /** 1️⃣  БЕРЁМ getSession, а не getUser */
+        const {
+          data: { session },
+          error: sessionErr,
+        } = await supabase.auth.getSession()
 
-        if (fallbackError) {
-          throw new Error(fallbackError)
+        if (sessionErr) throw sessionErr
+        if (!session?.user) throw new Error("No authenticated user found")
+
+        /** 2️⃣  профиль гарантированно создан в момент signup → PGRST116 исчезнет */
+        const { data, error: profileErr } = await supabase
+          .from("profiles")
+          .select("first_name,last_name,title,summary,experience,skills")
+          .eq("id", session.user.id)
+          .maybeSingle()
+
+        if (profileErr) throw profileErr
+
+        if (isMounted && data) {
+          const filled = Object.values(data).filter((v) => v && v !== "").length
+          setProfilePct(Math.round((filled / 6) * 100))
         }
-
-        if (!profile) {
-          throw new Error('Unable to load or create profile. Please try refreshing the page.')
-        }
-
-        // Set state based on whether profile was just created
-        setProfileCreated(wasCreated)
-
-        // Calculate profile completeness with validation
-        const profileFields = [
-          profile.first_name,
-          profile.last_name,
-          profile.title,
-          profile.summary,
-          profile.experience,
-          profile.skills
-        ]
-        
-        const filled = profileFields.filter(v => v && typeof v === 'string' && v.trim() !== '').length
-        const completeness = Math.round((filled / 6) * 100)
-        
-        // Ensure completeness is a valid number
-        setProfilePct(isNaN(completeness) ? 0 : completeness)
-
       } catch (err) {
-        const msg = getUserFriendlyErrorMessage(err)
-        logError('job-seeker-dashboard', err, {
-          timestamp: new Date().toISOString(),
-          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
-        })
-        setError(msg)
+        setError(getUserFriendlyErrorMessage(err))
+        logError("job-seeker-dashboard", err)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     loadProfileData()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const retry = () => window.location.reload()
@@ -149,25 +141,7 @@ export default function JobSeekerDashboard() {
             </h2>
 
             {/* Show success message if profile was just created */}
-            {profileCreated && !loading && !error && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <div className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center mt-1">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-green-800">
-                      <span className="font-semibold">Profile created successfully!</span> Your profile has been automatically set up using your account information.
-                    </p>
-                    <p className="text-green-700 text-sm mt-1">
-                      Complete your profile now to get better job matches and increase your visibility to employers.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* This section is removed as per the new_code, as the profile creation logic is now handled by PGRST116 */}
 
             {/* Show error message if profile creation/loading failed */}
             {error && !loading && (
@@ -248,7 +222,8 @@ export default function JobSeekerDashboard() {
                           <span className="text-2xl font-bold text-[#00C49A]">{profilePct}%</span>
                           <Link href="/job-seeker/profile">
                             <Button variant="outline" size="sm">
-                              {profileCreated ? 'Complete profile' : profilePct < 50 ? 'Set up profile' : 'Finish profile'}
+                              {/* This button text is now less relevant as profile creation is handled by PGRST116 */}
+                              Complete profile
                             </Button>
                           </Link>
                         </div>

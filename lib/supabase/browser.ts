@@ -1,32 +1,70 @@
-// 📁 lib/supabase/browser.ts
-import { createClient } from '@supabase/supabase-js'
-import { getSupabaseConfig, EnvironmentValidationError } from '../env'
-import { logError } from '../error-handling'
+// lib/supabase/browser.ts – **client‑side singleton**
+"use client";
 
-export const createBrowserClient = () => {
-  try {
-    const { url, anonKey } = getSupabaseConfig()
-    
-    return createClient(url, anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
-  } catch (error) {
-    // For build time, return a mock client when environment validation fails
-    if (typeof window === 'undefined' && error instanceof EnvironmentValidationError) {
-      logError('supabase-browser-client-build', error)
-      console.warn('Supabase environment variables not properly configured during build - using placeholder client')
-      return createClient('https://placeholder.supabase.co', 'placeholder-key', {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-    }
-    
-    // Log the error for runtime usage
-    logError('supabase-browser-client-runtime', error)
-    
-    // Re-throw the error for runtime usage to get helpful error messages
-    throw error
-  }
+import { createBrowserClient as _createBrowserClient } from "@supabase/ssr";
+
+// ---------------------------------------------------------------------------
+// Environment
+// ---------------------------------------------------------------------------
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseKey) {
+  // Fail fast – it is better to surface a clear error than to silently
+  // instantiate the client with an undefined URL / key.
+  throw new Error(
+    "Supabase env vars are missing. Did you set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY?"
+  );
 }
+
+// ---------------------------------------------------------------------------
+// Singleton helper
+// ---------------------------------------------------------------------------
+let _supabase:
+  | ReturnType<typeof _createBrowserClient>
+  | null = null;
+
+/**
+ * Always returns the **same** `SupabaseClient` instance in the browser.
+ *
+ * ```ts
+ * import { getSupabaseBrowser } from "@/lib/supabase/browser";
+ * const supabase = getSupabaseBrowser();
+ * ```
+ */
+export function getSupabaseBrowser() {
+  if (!_supabase) {
+    _supabase = _createBrowserClient(supabaseUrl, supabaseKey, {
+      persistSession: true,
+      autoRefreshToken: true,
+    });
+  }
+  return _supabase;
+}
+
+// ---------------------------------------------------------------------------
+// ️🔄  Backwards‑compat helpers ------------------------------------------------
+// ---------------------------------------------------------------------------
+/**
+ * Some legacy components still import `{ createBrowserClient }` from this file
+ * and call it without arguments – e.g.:
+ *
+ * ```ts
+ * const supabase = createBrowserClient();
+ * ```
+ *
+ * To avoid a sweeping refactor we keep a shim that simply delegates to
+ * `getSupabaseBrowser()`.
+ */
+export function createBrowserClient() {
+  return getSupabaseBrowser();
+}
+
+/**
+ * For code that imported a pre‑built `supabase` object:
+ *
+ * ```ts
+ * import { supabase } from "@/lib/supabase/browser";
+ * ```
+ */
+export const supabase = getSupabaseBrowser();
