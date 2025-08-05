@@ -21,6 +21,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LoadingSpinner, LoadingButton } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
+import { ensureUserProfile, ProfileData } from '@/lib/profile-fallback'
 
 /* ─────────────── type ─────────────── */
 type Profile = {
@@ -33,24 +34,68 @@ type Profile = {
   resume_url : string | null
 }
 
-export default function ClientProfileShell({ initial }:{
-  initial: Partial<Profile>|null
-}) {
+export default function ClientProfileShell() {
   const supabase = createBrowserClient()
 
   /* ---------- state ---------- */
   const [form, setForm] = useState<Profile>({
-    first_name : initial?.first_name ?? '',
-    last_name  : initial?.last_name  ?? '',
-    title      : initial?.title      ?? '',
-    summary    : initial?.summary    ?? '',
-    experience : initial?.experience ?? '',
-    skills     : initial?.skills     ?? '',
-    resume_url : initial?.resume_url ?? null
+    first_name : '',
+    last_name  : '',
+    title      : '',
+    summary    : '',
+    experience : '',
+    skills     : '',
+    resume_url : null
   })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [profileCreated, setProfileCreated] = useState(false)
+
+  /* ---------- load profile with fallback ---------- */
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Use profile fallback to ensure profile exists
+        const { profile, error: fallbackError, wasCreated } = await ensureUserProfile()
+
+        if (fallbackError) {
+          throw new Error(fallbackError)
+        }
+
+        if (!profile) {
+          throw new Error('Unable to load or create profile')
+        }
+
+        // Set state based on whether profile was just created
+        setProfileCreated(wasCreated)
+
+        // Populate form with profile data
+        setForm({
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          title: profile.title || '',
+          summary: profile.summary || '',
+          experience: profile.experience || '',
+          skills: profile.skills || '',
+          resume_url: profile.resume_url || null
+        })
+
+      } catch (err) {
+        const errorMessage = getUserFriendlyErrorMessage(err)
+        logError('profile-shell-load', err)
+        setError(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [])
 
   /* ---------- derived ---------- */
   const completeness = Math.round(
@@ -141,6 +186,14 @@ export default function ClientProfileShell({ initial }:{
   const clearError = () => setError(null)
 
   /* ============================================================ */
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* ========== SIDEBAR ========== */}
@@ -167,6 +220,16 @@ export default function ClientProfileShell({ initial }:{
             </LoadingButton>
           </Button>
         </div>
+
+        {/* Show success message if profile was just created */}
+        {profileCreated && !error && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800">
+              <span className="font-semibold">Profile created successfully!</span> Your profile has been automatically set up using your account information. 
+              Complete the remaining fields to get better job matches.
+            </p>
+          </div>
+        )}
 
         {/* Error display */}
         {error && (

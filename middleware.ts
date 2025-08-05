@@ -1,6 +1,6 @@
 // 📁 middleware.ts
 // Global middleware used by Next.js (edge runtime)
-// 1. Boots a Supabase server‑side client that understands Next cookies.
+// 1. Boots a Supabase server‑side client that understands Next cookies.
 // 2. Redirects any unauthenticated visitor away from protected routes.
 // 3. Mirrors any cookie mutations Supabase makes (sign‑in / sign‑out) back to the
 //    browser via `NextResponse`.
@@ -50,7 +50,7 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getSession()
 
   // -------------------------
-  // 2.  PROTECTED ROUTE CHECK
+  // 2.  PROTECTED ROUTE CHECK
   // -------------------------
   const protectedPrefixes = ['/job-seeker', '/employer']
   const isProtected = protectedPrefixes.some(prefix => req.nextUrl.pathname.startsWith(prefix))
@@ -78,10 +78,9 @@ export async function middleware(req: NextRequest) {
 }
 
 /**
- * The matcher tells Next which routes should invoke this middleware. *Non‑auth*
+ * The matcher tells Next which routes should invoke this middleware. *Non‑auth*
  * pages stay ultra‑fast because they bypass the edge runtime completely.
  */
 export const config = {
   matcher: ['/job-seeker/:path*', '/employer/:path*']
 }
-c

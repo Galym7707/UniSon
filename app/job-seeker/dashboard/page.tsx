@@ -4,7 +4,7 @@
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
   Progress, Badge, Button
-} from '@ui'
+} from '@/components/ui'
 import {
   LayoutDashboard, User, Search, Settings, Eye, Calendar,
   MapPin, Clock, Heart, Brain, Menu, X
@@ -15,12 +15,14 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
+import { ensureUserProfile } from '@/lib/profile-fallback'
 
 export default function JobSeekerDashboard() {
   const [profilePct, setProfilePct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [profileCreated, setProfileCreated] = useState(false)
 
   /* ───────── fetch profile completeness ───────── */
   useEffect(() => {
@@ -29,31 +31,33 @@ export default function JobSeekerDashboard() {
         setLoading(true)
         setError(null)
 
-        const supabase = createBrowserClient()
+        // Use profile fallback to ensure profile exists
+        const { profile, error: fallbackError, wasCreated } = await ensureUserProfile()
 
-        /* берем session, а не просто user ― так надёжнее */
-        const { data: { session }, error: sessionErr } =
-          await supabase.auth.getSession()
-
-        if (sessionErr) throw sessionErr
-        if (!session?.user) throw new Error('Auth session missing')
-
-        /* читаем профиль по id пользователя */
-        const { data, error: profileErr } = await supabase
-          .from('profiles')
-          .select('first_name,last_name,title,summary,experience,skills')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profileErr && profileErr.code !== 'PGRST116') throw profileErr
-
-        if (data) {
-          const filled = Object.values(data).filter(v => v && v !== '').length
-          setProfilePct(Math.round((filled / 6) * 100))
-        } else {
-          /* нет строки профиля ⇒ 0 % */
-          setProfilePct(0)
+        if (fallbackError) {
+          throw new Error(fallbackError)
         }
+
+        if (!profile) {
+          throw new Error('Unable to load or create profile')
+        }
+
+        // Set state based on whether profile was just created
+        setProfileCreated(wasCreated)
+
+        // Calculate profile completeness
+        const profileFields = [
+          profile.first_name,
+          profile.last_name,
+          profile.title,
+          profile.summary,
+          profile.experience,
+          profile.skills
+        ]
+        
+        const filled = profileFields.filter(v => v && v.trim() !== '').length
+        setProfilePct(Math.round((filled / 6) * 100))
+
       } catch (err) {
         const msg = getUserFriendlyErrorMessage(err)
         logError('job-seeker-dashboard', err)
@@ -138,6 +142,16 @@ export default function JobSeekerDashboard() {
               Welcome back, <span className="text-[#00C49A]">Friend</span>!
             </h2>
 
+            {/* Show success message if profile was just created */}
+            {profileCreated && !loading && !error && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800">
+                  <span className="font-semibold">Profile created successfully!</span> Your profile has been automatically set up. 
+                  Complete it now to get better job matches.
+                </p>
+              </div>
+            )}
+
             {/* ===== GRID ===== */}
             <div className="grid xl:grid-cols-3 gap-8">
               {/* LEFT */}
@@ -193,7 +207,9 @@ export default function JobSeekerDashboard() {
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-2xl font-bold text-[#00C49A]">{profilePct}%</span>
                           <Link href="/job-seeker/profile">
-                            <Button variant="outline" size="sm">Finish profile</Button>
+                            <Button variant="outline" size="sm">
+                              {profileCreated ? 'Complete profile' : 'Finish profile'}
+                            </Button>
                           </Link>
                         </div>
                         <Progress value={profilePct} className="h-3" />
