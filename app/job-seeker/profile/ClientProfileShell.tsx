@@ -118,11 +118,27 @@ export default function ClientProfileShell() {
       setError(null)
       
       const file = e.target.files[0]
+      
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Please upload a PDF, DOC, or DOCX file.')
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File size must be less than 10MB.')
+      }
+      
       const ext = file.name.split('.').pop()
       
       const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError) throw authError
-      if (!user) throw new Error('User not authenticated')
+      if (authError) {
+        throw new Error(`Authentication error: ${authError.message}`)
+      }
+      if (!user) {
+        throw new Error('User not authenticated. Please sign in again.')
+      }
       
       const path = `${user.id}.${ext}`
 
@@ -130,17 +146,37 @@ export default function ClientProfileShell() {
         .from('resumes')
         .upload(path, file, { upsert: true })
       
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        // Handle specific storage errors
+        if (uploadError.message.includes('Invalid file type')) {
+          throw new Error('Invalid file type. Please upload a PDF, DOC, or DOCX file.')
+        }
+        if (uploadError.message.includes('File too large')) {
+          throw new Error('File is too large. Please upload a file smaller than 10MB.')
+        }
+        if (uploadError.message.includes('Storage quota exceeded')) {
+          throw new Error('Storage quota exceeded. Please contact support.')
+        }
+        throw new Error(`Resume upload failed: ${uploadError.message}`)
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('resumes')
         .getPublicUrl(path)
       
+      if (!publicUrl) {
+        throw new Error('Failed to generate resume URL. Please try again.')
+      }
+      
       setForm(f => ({ ...f, resume_url: publicUrl }))
-      showSuccessToast('Resume uploaded successfully')
+      showSuccessToast('Resume uploaded successfully', 'Your resume is now attached to your profile.')
     } catch (err) {
       const errorMessage = getUserFriendlyErrorMessage(err)
-      logError('resume-upload', err)
+      logError('resume-upload', err, {
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        fileSize: e.target.files?.[0]?.size,
+        fileType: e.target.files?.[0]?.type
+      })
       setError(errorMessage)
       showErrorToast(err, 'resume-upload')
     } finally {
@@ -158,25 +194,85 @@ export default function ClientProfileShell() {
   
       /* get the logged-in user */
       const { data: { user }, error: authErr } = await supabase.auth.getUser()
-      if (authErr) throw authErr
-      if (!user) throw new Error('User not authenticated')
+      if (authErr) {
+        throw new Error(`Authentication error: ${authErr.message}`)
+      }
+      if (!user) {
+        throw new Error('User not authenticated. Please sign in again.')
+      }
+
+      // Validate required fields
+      if (!form.first_name?.trim()) {
+        throw new Error('First name is required')
+      }
+      if (!form.last_name?.trim()) {
+        throw new Error('Last name is required')
+      }
+
+      // Prepare profile data with proper validation
+      const profileData = {
+        id: user.id,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        title: form.title?.trim() || '',
+        summary: form.summary?.trim() || '',
+        experience: form.experience?.trim() || '',
+        skills: form.skills?.trim() || '',
+        resume_url: form.resume_url,
+        updated_at: new Date().toISOString()
+      }
   
-      /* upsert profile */
-      const { error: upsertError } = await supabase
+      /* upsert profile with comprehensive error handling */
+      const { data: savedProfile, error: upsertError } = await supabase
         .from('profiles')
-        .upsert({ 
-          id: user.id, 
-          ...form, 
-          updated_at: new Date().toISOString() 
+        .upsert(profileData, {
+          onConflict: 'id',
+          ignoreDuplicates: false
         })
+        .select()
+        .single()
   
-      if (upsertError) throw upsertError
+      if (upsertError) {
+        // Handle specific database errors
+        if (upsertError.code === '23505') {
+          throw new Error('Profile already exists. Please refresh the page and try again.')
+        }
+        if (upsertError.code === '23502') {
+          throw new Error('Required profile information is missing. Please fill in all required fields.')
+        }
+        if (upsertError.code === '42501') {
+          throw new Error('You do not have permission to update this profile.')
+        }
+        if (upsertError.code === '42P01') {
+          throw new Error('Database error: profiles table not found. Please contact support.')
+        }
+        if (upsertError.code === '23514') {
+          throw new Error('Invalid profile data. Please check your input and try again.')
+        }
+        throw new Error(`Profile save failed: ${upsertError.message}`)
+      }
+
+      // Verify the profile was actually saved
+      if (!savedProfile) {
+        throw new Error('Profile was not saved properly. Please try again.')
+      }
       
-      showSuccessToast('Profile saved successfully')
+      showSuccessToast(
+        'Profile saved successfully',
+        profileCreated ? 'Your profile is now set up and ready!' : 'Your profile has been updated.'
+      )
       setProfileCreated(false) // Clear the first-time setup message
     } catch (err) {
       const errorMessage = getUserFriendlyErrorMessage(err)
-      logError('profile-save', err)
+      logError('profile-save', err, {
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        profileData: { 
+          hasFirstName: !!form.first_name, 
+          hasLastName: !!form.last_name,
+          hasTitle: !!form.title,
+          hasSummary: !!form.summary
+        }
+      })
       setError(errorMessage)
       showErrorToast(err, 'profile-save')
     } finally {
@@ -185,6 +281,7 @@ export default function ClientProfileShell() {
   }
 
   const clearError = () => setError(null)
+  const retryLoad = () => window.location.reload()
 
   /* ============================================================ */
   if (loading) {
@@ -248,17 +345,25 @@ export default function ClientProfileShell() {
               <CardHeader>
                 <CardTitle className="text-red-600">Unable to Load Profile</CardTitle>
                 <CardDescription>
-                  We encountered an issue loading your profile data.
+                  We encountered an issue loading your profile data. This could be due to a network error or temporary server issue.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ErrorDisplay error={error} onDismiss={clearError} />
-                <Button 
-                  onClick={() => window.location.reload()} 
-                  className="mt-4 bg-[#00C49A] hover:bg-[#00A085]"
-                >
-                  Try Again
-                </Button>
+                <ErrorDisplay 
+                  error={error} 
+                  onDismiss={clearError} 
+                  onRetry={retryLoad}
+                  variant="card"
+                />
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">What you can try:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Check your internet connection</li>
+                    <li>• Refresh the page</li>
+                    <li>• Sign out and sign back in</li>
+                    <li>• Contact support if the problem persists</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -342,25 +447,31 @@ export default function ClientProfileShell() {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Upload your résumé</CardTitle>
-            <CardDescription>PDF, DOC or DOCX</CardDescription>
+            <CardDescription>PDF, DOC or DOCX (max 10MB)</CardDescription>
           </CardHeader>
           <CardContent>
             <label className={`flex flex-col items-center justify-center
                                border-2 border-dashed border-gray-300 rounded-lg
                                p-8 text-center cursor-pointer hover:border-[#00C49A]
-                               ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                               transition-colors duration-200
+                               ${uploading ? 'opacity-50 cursor-not-allowed border-gray-200' : ''}`}>
               {uploading ? (
                 <div className="flex flex-col items-center">
                   <LoadingSpinner size="lg" className="mb-4" />
-                  <span>Uploading...</span>
+                  <span className="text-gray-600">Uploading resume...</span>
                 </div>
               ) : (
                 <>
                   <Upload className="h-12 w-12 text-gray-400 mb-4" />
                   {form.resume_url ? (
-                    <Link href={form.resume_url} target="_blank" className="text-[#00C49A] underline">
-                      Résumé uploaded — click to preview
-                    </Link>
+                    <div className="text-center">
+                      <Link href={form.resume_url} target="_blank" className="text-[#00C49A] underline font-medium">
+                        Resume uploaded successfully — click to preview
+                      </Link>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Upload a new file to replace the current resume
+                      </p>
+                    </div>
                   ) : (
                     <div className="text-center">
                       <p className="font-medium">Drop a file here or click to choose</p>
@@ -430,6 +541,7 @@ export default function ClientProfileShell() {
                       onChange={update('first_name')}
                       disabled={saving || uploading}
                       placeholder="Enter your first name"
+                      required
                     />
                     <Field 
                       label="Last name"  
@@ -437,6 +549,7 @@ export default function ClientProfileShell() {
                       onChange={update('last_name')}
                       disabled={saving || uploading}
                       placeholder="Enter your last name"
+                      required
                     />
                   </div>
                   <Field 
@@ -502,18 +615,28 @@ export default function ClientProfileShell() {
 }
 
 /* ========== tiny helpers ========== */
-function Field({ label, disabled, ...rest }: { label?: string; disabled?: boolean } & React.ComponentProps<typeof Input>) {
+function Field({ label, disabled, required, ...rest }: { label?: string; disabled?: boolean; required?: boolean } & React.ComponentProps<typeof Input>) {
   return (
     <div className="space-y-2">
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+      )}
       <Input disabled={disabled} {...rest}/>
     </div>
   )
 }
-function FieldArea({ label, disabled, ...rest }: { label?: string; disabled?: boolean } & React.ComponentProps<typeof Textarea>) {
+function FieldArea({ label, disabled, required, ...rest }: { label?: string; disabled?: boolean; required?: boolean } & React.ComponentProps<typeof Textarea>) {
   return (
     <div className="space-y-2">
-      {label && <Label>{label}</Label>}
+      {label && (
+        <Label>
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+      )}
       <Textarea rows={4} disabled={disabled} {...rest}/>
     </div>
   )
@@ -523,11 +646,9 @@ function SidebarLink({ href, icon: Icon, text, active = false }:{
 }) {
   return (
     <Link href={href}
-          className={`flex items-center px-4 py-3 rounded-lg
-                      ${active
-                        ? 'bg-[#00C49A]/10 text-[#00C49A]'
-                        : 'text-[#333] hover:bg-gray-100'}`}>
-      <Icon className="h-5 w-5 mr-3"/> {text}
+          className={`flex items-center px-4 py-3 rounded-lg transition-colors
+                      ${active ? 'bg-[#00C49A]/10 text-[#00C49A]' : 'hover:bg-gray-100'}`}>
+      <Icon className="h-5 w-5 mr-3" /> {text}
     </Link>
   )
 }

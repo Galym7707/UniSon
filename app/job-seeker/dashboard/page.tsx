@@ -39,13 +39,13 @@ export default function JobSeekerDashboard() {
         }
 
         if (!profile) {
-          throw new Error('Unable to load or create profile')
+          throw new Error('Unable to load or create profile. Please try refreshing the page.')
         }
 
         // Set state based on whether profile was just created
         setProfileCreated(wasCreated)
 
-        // Calculate profile completeness
+        // Calculate profile completeness with validation
         const profileFields = [
           profile.first_name,
           profile.last_name,
@@ -55,12 +55,18 @@ export default function JobSeekerDashboard() {
           profile.skills
         ]
         
-        const filled = profileFields.filter(v => v && v.trim() !== '').length
-        setProfilePct(Math.round((filled / 6) * 100))
+        const filled = profileFields.filter(v => v && typeof v === 'string' && v.trim() !== '').length
+        const completeness = Math.round((filled / 6) * 100)
+        
+        // Ensure completeness is a valid number
+        setProfilePct(isNaN(completeness) ? 0 : completeness)
 
       } catch (err) {
         const msg = getUserFriendlyErrorMessage(err)
-        logError('job-seeker-dashboard', err)
+        logError('job-seeker-dashboard', err, {
+          timestamp: new Date().toISOString(),
+          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
+        })
         setError(msg)
       } finally {
         setLoading(false)
@@ -145,10 +151,41 @@ export default function JobSeekerDashboard() {
             {/* Show success message if profile was just created */}
             {profileCreated && !loading && !error && (
               <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-800">
-                  <span className="font-semibold">Profile created successfully!</span> Your profile has been automatically set up. 
-                  Complete it now to get better job matches.
-                </p>
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center mt-1">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-green-800">
+                      <span className="font-semibold">Profile created successfully!</span> Your profile has been automatically set up using your account information.
+                    </p>
+                    <p className="text-green-700 text-sm mt-1">
+                      Complete your profile now to get better job matches and increase your visibility to employers.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show error message if profile creation/loading failed */}
+            {error && !loading && (
+              <div className="mb-6">
+                <ErrorDisplay 
+                  error={error}
+                  onRetry={retry}
+                  variant="card"
+                />
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">If this problem persists:</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Check your internet connection</li>
+                    <li>• Try signing out and signing back in</li>
+                    <li>• Clear your browser cache</li>
+                    <li>• Contact support for assistance</li>
+                  </ul>
+                </div>
               </div>
             )}
 
@@ -199,7 +236,10 @@ export default function JobSeekerDashboard() {
                   </CardHeader>
                   <CardContent>
                     {loading ? (
-                      <div className="flex justify-center py-8"><LoadingSpinner size="lg" /></div>
+                      <div className="flex justify-center py-8">
+                        <LoadingSpinner size="lg" />
+                        <span className="ml-3 text-gray-600">Loading profile data...</span>
+                      </div>
                     ) : error ? (
                       <ErrorDisplay error={error} onRetry={retry} variant="card" />
                     ) : (
@@ -208,11 +248,21 @@ export default function JobSeekerDashboard() {
                           <span className="text-2xl font-bold text-[#00C49A]">{profilePct}%</span>
                           <Link href="/job-seeker/profile">
                             <Button variant="outline" size="sm">
-                              {profileCreated ? 'Complete profile' : 'Finish profile'}
+                              {profileCreated ? 'Complete profile' : profilePct < 50 ? 'Set up profile' : 'Finish profile'}
                             </Button>
                           </Link>
                         </div>
                         <Progress value={profilePct} className="h-3" />
+                        {profilePct < 100 && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            {profilePct === 0 
+                              ? "Get started by adding your basic information"
+                              : profilePct < 50 
+                              ? "Add more details to improve your job matches"
+                              : "You're almost done! Complete your profile to maximize opportunities"
+                            }
+                          </p>
+                        )}
                       </>
                     )}
                   </CardContent>
@@ -228,7 +278,7 @@ export default function JobSeekerDashboard() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {recommendations.map(job => (
-                      <article key={job.id} className="p-4 border rounded-lg hover:shadow-md">
+                      <article key={job.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                         <h4 className="font-semibold mb-1">{job.position}</h4>
                         <p className="text-sm mb-2">{job.company}</p>
                         <div className="flex text-xs text-gray-500 gap-3 mb-3">
