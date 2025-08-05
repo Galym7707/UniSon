@@ -13,7 +13,7 @@ export interface ProfileData {
   summary?: string
   experience?: string
   skills?: string
-  resume_url?: string
+  resume_url?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -68,13 +68,19 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
     }
 
     // Profile doesn't exist, create it using auth metadata
+    // Extract name parts from full name if individual parts aren't available
+    const fullName = userMetadata.name || userMetadata.full_name || ''
+    const nameParts = fullName.split(' ')
+    const firstName = userMetadata.first_name || nameParts[0] || ''
+    const lastName = userMetadata.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '')
+
     const newProfile: Partial<ProfileData> = {
       id: userId,
       email: session.user.email,
       role: userMetadata.role || 'job_seeker',
-      name: userMetadata.name || userMetadata.full_name || '',
-      first_name: userMetadata.first_name || '',
-      last_name: userMetadata.last_name || '',
+      name: fullName,
+      first_name: firstName,
+      last_name: lastName,
       title: '',
       summary: '',
       experience: '',
