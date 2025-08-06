@@ -38,7 +38,7 @@ interface ClientProfileShellProps {
   profile: any
 }
 
-export default function ClientProfileShell({ profile }: ClientProfileShellProps) {
+export default function ClientProfileShell({ profile: serverProfile }: ClientProfileShellProps) {
   const supabase = createBrowserClient()
 
   /* ---------- state ---------- */

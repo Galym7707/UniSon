@@ -1,4 +1,4 @@
-// lib/supabase/browser.ts – **client-side singleton**
+// lib/supabase/browser.ts – **client‑side singleton**
 "use client";
 
 import { createBrowserClient as _createBrowserClient } from "@supabase/ssr";
@@ -34,13 +34,18 @@ let _supabase:
  */
 export function getSupabaseBrowser() {
   if (!_supabase) {
-    _supabase = _createBrowserClient(supabaseUrl, supabaseKey);
+    _supabase = _createBrowserClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
   }
   return _supabase;
 }
 
 // ---------------------------------------------------------------------------
-// 🔄 Backwards-compat helpers ------------------------------------------------
+// ️🔄  Backwards‑compat helpers ------------------------------------------------
 // ---------------------------------------------------------------------------
 /**
  * Some legacy components still import `{ createBrowserClient }` from this file
@@ -58,7 +63,7 @@ export function createBrowserClient() {
 }
 
 /**
- * For code that imported a pre-built `supabase` object:
+ * For code that imported a pre‑built `supabase` object:
  *
  * ```ts
  * import { supabase } from "@/lib/supabase/browser";
