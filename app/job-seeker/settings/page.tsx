@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -103,7 +103,7 @@ export default function JobSeekerSettings() {
       const res = await fetch('/api/user/delete', { method: 'DELETE' })
       if (!res.ok) throw new Error(await res.text())
   
-      setDeleteMsg({ type: 'success', text: 'Account deleted — goodbye!' })
+      setDeleteMsg({ type: 'success', text: 'Account deleted вЂ” goodbye!' })
       await supabase.auth.signOut()
       window.location.href = '/'
     } catch (err) {
@@ -113,19 +113,6 @@ export default function JobSeekerSettings() {
       setDeleting(false)
     }
   }
-  {/* Replace the Delete Account button with the following */}
-  <Button
-    variant="destructive"
-    disabled={deleting}
-    onClick={handleDeleteAccount}
-  >
-    {deleting ? 'Deleting…' : 'Delete account'}
-  </Button>
-  {deleteMsg && (
-    <p className={`mt-2 text-sm ${deleteMsg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-      {deleteMsg.text}
-    </p>
-  )}
   const loadSettings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -588,7 +575,7 @@ export default function JobSeekerSettings() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="minSalary">Minimum Salary (₽)</Label>
+                        <Label htmlFor="minSalary">Minimum Salary (в‚Ѕ)</Label>
                         <Input 
                           id="minSalary" 
                           placeholder="150000"
@@ -674,7 +661,7 @@ export default function JobSeekerSettings() {
                         <div className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <p className="font-medium text-[#0A2540]">Current Session</p>
-                            <p className="text-sm text-[#333333]">Chrome on Windows • Moscow</p>
+                            <p className="text-sm text-[#333333]">Chrome on Windows вЂў Moscow</p>
                           </div>
                           <Badge className="bg-green-500 text-white">Active</Badge>
                         </div>
@@ -682,9 +669,19 @@ export default function JobSeekerSettings() {
                     </div>
 
                     <div className="border-t pt-6">
-                      <Button variant="destructive" className="bg-red-500 hover:bg-red-600">
-                        Delete Account
+                      <Button 
+                        variant="destructive" 
+                        className="bg-red-500 hover:bg-red-600"
+                        disabled={deleting}
+                        onClick={handleDeleteAccount}
+                      >
+                        {deleting ? 'Deleting…' : 'Delete Account'}
                       </Button>
+                      {deleteMsg && (
+                        <p className={`mt-2 text-sm ${deleteMsg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                          {deleteMsg.text}
+                        </p>
+                      )}
                       <p className="text-sm text-[#333333] mt-2">
                         This action cannot be undone. All your data will be deleted.
                       </p>
@@ -699,3 +696,6 @@ export default function JobSeekerSettings() {
     </div>
   )
 }
+
+
+
