@@ -1,14 +1,13 @@
 // app/api/user/delete/route.ts
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase/server'
 
 export async function DELETE() {
-  const supabase = createRouteHandlerClient({ cookies })
-  const { data: { session } } = await supabase.auth.getSession()
+  const supabase = createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session?.user) {
+  if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
@@ -16,7 +15,7 @@ export async function DELETE() {
   const { error: profileErr } = await supabase
     .from('profiles')
     .delete()
-    .eq('id', session.user.id)
+    .eq('id', user.id)
 
   if (profileErr) {
     return NextResponse.json({ error: profileErr.message }, { status: 500 })
@@ -29,7 +28,7 @@ export async function DELETE() {
     { auth: { persistSession: false } }
   )
 
-  const { error: userErr } = await admin.auth.admin.deleteUser(session.user.id)
+  const { error: userErr } = await admin.auth.admin.deleteUser(user.id)
   if (userErr) {
     return NextResponse.json({ error: userErr.message }, { status: 500 })
   }
