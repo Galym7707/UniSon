@@ -108,7 +108,7 @@ export default function JobSearch() {
       }
 
       // Calculate match scores based on user profile (simplified)
-      const jobsWithScores = data?.map(job => ({
+      const jobsWithScores = data?.map((job: any) => ({
         ...job,
         match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
       })) || []

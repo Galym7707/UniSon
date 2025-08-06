@@ -28,14 +28,14 @@ export const useAuthState = () => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: any, session: any) => {
         setUser(session?.user ?? null)
         setLoading(false)
       }

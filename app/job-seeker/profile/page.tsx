@@ -6,7 +6,7 @@ import { logError } from '@/lib/error-handling'
 
 export default async function ProfilePage() {
   try {
-    const supabase = getSupabaseServer()          // ✅ already awaits cookies() internally
+    const supabase = await getSupabaseServer()          // ✅ already awaits cookies() internally
     const {
       data: { user },
       error: authError,

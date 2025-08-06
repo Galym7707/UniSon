@@ -34,7 +34,11 @@ type Profile = {
   resume_url : string | null
 }
 
-export default function ClientProfileShell() {
+interface ClientProfileShellProps {
+  profile: any
+}
+
+export default function ClientProfileShell({ profile }: ClientProfileShellProps) {
   const supabase = createBrowserClient()
 
   /* ---------- state ---------- */

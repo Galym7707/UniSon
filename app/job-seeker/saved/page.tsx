@@ -72,7 +72,7 @@ export default function SavedJobs() {
       }
 
       // Transform the data to match our SavedJob type
-      const transformedData = data?.map(item => ({
+      const transformedData = data?.map((item: any) => ({
         id: item.id,
         job_id: item.job_id,
         user_id: item.user_id,

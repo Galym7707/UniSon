@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,8 +9,6 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LayoutDashboard, User, Search, Settings, Heart, Bell, Shield, Eye, Brain, Loader2, AlertTriangle } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -89,7 +87,6 @@ export default function JobSeekerSettings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const supabase = createBrowserClient()
-  const { toast } = useToast()
   const [deleting, setDeleting]   = useState(false)
   const [deleteMsg, setDeleteMsg] = useState<{type:'success'|'error',text:string}|null>(null)
 
@@ -103,19 +100,10 @@ export default function JobSeekerSettings() {
       setDeleting(true)
       setDeleteMsg(null)
   
-      const response = await fetch('/api/user/delete', { 
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to delete account')
-      }
+      const res = await fetch('/api/user/delete', { method: 'DELETE' })
+      if (!res.ok) throw new Error(await res.text())
   
-      setDeleteMsg({ type: 'success', text: data.message || 'Account deleted successfully  goodbye!' })
+      setDeleteMsg({ type: 'success', text: 'Account deleted — goodbye!' })
       await supabase.auth.signOut()
       window.location.href = '/'
     } catch (err) {
@@ -587,7 +575,7 @@ export default function JobSeekerSettings() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="minSalary">Minimum Salary (в‚Ѕ)</Label>
+                        <Label htmlFor="minSalary">Minimum Salary (₽)</Label>
                         <Input 
                           id="minSalary" 
                           placeholder="150000"
@@ -673,7 +661,7 @@ export default function JobSeekerSettings() {
                         <div className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <p className="font-medium text-[#0A2540]">Current Session</p>
-                            <p className="text-sm text-[#333333]">Chrome on Windows вЂў Moscow</p>
+                            <p className="text-sm text-[#333333]">Chrome on Windows • Moscow</p>
                           </div>
                           <Badge className="bg-green-500 text-white">Active</Badge>
                         </div>
@@ -687,14 +675,7 @@ export default function JobSeekerSettings() {
                         disabled={deleting}
                         onClick={handleDeleteAccount}
                       >
-  {deleting ? (
-                          <div className="flex items-center">
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Deleting Account...
-                          </div>
-                        ) : (
-                          'Delete Account'
-                        )}
+                        {deleting ? 'Deleting�' : 'Delete Account'}
                       </Button>
                       {deleteMsg && (
                         <p className={`mt-2 text-sm ${deleteMsg.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
@@ -715,14 +696,6 @@ export default function JobSeekerSettings() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
 
 
 
