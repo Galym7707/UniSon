@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -27,7 +27,39 @@ export default function TestPage() {
   const [current, setCurrent] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [hasExistingResults, setHasExistingResults] = useState(false)
+  const [showRetakeConfirmation, setShowRetakeConfirmation] = useState(false)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    checkExistingResults()
+  }, [])
+
+  const checkExistingResults = async () => {
+    try {
+      const response = await fetch('/api/assessment/check')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setHasExistingResults(data.hasTestResults)
+        setCompletedAt(data.completedAt)
+        setShowRetakeConfirmation(data.hasTestResults)
+      } else {
+        console.error('Failed to check existing results:', data.error)
+      }
+    } catch (err) {
+      console.error('Error checking existing results:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRetakeTest = () => {
+    setShowRetakeConfirmation(false)
+    setHasExistingResults(false)
+  }
 
   const handleSelect = (val: number) => {
     const newAnswers = [...answers]
@@ -72,6 +104,63 @@ export default function TestPage() {
 
   const progress = ((current + 1) / questions.length) * 100
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+          <p className="text-[#0A2540]">Loading assessment...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show retake confirmation
+  if (showRetakeConfirmation && hasExistingResults) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+        <div className="w-full max-w-2xl">
+          <Card className="shadow-xl border-0">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl font-bold text-[#0A2540]">
+                Assessment Already Completed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 text-center">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-[#0A2540] mb-2">
+                  You have already completed the psychological assessment.
+                </p>
+                {completedAt && (
+                  <p className="text-sm text-gray-600">
+                    Completed on: {new Date(completedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/job-seeker/results')}
+                  className="border-[#00C49A] text-[#00C49A] hover:bg-[#00C49A] hover:text-white"
+                >
+                  View Current Results
+                </Button>
+                <Button
+                  onClick={handleRetakeTest}
+                  className="bg-[#00C49A] hover:bg-[#00A085]"
+                >
+                  Retake Assessment
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Normal test interface
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
       <div className="w-full max-w-3xl">
