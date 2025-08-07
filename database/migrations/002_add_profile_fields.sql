@@ -7,6 +7,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS experience TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS skills TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS resume_url TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS company_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS test_results JSONB;
 
 -- Drop the existing name column and recreate it as a generated column
 ALTER TABLE public.profiles DROP COLUMN IF EXISTS name;
