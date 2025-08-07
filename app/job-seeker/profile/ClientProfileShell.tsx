@@ -130,11 +130,15 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
       }
       
       // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error('File size must be less than 10MB.')
+      const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+      if (file.size > maxSize) {
+        throw new Error(`File size must be less than 10MB. Your file is ${Math.round(file.size / (1024 * 1024))}MB.`)
       }
       
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      if (!ext || !['pdf', 'doc', 'docx'].includes(ext)) {
+        throw new Error('Invalid file extension. Please upload a PDF, DOC, or DOCX file.')
+      }
       
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError) {
@@ -144,47 +148,113 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         throw new Error('User not authenticated. Please sign in again.')
       }
       
-      const path = `${user.id}.${ext}`
+      // Create the file path with user ID as folder for proper access control
+      const filePath = `${user.id}/${user.id}.${ext}`
+      
+      // First, check if bucket exists and is accessible
+      try {
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
+        if (bucketError) {
+          throw new Error(`Storage service unavailable: ${bucketError.message}`)
+        }
+        
+        const resumesBucket = buckets?.find((bucket: any) => bucket.id === 'resumes')
+        if (!resumesBucket) {
+          throw new Error('Resume storage is not configured. Please contact support.')
+        }
+      } catch (bucketCheckError) {
+        if (bucketCheckError instanceof Error && bucketCheckError.message.includes('Resume storage is not configured')) {
+          throw bucketCheckError
+        }
+        // If we can't check buckets, proceed anyway - it might still work
+        console.warn('Could not verify bucket existence, proceeding with upload')
+      }
 
-      const { error: uploadError } = await supabase.storage
+      // Upload the file with proper error handling
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('resumes')
-        .upload(path, file, { upsert: true })
+        .upload(filePath, file, { 
+          upsert: true,
+          contentType: file.type
+        })
       
       if (uploadError) {
-        // Handle specific storage errors
-        if (uploadError.message.includes('Invalid file type')) {
-          throw new Error('Invalid file type. Please upload a PDF, DOC, or DOCX file.')
+        // Handle specific storage errors with user-friendly messages
+        if (uploadError.message.includes('The resource was not found')) {
+          throw new Error('Resume storage bucket not found. Please contact support.')
         }
-        if (uploadError.message.includes('File too large')) {
-          throw new Error('File is too large. Please upload a file smaller than 10MB.')
+        if (uploadError.message.includes('Invalid file type') || uploadError.message.includes('file_type_not_allowed')) {
+          throw new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.')
         }
-        if (uploadError.message.includes('Storage quota exceeded')) {
-          throw new Error('Storage quota exceeded. Please contact support.')
+        if (uploadError.message.includes('File too large') || uploadError.message.includes('payload_too_large')) {
+          throw new Error(`File is too large. Maximum allowed size is 10MB. Your file is ${Math.round(file.size / (1024 * 1024))}MB.`)
         }
-        throw new Error(`Resume upload failed: ${uploadError.message}`)
+        if (uploadError.message.includes('Storage quota exceeded') || uploadError.message.includes('storage_quota_exceeded')) {
+          throw new Error('Storage quota exceeded. Please contact support to increase your storage limit.')
+        }
+        if (uploadError.message.includes('permission denied') || uploadError.message.includes('insufficient_privileges')) {
+          throw new Error('Permission denied. Please sign out and sign back in, then try again.')
+        }
+        if (uploadError.message.includes('bucket_not_found')) {
+          throw new Error('Resume storage is not properly configured. Please contact support.')
+        }
+        
+        // Generic upload error
+        throw new Error(`Resume upload failed: ${uploadError.message}. Please try again or contact support.`)
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      if (!uploadData) {
+        throw new Error('Upload completed but no response received. Please refresh and check if your resume was uploaded.')
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: urlData } = supabase.storage
         .from('resumes')
-        .getPublicUrl(path)
+        .getPublicUrl(filePath)
       
-      if (!publicUrl) {
-        throw new Error('Failed to generate resume URL. Please try again.')
+      if (!urlData?.publicUrl) {
+        throw new Error('Resume uploaded successfully but failed to generate access URL. Please try uploading again.')
       }
       
-      setForm(f => ({ ...f, resume_url: publicUrl }))
-      showSuccessToast('Resume uploaded successfully', 'Your resume is now attached to your profile.')
+      // Verify the file was actually uploaded by checking if it exists
+      try {
+        const { data: fileExists, error: checkError } = await supabase.storage
+          .from('resumes')
+          .list(user.id, { limit: 1 })
+        
+        if (checkError) {
+          // Log but don't fail - the upload might have succeeded
+          console.warn('Could not verify file upload:', checkError)
+        }
+      } catch (verifyError) {
+        // Non-critical error - file might still be uploaded successfully
+        console.warn('File verification failed:', verifyError)
+      }
+      
+      // Update the form with the new resume URL
+      setForm(f => ({ ...f, resume_url: urlData.publicUrl }))
+      
+      showSuccessToast(
+        'Resume uploaded successfully', 
+        `Your resume "${file.name}" has been uploaded and is now attached to your profile.`
+      )
     } catch (err) {
       const errorMessage = getUserFriendlyErrorMessage(err)
       logError('resume-upload', err, {
         userId: (await supabase.auth.getUser()).data.user?.id,
+        fileName: e.target.files?.[0]?.name,
         fileSize: e.target.files?.[0]?.size,
-        fileType: e.target.files?.[0]?.type
+        fileType: e.target.files?.[0]?.type,
+        errorType: err instanceof Error ? err.constructor.name : 'Unknown'
       })
       setError(errorMessage)
       showErrorToast(err, 'resume-upload')
     } finally {
       setUploading(false)
+      // Clear the file input so the same file can be uploaded again if needed
+      if (e.target) {
+        e.target.value = ''
+      }
     }
   }
 
@@ -513,146 +583,126 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Progress value={completeness} className="h-3"/>
+            <Progress value={completeness} className="w-full" />
           </CardContent>
         </Card>
 
-        {/* form */}
-        <form id="profileForm" onSubmit={handleSave}>
-          <Tabs defaultValue="personal">
-            <TabsList>
-              <TabsTrigger value="personal" disabled={saving || uploading}>Personal</TabsTrigger>
-              <TabsTrigger value="experience" disabled={saving || uploading}>Experience</TabsTrigger>
-              <TabsTrigger value="skills" disabled={saving || uploading}>Skills</TabsTrigger>
-            </TabsList>
+        {/* main form */}
+        <Card>
+          <CardContent className="pt-6">
+            <form id="profileForm" onSubmit={handleSave} className="space-y-6">
+              
+              <Tabs defaultValue="personal" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="personal">Personal</TabsTrigger>
+                  <TabsTrigger value="professional">Professional</TabsTrigger>
+                  <TabsTrigger value="skills">Skills</TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="personal">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Personal information</CardTitle>
-                  <CardDescription>
-                    {isEmptyProfile 
-                      ? "Start by adding your basic information"
-                      : "Update your personal details"
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+                <TabsContent value="personal" className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field 
-                      label="First name" 
-                      value={form.first_name} 
-                      onChange={update('first_name')}
-                      disabled={saving || uploading}
-                      placeholder="Enter your first name"
-                      required
-                    />
-                    <Field 
-                      label="Last name"  
-                      value={form.last_name}  
-                      onChange={update('last_name')}
-                      disabled={saving || uploading}
-                      placeholder="Enter your last name"
-                      required
+                    <div>
+                      <Label htmlFor="firstName">First name *</Label>
+                      <Input
+                        id="firstName"
+                        value={form.first_name}
+                        onChange={update('first_name')}
+                        placeholder="Enter your first name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName">Last name *</Label>
+                      <Input
+                        id="lastName"
+                        value={form.last_name}
+                        onChange={update('last_name')}
+                        placeholder="Enter your last name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="title">Professional title</Label>
+                    <Input
+                      id="title"
+                      value={form.title}
+                      onChange={update('title')}
+                      placeholder="e.g. Senior Software Engineer, Marketing Manager"
                     />
                   </div>
-                  <Field 
-                    label="Desired position" 
-                    value={form.title} 
-                    onChange={update('title')}
-                    disabled={saving || uploading}
-                    placeholder="e.g., Software Developer, Marketing Manager"
-                  />
-                  <FieldArea 
-                    label="About me" 
-                    value={form.summary} 
-                    onChange={update('summary')}
-                    disabled={saving || uploading}
-                    placeholder="Write a brief summary about yourself, your goals, and what makes you unique..."
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="experience">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Work experience</CardTitle>
-                  <CardDescription>
-                    Describe your professional background and achievements
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FieldArea 
-                    value={form.experience} 
-                    onChange={update('experience')}
-                    disabled={saving || uploading}
-                    placeholder="List your work experience, including job titles, companies, dates, and key achievements..."
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  <div>
+                    <Label htmlFor="summary">Professional summary</Label>
+                    <Textarea
+                      id="summary"
+                      rows={4}
+                      value={form.summary}
+                      onChange={update('summary')}
+                      placeholder="A brief overview of your professional background, key achievements, and career goals..."
+                    />
+                  </div>
+                </TabsContent>
 
-            <TabsContent value="skills">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Key skills</CardTitle>
-                  <CardDescription>
-                    List your technical and professional skills
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Field 
-                    placeholder="e.g., React, TypeScript, Project Management, Communication" 
-                    value={form.skills} 
-                    onChange={update('skills')}
-                    disabled={saving || uploading}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </form>
+                <TabsContent value="professional" className="space-y-6">
+                  <div>
+                    <Label htmlFor="experience">Experience</Label>
+                    <Textarea
+                      id="experience"
+                      rows={6}
+                      value={form.experience}
+                      onChange={update('experience')}
+                      placeholder="Describe your work experience, including job titles, companies, dates, and key responsibilities..."
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="skills" className="space-y-6">
+                  <div>
+                    <Label htmlFor="skills">Skills</Label>
+                    <Textarea
+                      id="skills"
+                      rows={4}
+                      value={form.skills}
+                      onChange={update('skills')}
+                      placeholder="List your technical skills, programming languages, tools, certifications, etc..."
+                    />
+                  </div>
+                </TabsContent>
+
+              </Tabs>
+            </form>
+          </CardContent>
+        </Card>
       </main>
     </div>
   )
 }
 
-/* ========== tiny helpers ========== */
-function Field({ label, disabled, required, ...rest }: { label?: string; disabled?: boolean; required?: boolean } & React.ComponentProps<typeof Input>) {
-  return (
-    <div className="space-y-2">
-      {label && (
-        <Label>
-          {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </Label>
-      )}
-      <Input disabled={disabled} {...rest}/>
-    </div>
-  )
-}
-function FieldArea({ label, disabled, required, ...rest }: { label?: string; disabled?: boolean; required?: boolean } & React.ComponentProps<typeof Textarea>) {
-  return (
-    <div className="space-y-2">
-      {label && (
-        <Label>
-          {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </Label>
-      )}
-      <Textarea rows={4} disabled={disabled} {...rest}/>
-    </div>
-  )
-}
-function SidebarLink({ href, icon: Icon, text, active = false }:{
-  href:string; icon: React.ElementType; text:string; active?:boolean
+/* ─────────────────────────────── helper ─────────────────────────────── */
+function SidebarLink({
+  href,
+  icon: Icon,
+  text,
+  active = false,
+}: {
+  href: string
+  icon: any
+  text: string
+  active?: boolean
 }) {
   return (
-    <Link href={href}
-          className={`flex items-center px-4 py-3 rounded-lg transition-colors
-                      ${active ? 'bg-[#00C49A]/10 text-[#00C49A]' : 'hover:bg-gray-100'}`}>
-      <Icon className="h-5 w-5 mr-3" /> {text}
+    <Link
+      href={href}
+      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? 'bg-[#00C49A]/10 text-[#00C49A] font-medium'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      }`}
+    >
+      <Icon className="h-5 w-5 mr-3" />
+      {text}
     </Link>
   )
 }
