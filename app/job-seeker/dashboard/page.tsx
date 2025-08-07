@@ -1,23 +1,22 @@
-// app/job-seeker/dashboard/page.tsx
-'use client'
+"use client"
 
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import {
-  Card, CardHeader, CardTitle, CardDescription, CardContent,
-  Progress, Badge, Button
-} from '@/components/ui'
-import {
-  LayoutDashboard, User, Search, Settings, Eye, Calendar,
-  MapPin, Clock, Heart, Brain, Menu, X
-} from 'lucide-react'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { getSupabaseBrowser } from '@/lib/supabase/browser'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { ErrorDisplay } from '@/components/ui/error-display'
-import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
+  Card, CardContent, CardHeader, CardTitle,
+  Button, Progress,
+  LayoutDashboard, User, Search, Heart, Settings, TrendingUp, Bell, Star, Building2, MapPin, Calendar, Users, Brain,
+} from "@/components/ui"
 
-export default function JobSeekerDashboard() {
-  /* state */
+import { createBrowserClient } from "@/lib/supabase/browser"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ErrorDisplay } from "@/components/ui/error-display"
+import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
+
+export default function DashboardPage() {
+  const supabase = createBrowserClient()
+
+  /* ─────── state ─────── */
   const [profilePct, setProfilePct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,24 +27,19 @@ export default function JobSeekerDashboard() {
   useEffect(() => {
     let isMounted = true
 
-    const loadProfileData = async () => {
+    const loadProfile = async () => {
       try {
         setLoading(true)
-        const supabase = getSupabaseBrowser()
 
-        /** 1️⃣  БЕРЁМ getSession, а не getUser */
-        const {
-          data: { session },
-          error: sessionErr,
-        } = await supabase.auth.getSession()
-
+        /** 1️⃣  отлавливаем всякие ошибки: No JWT token, etc. */
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession()
         if (sessionErr) throw sessionErr
         if (!session?.user) throw new Error("No authenticated user found")
 
         /** 2️⃣  профиль гарантированно создан в момент signup → PGRST116 исчезнет */
         const { data, error: profileErr } = await supabase
           .from("profiles")
-          .select("first_name,last_name,name,title,summary,experience,skills")
+          .select("first_name,last_name,title,summary,experience,skills")
           .eq("id", session.user.id)
           .maybeSingle()
 
@@ -65,245 +59,267 @@ export default function JobSeekerDashboard() {
             setUserName(firstName)
           } else if (lastName) {
             setUserName(lastName)
-          } else if (data.name && data.name.trim()) {
-            // Fallback to legacy name field if available
-            setUserName(data.name.trim())
           }
           // If none are available, keep default "Friend"
         }
       } catch (err) {
-        setError(getUserFriendlyErrorMessage(err))
-        logError("job-seeker-dashboard", err)
+        if (isMounted) {
+          const message = getUserFriendlyErrorMessage(err)
+          setError(message)
+        }
       } finally {
-        if (isMounted) setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    loadProfileData()
+    loadProfile()
+
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [supabase])
 
-  const retry = () => window.location.reload()
+  const retry = () => {
+    setError(null)
+    window.location.reload()
+  }
 
-  /* ─────────── демо-данные ─────────── */
-  const applications = [
-    { id: 1, company: 'TechCorp',  position: 'Frontend Developer', status: 'Under review', date: '2 days ago' },
-    { id: 2, company: 'StartupXYZ', position: 'React Developer',    status: 'Interview',    date: '1 day ago' },
-    { id: 3, company: 'BigTech',   position: 'Senior Developer',   status: 'Under review', date: '5 days ago' }
-  ]
-  const recommendations = [
-    { id: 1, company: 'InnovateLab', position: 'Full-stack Dev',  location: 'Moscow',       salary: '150–200 k' },
-    { id: 2, company: 'DevStudio',   position: 'React Native',    location: 'St Petersburg', salary: '120–180 k' },
-    { id: 3, company: 'TechFlow',    position: 'Frontend Lead',   location: 'Remote',        salary: '200–250 k' }
-  ]
+  /* ──────────────── loading / error states ──────────────── */
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex">
+          {/* Sidebar skeleton */}
+          <aside className="w-64 bg-white border-r shadow-sm">
+            <div className="p-6">
+              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <nav className="px-4 space-y-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center px-4 py-3">
+                  <div className="w-5 h-5 bg-gray-200 rounded animate-pulse mr-3"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>
+                </div>
+              ))}
+            </nav>
+          </aside>
 
-  /* ─────────── UI ─────────── */
+          {/* Main content skeleton */}
+          <main className="flex-1 p-8">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white p-6 rounded-lg border">
+                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-lg border">
+                  <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                </div>
+                <div className="bg-white p-6 rounded-lg border">
+                  <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <ErrorDisplay
+            error={error}
+            onRetry={retry}
+            variant="card"
+          />
+        </div>
+      </div>
+    )
+  }
+
+  /* ──────────────── main UI ──────────────── */
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
-        {/* mobile-overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* ─────────── sidebar ─────────── */}
-        <aside
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm
-                      transition-transform duration-300 lg:translate-x-0
-                      ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        >
-          <div className="flex items-center justify-between p-6">
-            <span className="font-bold text-xl text-[#0A2540]">Unison AI</span>
-            <button
-              className="lg:hidden p-2 rounded-md hover:bg-gray-100"
-              aria-label="Close menu"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        {/* ========== SIDEBAR ========== */}
+        <aside className="w-64 bg-white border-r shadow-sm">
+          <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
 
           <nav className="px-4 space-y-2">
-            <NavItem href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
-            <NavItem href="/job-seeker/profile"   icon={User}            text="Profile" />
-            <NavItem href="/job-seeker/test"      icon={Brain}           text="Test" />
-            <NavItem href="/job-seeker/search"    icon={Search}          text="Job search" />
-            <NavItem href="/job-seeker/saved"     icon={Heart}           text="Saved" />
-            <NavItem href="/job-seeker/settings"  icon={Settings}        text="Settings" />
+            <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
+            <SidebarLink href="/job-seeker/profile"   icon={User}            text="Profile" />
+            <SidebarLink href="/job-seeker/test"      icon={Brain}           text="Test" />
+            <SidebarLink href="/job-seeker/search"    icon={Search}          text="Job search" />
+            <SidebarLink href="/job-seeker/saved"     icon={Heart}           text="Saved" />
+            <SidebarLink href="/job-seeker/settings"  icon={Settings}        text="Settings" />
           </nav>
         </aside>
 
-        {/* ─────────── main ─────────── */}
-        <main className="flex-1">
-          {/* mobile-header */}
-          <header className="lg:hidden bg-white border-b px-4 py-3 flex items-center">
-            <button
-              className="p-2 rounded-md hover:bg-gray-100"
-              aria-label="Open menu"
-              onClick={() => setSidebarOpen(true)}
+        {/* ========== MAIN CONTENT ========== */}
+        <main className="flex-1 p-8">
+          <h1 className="text-3xl font-bold text-[#0A2540] mb-6">
+            Welcome back, {userName}!
+          </h1>
+
+          {/* ========== STATS OVERVIEW ========== */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <StatsCard
+              title="Profile Completeness"
+              value={`${profilePct}%`}
+              icon={User}
+              color="text-[#00C49A]"
             >
-              <Menu className="h-5 w-5" />
-            </button>
-            <h1 className="ml-4 text-lg font-semibold">Dashboard</h1>
-          </header>
-
-          <div className="p-4 sm:p-6 lg:p-8">
-            <h2 className="text-3xl font-bold mb-8">
-              Welcome back, <span className="text-[#00C49A]">{userName}</span>!
-            </h2>
-
-            {/* Show success message if profile was just created */}
-            {/* This section is removed as per the new_code, as the profile creation logic is now handled by PGRST116 */}
-
-            {/* Show error message if profile creation/loading failed */}
-            {error && !loading && (
-              <div className="mb-6">
-                <ErrorDisplay 
-                  error={error}
-                  onRetry={retry}
-                  variant="card"
-                />
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">If this problem persists:</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Check your internet connection</li>
-                    <li>• Try signing out and signing back in</li>
-                    <li>• Clear your browser cache</li>
-                    <li>• Contact support for assistance</li>
-                  </ul>
-                </div>
+              <div className="mt-2">
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <LoadingSpinner size="lg" />
+                    <span className="ml-3 text-gray-600">Loading profile data...</span>
+                  </div>
+                ) : error ? (
+                  <ErrorDisplay error={error} onRetry={retry} variant="card" />
+                ) : (
+                  <Progress value={profilePct} className="w-full" />
+                )}
               </div>
-            )}
+            </StatsCard>
 
-            {/* ===== GRID ===== */}
-            <div className="grid xl:grid-cols-3 gap-8">
-              {/* LEFT */}
-              <section className="xl:col-span-2 space-y-6">
-                {/* Applications */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Application status</CardTitle>
-                    <CardDescription>Track every job you&rsquo;ve applied for</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {applications.map(app => (
-                      <div key={app.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold truncate">{app.position}</h4>
-                          <p className="text-sm truncate">{app.company}</p>
-                          <p className="text-xs text-gray-500">{app.date}</p>
-                        </div>
+            <StatsCard
+              title="Job Applications"
+              value="0"
+              icon={Building2}
+              color="text-[#FF7A00]"
+            >
+              <p className="text-sm text-gray-600 mt-2">Start applying to jobs</p>
+            </StatsCard>
 
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            variant={app.status === 'Interview' ? 'default' : 'secondary'}
-                            className={app.status === 'Interview' ? 'bg-[#00C49A] text-white' : ''}
-                          >
-                            {app.status}
-                          </Badge>
-
-                          {app.status === 'Interview' && (
-                            <Button size="sm" className="bg-[#FF7A00] hover:bg-[#E66A00]">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              Respond
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Profile completeness */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Profile completeness</CardTitle>
-                    <CardDescription>Complete your profile to get the best matches</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="flex justify-center py-8">
-                        <LoadingSpinner size="lg" />
-                        <span className="ml-3 text-gray-600">Loading profile data...</span>
-                      </div>
-                    ) : error ? (
-                      <ErrorDisplay error={error} onRetry={retry} variant="card" />
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between mb-4">
-                          <span className="text-2xl font-bold text-[#00C49A]">{profilePct}%</span>
-                          <Link href="/job-seeker/profile">
-                            <Button variant="outline" size="sm">
-                              {/* This button text is now less relevant as profile creation is handled by PGRST116 */}
-                              Complete profile
-                            </Button>
-                          </Link>
-                        </div>
-                        <Progress value={profilePct} className="h-3" />
-                        {profilePct < 100 && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            {profilePct === 0 
-                              ? "Get started by adding your basic information"
-                              : profilePct < 50 
-                              ? "Add more details to improve your job matches"
-                              : "You're almost done! Complete your profile to maximize opportunities"
-                            }
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </section>
-
-              {/* RIGHT */}
-              <section className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recommended jobs</CardTitle>
-                    <CardDescription>Tailored especially for you</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {recommendations.map(job => (
-                      <article key={job.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-                        <h4 className="font-semibold mb-1">{job.position}</h4>
-                        <p className="text-sm mb-2">{job.company}</p>
-                        <div className="flex text-xs text-gray-500 gap-3 mb-3">
-                          <div className="flex items-center"><MapPin className="h-3 w-3 mr-1"/>{job.location}</div>
-                          <div className="flex items-center"><Clock  className="h-3 w-3 mr-1"/>{job.salary}</div>
-                        </div>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Eye className="h-4 w-4 mr-1" /> View details
-                        </Button>
-                      </article>
-                    ))}
-                  </CardContent>
-                </Card>
-              </section>
-            </div>
+            <StatsCard
+              title="Profile Views"
+              value="0"
+              icon={TrendingUp}
+              color="text-[#0A2540]"
+            >
+              <p className="text-sm text-gray-600 mt-2">Complete your profile</p>
+            </StatsCard>
           </div>
+
+          {/* ========== RECENT ACTIVITY & QUICK ACTIONS ========== */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-[#0A2540]">
+                  <Star className="w-5 h-5 text-[#FF7A00]" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Link href="/job-seeker/profile">
+                  <Button variant="outline" className="w-full justify-start hover:bg-[#00C49A]/10">
+                    <User className="w-4 h-4 mr-2" />
+                    Complete Profile ({profilePct}%)
+                  </Button>
+                </Link>
+                <Link href="/job-seeker/test">
+                  <Button variant="outline" className="w-full justify-start hover:bg-[#FF7A00]/10">
+                    <Brain className="w-4 h-4 mr-2" />
+                    Take Skills Assessment
+                  </Button>
+                </Link>
+                <Link href="/job-seeker/search">
+                  <Button variant="outline" className="w-full justify-start hover:bg-[#0A2540]/10">
+                    <Search className="w-4 h-4 mr-2" />
+                    Find Jobs
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-[#0A2540]">
+                  <Bell className="w-5 h-5 text-[#00C49A]" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No recent activity</p>
+                  <p className="text-sm">Your job applications and updates will appear here</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ========== RECOMMENDATIONS ========== */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-[#0A2540]">
+                <Users className="w-5 h-5 text-[#FF7A00]" />
+                Recommended for You
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No recommendations yet</p>
+                <p className="text-sm">Complete your profile and assessment to get personalized job recommendations</p>
+              </div>
+            </CardContent>
+          </Card>
         </main>
       </div>
     </div>
   )
 }
 
-/* ─────────── helpers ─────────── */
-function NavItem({ href, icon: Icon, text, active = false }:{
-  href: string; icon: React.ElementType; text: string; active?: boolean
-}) {
+/* ─────────────── helper components ─────────────── */
+function SidebarLink({ href, icon: Icon, text, active }: any) {
   return (
     <Link
       href={href}
-      className={`flex items-center px-4 py-3 rounded-lg transition-colors
-                  ${active ? 'bg-[#00C49A]/10 text-[#00C49A]' : 'hover:bg-gray-100'}`}
+      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? "bg-[#00C49A]/10 text-[#00C49A] font-medium"
+          : "text-gray-600 hover:bg-gray-50 hover:text-[#0A2540]"
+      }`}
     >
-      <Icon className="h-5 w-5 mr-3" /> {text}
+      <Icon className="w-5 h-5 mr-3" />
+      {text}
     </Link>
+  )
+}
+
+function StatsCard({ title, value, icon: Icon, color, children }: any) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className={`w-4 h-4 ${color}`} />
+      </CardHeader>
+      <CardContent>
+        <div className={`text-2xl font-bold ${color}`}>{value}</div>
+        {children}
+      </CardContent>
+    </Card>
   )
 }

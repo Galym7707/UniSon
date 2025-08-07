@@ -1,17 +1,12 @@
-"use server"
+/* app/auth/signup/action.ts */
 
+import { redirect } from "next/navigation"
 import { z } from "zod"
-import validator from "validator"
-import DOMPurify from "dompurify"
-import { JSDOM } from "jsdom"
-import { logError, getUserFriendlyErrorMessage } from "@/lib/error-handling"
-import { createServerSupabase } from "@/lib/supabase/server"
-import { createServerSupabaseAdmin } from "@/lib/supabase/admin"
 
-const window = new JSDOM("").window
-const purify = DOMPurify(window as any)
+import { createServerSupabase, createServerSupabaseAdmin } from "@/lib/supabase/server"
+import { getUserFriendlyErrorMessage, showErrorToast } from "@/lib/error-handling"
 
-/* ---------- schema (две роли) ---------- */
+/* ---------- validation schema ---------- */
 const signupSchema = z
   .object({
     role: z.enum(["employer", "job-seeker"]),
@@ -86,11 +81,31 @@ export async function signupAction(_prev: unknown, formData: FormData) {
       email: parsed.email,
     })
 
-    if (profErr && profErr.code !== "23505") throw profErr // ignore duplicate
+    if (profErr) throw profErr
 
-    return { success: true, message: "Account created! Confirm your email." }
-  } catch (err) {
-    const structured = logError("signup-action", err)
-    return { success: false, message: getUserFriendlyErrorMessage(err), errorId: structured.id }
+    /* ---------- 3. создаём запись в company_profiles, если роль = employer ---------- */
+    if (parsed.role === "employer" && parsed.companyName) {
+      const { error: companyErr } = await supabaseAdmin.from("company_profiles").insert({
+        user_id: userId,
+        company_name: parsed.companyName,
+        website: "",
+        industry: "",
+        company_size: "",
+        description: "",
+        location: "",
+      })
+
+      if (companyErr) throw companyErr
+    }
+
+    /* ---------- 4. перенаправить, зависит от роли ---------- */
+    if (parsed.role === "employer") {
+      redirect("/employer/dashboard")
+    } else {
+      redirect("/job-seeker/dashboard")
+    }
+  } catch (err: any) {
+    const message = getUserFriendlyErrorMessage(err)
+    return { error: message }
   }
 }

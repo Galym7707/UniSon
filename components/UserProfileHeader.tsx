@@ -10,7 +10,7 @@ interface Profile {
   id: string
   first_name?: string
   last_name?: string
-  name?: string
+
   profile_image_url?: string
   role?: string
 }
@@ -32,7 +32,7 @@ export function UserProfileHeader() {
         setProfileLoading(true)
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, name, profile_image_url, role')
+          .select('id, first_name, last_name, profile_image_url, role')
           .eq('id', user.id)
           .single()
 
@@ -57,7 +57,7 @@ export function UserProfileHeader() {
     return null
   }
 
-  const displayName = profile?.name || 
+  const displayName = 
     (profile?.first_name && profile?.last_name ? 
       `${profile.first_name} ${profile.last_name}` : 
       profile?.first_name || 

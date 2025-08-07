@@ -12,13 +12,44 @@ export function UserProfileHeader() {
 
   if (!user) return null
 
-  // Extract user's initials from email or name
+  // Extract user's initials from first_name/last_name or fallback to email
   const getInitials = () => {
+    const firstName = user.user_metadata?.first_name
+    const lastName = user.user_metadata?.last_name
+    
+    if (firstName && lastName) {
+      return (firstName[0] + lastName[0]).toUpperCase()
+    } else if (firstName) {
+      return firstName.slice(0, 2).toUpperCase()
+    } else if (lastName) {
+      return lastName.slice(0, 2).toUpperCase()
+    }
+    // Fallback to old name fields for backward compatibility
     const name = user.user_metadata?.name || user.user_metadata?.full_name
     if (name) {
       return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     }
     return user.email?.slice(0, 2).toUpperCase() || 'U'
+  }
+
+  // Get display name with proper null/undefined handling
+  const getDisplayName = () => {
+    const firstName = user.user_metadata?.first_name
+    const lastName = user.user_metadata?.last_name
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`
+    } else if (firstName) {
+      return firstName
+    } else if (lastName) {
+      return lastName
+    }
+    // Fallback to old name fields for backward compatibility
+    const name = user.user_metadata?.name || user.user_metadata?.full_name
+    if (name) {
+      return name
+    }
+    return user.email?.split('@')[0] || 'User'
   }
 
   return (
@@ -46,7 +77,7 @@ export function UserProfileHeader() {
 
         {/* User Name */}
         <span className="hidden sm:block text-sm font-medium text-gray-700">
-          {user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+          {getDisplayName()}
         </span>
       </button>
 
@@ -55,7 +86,7 @@ export function UserProfileHeader() {
         <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
           <div className="p-3 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-900">
-              {user.user_metadata?.name || user.user_metadata?.full_name || 'User'}
+              {getDisplayName()}
             </p>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
