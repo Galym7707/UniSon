@@ -15,6 +15,7 @@ import { ErrorDisplay } from '@/components/ui/error-display'
 import { LayoutDashboard, Briefcase, Building2, Upload, MapPin, Plus, X } from "lucide-react"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
+import ProfileAvatar from '@/components/ui/profile-avatar'
 
 interface CompanyProfile {
   id: string

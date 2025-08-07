@@ -22,6 +22,8 @@ import { LoadingSpinner, LoadingButton } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
 import { ensureUserProfile, ProfileData } from '@/lib/profile-fallback'
+import ImageUpload from '@/components/ui/image-upload'
+import ProfileAvatar from '@/components/ui/profile-avatar'
 
 /* ─────────────── type ─────────────── */
 type Profile = {
@@ -32,6 +34,7 @@ type Profile = {
   experience : string
   skills     : string
   resume_url : string | null
+  avatar_url : string | null
 }
 
 interface ClientProfileShellProps {
