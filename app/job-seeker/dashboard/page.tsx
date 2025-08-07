@@ -22,6 +22,7 @@ export default function JobSeekerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userName, setUserName] = useState<string>('Friend')
 
   /* --- load profile --- */
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function JobSeekerDashboard() {
         /** 2️⃣  профиль гарантированно создан в момент signup → PGRST116 исчезнет */
         const { data, error: profileErr } = await supabase
           .from("profiles")
-          .select("first_name,last_name,title,summary,experience,skills")
+          .select("first_name,last_name,name,title,summary,experience,skills")
           .eq("id", session.user.id)
           .maybeSingle()
 
@@ -53,6 +54,13 @@ export default function JobSeekerDashboard() {
         if (isMounted && data) {
           const filled = Object.values(data).filter((v) => v && v !== "").length
           setProfilePct(Math.round((filled / 6) * 100))
+          
+          // Set user name from generated name field, or fallback to first name
+          if (data.name && data.name.trim()) {
+            setUserName(data.name.trim())
+          } else if (data.first_name && data.first_name.trim()) {
+            setUserName(data.first_name.trim())
+          }
         }
       } catch (err) {
         setError(getUserFriendlyErrorMessage(err))
@@ -70,7 +78,7 @@ export default function JobSeekerDashboard() {
 
   const retry = () => window.location.reload()
 
-  /* ───────── демо-данные ───────── */
+  /* ─────────── демо-данные ─────────── */
   const applications = [
     { id: 1, company: 'TechCorp',  position: 'Frontend Developer', status: 'Under review', date: '2 days ago' },
     { id: 2, company: 'StartupXYZ', position: 'React Developer',    status: 'Interview',    date: '1 day ago' },
@@ -82,7 +90,7 @@ export default function JobSeekerDashboard() {
     { id: 3, company: 'TechFlow',    position: 'Frontend Lead',   location: 'Remote',        salary: '200–250 k' }
   ]
 
-  /* ───────── UI ───────── */
+  /* ─────────── UI ─────────── */
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
@@ -94,7 +102,7 @@ export default function JobSeekerDashboard() {
           />
         )}
 
-        {/* ───────── sidebar ───────── */}
+        {/* ─────────── sidebar ─────────── */}
         <aside
           className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r shadow-sm
                       transition-transform duration-300 lg:translate-x-0
@@ -121,7 +129,7 @@ export default function JobSeekerDashboard() {
           </nav>
         </aside>
 
-        {/* ───────── main ───────── */}
+        {/* ─────────── main ─────────── */}
         <main className="flex-1">
           {/* mobile-header */}
           <header className="lg:hidden bg-white border-b px-4 py-3 flex items-center">
@@ -137,7 +145,7 @@ export default function JobSeekerDashboard() {
 
           <div className="p-4 sm:p-6 lg:p-8">
             <h2 className="text-3xl font-bold mb-8">
-              Welcome back, <span className="text-[#00C49A]">Friend</span>!
+              Welcome back, <span className="text-[#00C49A]">{userName}</span>!
             </h2>
 
             {/* Show success message if profile was just created */}
@@ -276,7 +284,7 @@ export default function JobSeekerDashboard() {
   )
 }
 
-/* ───────── helpers ───────── */
+/* ─────────── helpers ─────────── */
 function NavItem({ href, icon: Icon, text, active = false }:{
   href: string; icon: React.ElementType; text: string; active?: boolean
 }) {
