@@ -1,124 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@/lib/supabase/server'
 
-interface JobsQueryParams {
-  search?: string
-  location?: string
-  country?: string
-  city?: string
-  salary_min?: string
-  salary_max?: string
-  employment_type?: string
-  employment_types?: string
-  remote_only?: string
-  experience_level?: string
-  sort_by?: string
-  page?: string
-  limit?: string
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const supabase = await createServerSupabase()
     const { searchParams } = new URL(request.url)
     
-    const params: JobsQueryParams = {
-      search: searchParams.get('search') || undefined,
-      location: searchParams.get('location') || undefined,
-      country: searchParams.get('country') || undefined,
-      city: searchParams.get('city') || undefined,
-      salary_min: searchParams.get('salary_min') || undefined,
-      salary_max: searchParams.get('salary_max') || undefined,
-      employment_type: searchParams.get('employment_type') || undefined,
-      employment_types: searchParams.get('employment_types') || undefined,
-      remote_only: searchParams.get('remote_only') || undefined,
-      experience_level: searchParams.get('experience_level') || undefined,
-      sort_by: searchParams.get('sort_by') || 'date',
-      page: searchParams.get('page') || '1',
-      limit: searchParams.get('limit') || '10'
+    // Get search parameters
+    const search = searchParams.get('search')
+    const location = searchParams.get('location')
+    const salaryMin = searchParams.get('salary_min')
+    const salaryMax = searchParams.get('salary_max')
+    const employmentTypes = searchParams.get('employment_types')?.split(',')
+    const remoteOnly = searchParams.get('remote_only') === 'true'
+    const experienceLevel = searchParams.get('experience_level')
+    const sortBy = searchParams.get('sort_by') || 'date'
+
+    const supabase = await createRouteHandlerClient()
+
+    // Build query
+    let query = supabase.from('jobs').select('*')
+
+    // Apply filters
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,skills.ilike.%${search}%`)
     }
 
-    // Parse pagination params
-    const page = Math.max(1, parseInt(params.page || '1'))
-    const limit = Math.min(100, Math.max(1, parseInt(params.limit || '10')))
-    const offset = (page - 1) * limit
-
-    // Start building the query
-    let query = supabase
-      .from('jobs')
-      .select('*', { count: 'exact' })
-
-    // Apply search filters
-    if (params.search) {
-      const searchTerm = params.search.trim()
-      if (searchTerm) {
-        // Search in title, description, and skills if available
-        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,skills.ilike.%${searchTerm}%`)
-      }
+    if (location && location !== 'remote') {
+      query = query.eq('location', location)
     }
 
-    // Apply location filters
-    if (params.location && params.location !== 'remote') {
-      query = query.eq('location', params.location)
-    }
-
-    if (params.country) {
-      query = query.ilike('country', `%${params.country}%`)
-    }
-
-    if (params.city) {
-      query = query.ilike('city', `%${params.city}%`)
-    }
-
-    if (params.remote_only === 'true') {
+    if (remoteOnly) {
       query = query.eq('remote', true)
     }
 
-    // Apply salary filters
-    if (params.salary_min) {
-      const minSalary = parseInt(params.salary_min)
-      if (!isNaN(minSalary)) {
-        query = query.gte('salary_min', minSalary)
-      }
+    if (salaryMin) {
+      query = query.gte('salary_min', parseInt(salaryMin))
     }
 
-    if (params.salary_max) {
-      const maxSalary = parseInt(params.salary_max)
-      if (!isNaN(maxSalary)) {
-        query = query.lte('salary_max', maxSalary)
-      }
+    if (salaryMax) {
+      query = query.lte('salary_max', parseInt(salaryMax))
     }
 
-    // Apply employment type filters
-    if (params.employment_type) {
-      query = query.eq('employment_type', params.employment_type)
+    if (employmentTypes && employmentTypes.length > 0) {
+      query = query.in('employment_type', employmentTypes)
     }
 
-    if (params.employment_types) {
-      const types = params.employment_types.split(',')
-      query = query.in('employment_type', types)
-    }
-
-    // Apply experience level filter
-    if (params.experience_level) {
-      query = query.eq('experience_level', params.experience_level)
+    if (experienceLevel) {
+      query = query.eq('experience_level', experienceLevel)
     }
 
     // Apply sorting
-    if (params.sort_by === 'date') {
+    if (sortBy === 'date') {
       query = query.order('posted_at', { ascending: false })
-    } else if (params.sort_by === 'salary') {
+    } else if (sortBy === 'salary') {
       query = query.order('salary_max', { ascending: false })
     } else {
-      // Default: by posted date or created_at
-      const sortColumn = 'posted_at' // Use posted_at if available, fallback to created_at
-      query = query.order(sortColumn, { ascending: false })
+      // Default: by date
+      query = query.order('posted_at', { ascending: false })
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1)
-
-    const { data: jobs, error, count } = await query
+    const { data, error } = await query
 
     if (error) {
       console.error('Database error:', error)
@@ -128,40 +69,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Add match scores for compatibility with existing frontend
-    const jobsWithScores = jobs?.map((job: any) => ({
+    // Calculate match scores (simplified placeholder)
+    const jobsWithScores = data?.map((job: any) => ({
       ...job,
-      match_score: Math.floor(Math.random() * 30) + 70
+      match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
     })) || []
 
-    // Calculate pagination info
-    const totalJobs = count || 0
-    const totalPages = Math.ceil(totalJobs / limit)
-    const hasNextPage = page < totalPages
-    const hasPrevPage = page > 1
-
-    // Return format compatible with existing frontend expectations
-    if (params.page) {
-      return NextResponse.json({
-        jobs: jobsWithScores,
-        pagination: {
-          page,
-          limit,
-          totalJobs,
-          totalPages,
-          hasNextPage,
-          hasPrevPage
-        }
-      })
-    } else {
-      // Legacy format for existing frontend
-      return NextResponse.json(jobsWithScores)
-    }
-
+    return NextResponse.json({ jobs: jobsWithScores }, { status: 200 })
   } catch (error) {
-    console.error('API error:', error)
+    console.error('Error fetching jobs:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch jobs' },
       { status: 500 }
     )
   }

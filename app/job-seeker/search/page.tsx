@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Skeleton, CardSkeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LayoutDashboard, User, Search, Settings, Heart, MapPin, Clock, Building2, Filter, Brain, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -27,6 +30,16 @@ type Job = {
   match_score?: number
 }
 
+type Filters = {
+  search: string
+  location: string
+  salary_min: string
+  salary_max: string
+  employment_types: string[]
+  remote_only: boolean
+  experience_level: string
+}
+
 type Country = {
   id: string
   name: string
@@ -36,135 +49,128 @@ type Country = {
 type City = {
   id: string
   name: string
-  country_id: string
-}
-
-type Filters = {
-  search: string
   country: string
-  city: string
-  salary_min: string
-  salary_max: string
-  employment_types: string[]
-  remote_only: boolean
-  experience_level: string
 }
 
 export default function JobSearch() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [countries, setCountries] = useState<Country[]>([])
   const [cities, setCities] = useState<City[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingCountries, setLoadingCountries] = useState(true)
-  const [loadingCities, setLoadingCities] = useState(false)
+  
+  // Loading states
+  const [jobsLoading, setJobsLoading] = useState(true)
+  const [countriesLoading, setCountriesLoading] = useState(false)
+  const [citiesLoading, setCitiesLoading] = useState(false)
   const [savingJob, setSavingJob] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  
+  // Error states
+  const [jobsError, setJobsError] = useState<string | null>(null)
+  const [countriesError, setCountriesError] = useState<string | null>(null)
+  const [citiesError, setCitiesError] = useState<string | null>(null)
+  
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<string>('')
   const [filters, setFilters] = useState<Filters>({
     search: '',
-    country: '',
-    city: '',
+    location: '',
     salary_min: '',
     salary_max: '',
     employment_types: [],
     remote_only: false,
     experience_level: ''
   })
-  const [sortBy, setSortBy] = useState('date')
+  const [sortBy, setSortBy] = useState('match')
   const supabase = createBrowserClient()
 
-  // Load countries on mount
   useEffect(() => {
     loadCountries()
+    loadJobs()
   }, [])
 
-  // Load cities when country changes
-  useEffect(() => {
-    if (filters.country) {
-      loadCities(filters.country)
-      // Reset city selection when country changes
-      updateFilters('city', '')
-    } else {
-      setCities([])
-      updateFilters('city', '')
-    }
-  }, [filters.country])
-
-  // Load jobs when filters or sorting changes
   useEffect(() => {
     loadJobs()
   }, [filters, sortBy])
 
+  useEffect(() => {
+    if (selectedCountry) {
+      loadCities(selectedCountry)
+    } else {
+      setCities([])
+    }
+  }, [selectedCountry])
+
   const loadCountries = async () => {
-    setLoadingCountries(true)
-    setError(null)
+    setCountriesLoading(true)
+    setCountriesError(null)
+    
     try {
       const response = await fetch('/api/countries')
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        throw new Error(`Failed to fetch countries: ${response.status}`)
       }
+      
       const data = await response.json()
-      setCountries(data)
+      setCountries(data.countries || [])
     } catch (error) {
       console.error('Error loading countries:', error)
-      setError('Failed to load countries')
+      setCountriesError('Failed to load countries. Please try again.')
     } finally {
-      setLoadingCountries(false)
+      setCountriesLoading(false)
     }
   }
 
   const loadCities = async (countryId: string) => {
-    setLoadingCities(true)
-    setError(null)
+    setCitiesLoading(true)
+    setCitiesError(null)
+    
     try {
-      const response = await fetch(`/api/cities?country_id=${countryId}`)
+      const response = await fetch(`/api/cities?country=${countryId}`)
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        throw new Error(`Failed to fetch cities: ${response.status}`)
       }
+      
       const data = await response.json()
-      setCities(data)
+      setCities(data.cities || [])
     } catch (error) {
       console.error('Error loading cities:', error)
-      setError('Failed to load cities')
+      setCitiesError('Failed to load cities. Please try again.')
     } finally {
-      setLoadingCities(false)
+      setCitiesLoading(false)
     }
   }
 
   const loadJobs = async () => {
-    setLoading(true)
-    setError(null)
+    setJobsLoading(true)
+    setJobsError(null)
     
     try {
+      // Build query parameters
       const params = new URLSearchParams()
       
-      if (filters.search) params.set('search', filters.search)
-      if (filters.city) {
-        const selectedCity = cities.find(c => c.id === filters.city)
-        if (selectedCity) {
-          params.set('location', selectedCity.name)
-        }
-      }
-      if (filters.salary_min) params.set('salary_min', filters.salary_min)
-      if (filters.salary_max) params.set('salary_max', filters.salary_max)
-      if (filters.employment_types.length > 0) {
-        params.set('employment_types', filters.employment_types.join(','))
-      }
-      if (filters.remote_only) params.set('remote_only', 'true')
-      if (filters.experience_level) params.set('experience_level', filters.experience_level)
-      params.set('sort_by', sortBy)
+      if (filters.search) params.append('search', filters.search)
+      if (filters.location) params.append('location', filters.location)
+      if (filters.salary_min) params.append('salary_min', filters.salary_min)
+      if (filters.salary_max) params.append('salary_max', filters.salary_max)
+      if (filters.employment_types.length > 0) params.append('employment_types', filters.employment_types.join(','))
+      if (filters.remote_only) params.append('remote_only', 'true')
+      if (filters.experience_level) params.append('experience_level', filters.experience_level)
+      if (sortBy) params.append('sort_by', sortBy)
 
       const response = await fetch(`/api/jobs?${params.toString()}`)
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        throw new Error(`Failed to fetch jobs: ${response.status}`)
       }
+      
       const data = await response.json()
-      setJobs(data)
+      setJobs(data.jobs || [])
     } catch (error) {
       console.error('Error loading jobs:', error)
-      setError('Failed to load jobs')
+      setJobsError('Failed to load jobs. Please check your connection and try again.')
     } finally {
-      setLoading(false)
+      setJobsLoading(false)
     }
   }
 
@@ -287,29 +293,17 @@ export default function JobSearch() {
           <div className="max-w-6xl mx-auto">
             <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
 
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                {error}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="ml-auto text-red-700 hover:text-red-800"
-                  onClick={() => setError(null)}
-                >
-                  ×
-                </Button>
-              </div>
-            )}
-
             {message && (
-              <div className={`mb-4 p-3 rounded-lg ${
+              <Alert className={`mb-4 ${
                 message.type === 'success' 
-                  ? 'bg-green-50 text-green-700 border border-green-200' 
-                  : 'bg-red-50 text-red-700 border border-red-200'
+                  ? 'border-green-200 bg-green-50' 
+                  : 'border-red-200 bg-red-50'
               }`}>
-                {message.text}
-              </div>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+                  {message.text}
+                </AlertDescription>
+              </Alert>
             )}
 
             <div className="grid lg:grid-cols-4 gap-8">
@@ -331,55 +325,95 @@ export default function JobSearch() {
                         placeholder="React, JavaScript..." 
                         value={filters.search}
                         onChange={(e) => updateFilters('search', e.target.value)}
+                        disabled={jobsLoading}
                       />
                     </div>
 
-                    {/* Country */}
+                    {/* Country Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="country">Country</Label>
-                      <Select 
-                        value={filters.country} 
-                        onValueChange={(value) => updateFilters('country', value)}
-                        disabled={loadingCountries}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingCountries ? "Loading..." : "Select country"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country.id} value={country.id}>
-                              {country.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {countriesError ? (
+                        <Alert className="border-red-200 bg-red-50">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription className="text-red-700 text-sm">
+                            {countriesError}
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Select 
+                          value={selectedCountry} 
+                          onValueChange={(value) => {
+                            setSelectedCountry(value)
+                            setCities([])
+                            updateFilters('location', '')
+                          }}
+                          disabled={countriesLoading || jobsLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={countriesLoading ? "Loading..." : "Select country"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countriesLoading ? (
+                              <div className="flex items-center justify-center p-2">
+                                <LoadingSpinner size="sm" />
+                                <span className="ml-2 text-sm">Loading...</span>
+                              </div>
+                            ) : (
+                              countries.map((country) => (
+                                <SelectItem key={country.id} value={country.id}>
+                                  {country.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
-                    {/* City */}
+                    {/* City Selection */}
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Select 
-                        value={filters.city} 
-                        onValueChange={(value) => updateFilters('city', value)}
-                        disabled={!filters.country || loadingCities}
-                      >
-                        <SelectTrigger>
-                          <SelectValue 
-                            placeholder={
-                              !filters.country ? "Select country first" :
-                              loadingCities ? "Loading cities..." :
-                              "Select city"
-                            } 
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((city) => (
-                            <SelectItem key={city.id} value={city.id}>
-                              {city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="location">City</Label>
+                      {citiesError ? (
+                        <Alert className="border-red-200 bg-red-50">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription className="text-red-700 text-sm">
+                            {citiesError}
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Select 
+                          value={filters.location} 
+                          onValueChange={(value) => updateFilters('location', value)}
+                          disabled={!selectedCountry || citiesLoading || jobsLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={
+                              !selectedCountry 
+                                ? "Select country first" 
+                                : citiesLoading 
+                                ? "Loading cities..." 
+                                : "Select city"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {citiesLoading ? (
+                              <div className="flex items-center justify-center p-2">
+                                <LoadingSpinner size="sm" />
+                                <span className="ml-2 text-sm">Loading...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <SelectItem value="remote">Remote</SelectItem>
+                                {cities.map((city) => (
+                                  <SelectItem key={city.id} value={city.name}>
+                                    {city.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
 
                     {/* Salary Range */}
@@ -390,11 +424,13 @@ export default function JobSearch() {
                           placeholder="From" 
                           value={filters.salary_min}
                           onChange={(e) => updateFilters('salary_min', e.target.value)}
+                          disabled={jobsLoading}
                         />
                         <Input 
                           placeholder="To" 
                           value={filters.salary_max}
                           onChange={(e) => updateFilters('salary_max', e.target.value)}
+                          disabled={jobsLoading}
                         />
                       </div>
                     </div>
@@ -413,6 +449,7 @@ export default function JobSearch() {
                                 : filters.employment_types.filter(t => t !== 'Full-time')
                               updateFilters('employment_types', types)
                             }}
+                            disabled={jobsLoading}
                           />
                           <Label htmlFor="fulltime" className="text-sm">
                             Full-time
@@ -428,6 +465,7 @@ export default function JobSearch() {
                                 : filters.employment_types.filter(t => t !== 'Part-time')
                               updateFilters('employment_types', types)
                             }}
+                            disabled={jobsLoading}
                           />
                           <Label htmlFor="parttime" className="text-sm">
                             Part-time
@@ -443,6 +481,7 @@ export default function JobSearch() {
                                 : filters.employment_types.filter(t => t !== 'Contract')
                               updateFilters('employment_types', types)
                             }}
+                            disabled={jobsLoading}
                           />
                           <Label htmlFor="contract" className="text-sm">
                             Contract
@@ -458,6 +497,7 @@ export default function JobSearch() {
                           id="remote" 
                           checked={filters.remote_only}
                           onCheckedChange={(checked) => updateFilters('remote_only', checked)}
+                          disabled={jobsLoading}
                         />
                         <Label htmlFor="remote" className="text-sm">
                           Remote work only
@@ -468,7 +508,11 @@ export default function JobSearch() {
                     {/* Experience Level */}
                     <div className="space-y-2">
                       <Label>Experience Level</Label>
-                      <Select value={filters.experience_level} onValueChange={(value) => updateFilters('experience_level', value)}>
+                      <Select 
+                        value={filters.experience_level} 
+                        onValueChange={(value) => updateFilters('experience_level', value)}
+                        disabled={jobsLoading}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select level" />
                         </SelectTrigger>
@@ -484,9 +528,16 @@ export default function JobSearch() {
                     <Button 
                       className="w-full bg-[#00C49A] hover:bg-[#00A085]"
                       onClick={loadJobs}
-                      disabled={loading}
+                      disabled={jobsLoading}
                     >
-                      {loading ? 'Loading...' : 'Search Jobs'}
+                      {jobsLoading ? (
+                        <span className="flex items-center">
+                          <LoadingSpinner size="sm" />
+                          <span className="ml-2">Searching...</span>
+                        </span>
+                      ) : (
+                        'Apply Filters'
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -496,9 +547,13 @@ export default function JobSearch() {
               <div className="lg:col-span-3">
                 <div className="flex items-center justify-between mb-6">
                   <p className="text-[#333333]">
-                    {loading ? 'Loading...' : `Found ${jobs.length} jobs`}
+                    {jobsLoading ? 'Loading...' : `Found ${jobs.length} jobs`}
                   </p>
-                  <Select value={sortBy} onValueChange={setSortBy} disabled={loading}>
+                  <Select 
+                    value={sortBy} 
+                    onValueChange={setSortBy}
+                    disabled={jobsLoading}
+                  >
                     <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
@@ -510,18 +565,26 @@ export default function JobSearch() {
                   </Select>
                 </div>
 
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
-                      <p className="text-[#333333]">Loading jobs...</p>
-                    </div>
+                {jobsError && (
+                  <Alert className="mb-6 border-red-200 bg-red-50">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-red-700">
+                      {jobsError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {jobsLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <CardSkeleton key={i} />
+                    ))}
                   </div>
-                ) : jobs.length === 0 ? (
+                ) : jobs.length === 0 && !jobsError ? (
                   <div className="text-center py-12">
                     <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
-                    <p className="text-gray-500">Try adjusting your filters to see more results.</p>
+                    <h3 className="text-lg font-medium text-[#333333] mb-2">No jobs found</h3>
+                    <p className="text-gray-500">Try adjusting your filters or search terms.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -555,7 +618,11 @@ export default function JobSearch() {
                                   onClick={() => saveJob(job.id)}
                                   disabled={savingJob === job.id}
                                 >
-                                  <Heart className={`w-5 h-5 ${savingJob === job.id ? 'animate-pulse' : ''}`} />
+                                  {savingJob === job.id ? (
+                                    <LoadingSpinner size="sm" />
+                                  ) : (
+                                    <Heart className="w-5 h-5" />
+                                  )}
                                 </Button>
                               </div>
 
@@ -579,12 +646,14 @@ export default function JobSearch() {
                               </div>
                             </div>
 
-                            <div className="ml-6 text-center">
-                              <div className="bg-[#00C49A]/10 rounded-full w-16 h-16 flex items-center justify-center mb-2">
-                                <span className="text-[#00C49A] font-bold text-lg">{job.match_score}%</span>
+                            {job.match_score && (
+                              <div className="ml-6 text-center">
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00C49A] to-[#0A8F7A] flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg">{job.match_score}%</span>
+                                </div>
+                                <p className="text-xs text-[#333333] mt-1">Match</p>
                               </div>
-                              <p className="text-xs text-[#333333]">Match</p>
-                            </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
