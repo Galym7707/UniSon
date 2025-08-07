@@ -1,23 +1,28 @@
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { createServerSupabase } from '@/lib/supabase/server'
 
 export async function GET() {
   try {
-    const supabase = await createRouteHandlerClient()
+    const supabase = await createServerSupabase()
     
-    // For now, return hardcoded countries. In a real app, this would come from a database
-    const countries = [
-      { id: 'russia', name: 'Russia', code: 'RU' },
-      { id: 'usa', name: 'United States', code: 'US' },
-      { id: 'germany', name: 'Germany', code: 'DE' },
-      { id: 'canada', name: 'Canada', code: 'CA' }
-    ]
+    const { data: countries, error } = await supabase
+      .from('countries')
+      .select('*')
+      .order('name')
+
+    if (error) {
+      console.error('Database error:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch countries', details: error.message }, 
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ countries }, { status: 200 })
   } catch (error) {
-    console.error('Error fetching countries:', error)
+    console.error('Unexpected error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch countries' },
+      { error: 'Internal server error' }, 
       { status: 500 }
     )
   }
