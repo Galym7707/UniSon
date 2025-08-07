@@ -55,12 +55,21 @@ export default function JobSeekerDashboard() {
           const filled = Object.values(data).filter((v) => v && v !== "").length
           setProfilePct(Math.round((filled / 6) * 100))
           
-          // Set user name from generated name field, or fallback to first name
-          if (data.name && data.name.trim()) {
+          // Set user name with fallback logic for first_name and last_name
+          const firstName = data.first_name?.trim()
+          const lastName = data.last_name?.trim()
+          
+          if (firstName && lastName) {
+            setUserName(`${firstName} ${lastName}`)
+          } else if (firstName) {
+            setUserName(firstName)
+          } else if (lastName) {
+            setUserName(lastName)
+          } else if (data.name && data.name.trim()) {
+            // Fallback to legacy name field if available
             setUserName(data.name.trim())
-          } else if (data.first_name && data.first_name.trim()) {
-            setUserName(data.first_name.trim())
           }
+          // If none are available, keep default "Friend"
         }
       } catch (err) {
         setError(getUserFriendlyErrorMessage(err))
