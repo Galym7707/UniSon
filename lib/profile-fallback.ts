@@ -25,7 +25,7 @@ export interface ProfileFallbackResult {
 
 /**
  * Checks if a user's profile exists and creates one if it doesn't
- * Uses auth metadata (role, name) to populate the new profile
+ * Uses auth metadata (role, first_name, last_name) to populate the new profile
  */
 export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
   try {
@@ -113,11 +113,9 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
     }
 
     // Profile doesn't exist, create it using auth metadata
-    // Extract name parts from full name if individual parts aren't available
-    const fullName = userMetadata.name || userMetadata.full_name || ''
-    const nameParts = fullName.split(' ').filter((part: string) => part.trim())
-    const firstName = userMetadata.first_name || nameParts[0] || ''
-    const lastName = userMetadata.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '')
+    // Use individual name fields from metadata directly
+    const firstName = userMetadata.first_name || ''
+    const lastName = userMetadata.last_name || ''
 
     // Validate email
     if (!session.user.email) {

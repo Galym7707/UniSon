@@ -21,10 +21,15 @@ const signupSchema = z
       .max(100)
       .regex(/^[a-zA-ZÀ-ÿ0-9\s'.,&-]+$/)
       .optional(),
-    fullName: z
+    first_name: z
       .string()
       .min(2)
-      .max(50)
+      .max(25)
+      .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/),
+    last_name: z
+      .string()
+      .min(2)
+      .max(25)
       .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/),
     email: z.string().email().max(255),
     password: z
@@ -44,7 +49,8 @@ export async function signupAction(_prev: unknown, formData: FormData) {
     const parsed = signupSchema.parse({
       role: formData.get("role"),
       companyName: formData.get("companyName") || undefined,
-      fullName: formData.get("fullName"),
+      first_name: formData.get("first_name"),
+      last_name: formData.get("last_name"),
       email: formData.get("email"),
       password: formData.get("password"),
     })
@@ -59,7 +65,8 @@ export async function signupAction(_prev: unknown, formData: FormData) {
       options: {
         data: {
           role: parsed.role,
-          fullName: parsed.fullName,
+          first_name: parsed.first_name,
+          last_name: parsed.last_name,
           companyName: parsed.companyName ?? null,
         },
       },
@@ -73,8 +80,8 @@ export async function signupAction(_prev: unknown, formData: FormData) {
     const { error: profErr } = await supabaseAdmin.from("profiles").insert({
       id: userId,
       role: parsed.role,
-      first_name: parsed.fullName.split(" ")[0],
-      last_name: parsed.fullName.split(" ").slice(1).join(" "),
+      first_name: parsed.first_name,
+      last_name: parsed.last_name,
       company_name: parsed.companyName ?? null,
       email: parsed.email,
     })

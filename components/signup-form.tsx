@@ -26,11 +26,16 @@ const passwordRegex =
 
 const baseSignupSchema = z.object({
   role: z.enum(["employer", "job-seeker"]),
-  fullName: z
+  first_name: z
     .string()
-    .min(2, "Full name must be at least 2 characters")
-    .max(50, "Full name must be less than 50 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Full name can only contain letters, spaces, apostrophes, and hyphens"),
+    .min(2, "First name must be at least 2 characters")
+    .max(25, "First name must be less than 25 characters")
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "First name can only contain letters, spaces, apostrophes, and hyphens"),
+  last_name: z
+    .string()
+    .min(2, "Last name must be at least 2 characters")
+    .max(25, "Last name must be less than 25 characters")
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, apostrophes, and hyphens"),
   email: z.string().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
   password: z
     .string()
@@ -91,7 +96,8 @@ export function SignupForm() {
 
     const formData = new FormData()
     formData.append("role", data.role)
-    formData.append("fullName", data.fullName)
+    formData.append("first_name", data.first_name)
+    formData.append("last_name", data.last_name)
     formData.append("email", data.email)
     formData.append("password", data.password)
     if (data.companyName) formData.append("companyName", data.companyName)
@@ -113,19 +119,33 @@ export function SignupForm() {
         <Input id="companyName" placeholder="Your Company Inc." disabled={isPending} {...register("companyName")} />
         {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
       </div>
-      <div>
-        <Label htmlFor="fullName">Your Full Name</Label>
-        <Input id="fullName" placeholder="John Doe" disabled={isPending} {...register("fullName")} />
-        {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="first_name">First Name</Label>
+          <Input id="first_name" placeholder="John" disabled={isPending} {...register("first_name")} />
+          {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="last_name">Last Name</Label>
+          <Input id="last_name" placeholder="Doe" disabled={isPending} {...register("last_name")} />
+          {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
+        </div>
       </div>
     </>
   )
 
   const jobSeekerFields = (
-    <div>
-      <Label htmlFor="fullName">Full Name</Label>
-      <Input id="fullName" placeholder="Jane Smith" disabled={isPending} {...register("fullName")} />
-      {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="first_name">First Name</Label>
+        <Input id="first_name" placeholder="Jane" disabled={isPending} {...register("first_name")} />
+        {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
+      </div>
+      <div>
+        <Label htmlFor="last_name">Last Name</Label>
+        <Input id="last_name" placeholder="Smith" disabled={isPending} {...register("last_name")} />
+        {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
+      </div>
     </div>
   )
 
