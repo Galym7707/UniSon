@@ -2,6 +2,7 @@
 "use client";
 
 import { createBrowserClient as _createBrowserClient } from "@supabase/ssr";
+import { startTransition } from 'react'
 
 // ---------------------------------------------------------------------------
 // Environment

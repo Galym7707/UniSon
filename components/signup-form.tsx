@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useState, useEffect } from "react"
+import { useActionState, useState, useEffect, startTransition } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -96,7 +96,8 @@ export function SignupForm() {
     formData.append("password", data.password)
     if (data.companyName) formData.append("companyName", data.companyName)
 
-    formAction(formData)
+    // 🟢 inside transition – isPending now updates correctly
+    startTransition(() => formAction(formData))
   }
 
   const handleRoleChange = (newRole: Role) => {
