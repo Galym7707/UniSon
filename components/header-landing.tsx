@@ -4,9 +4,12 @@
 import Link   from 'next/link'
 import Image  from 'next/image'
 import { useState } from 'react'
+import { useAuthState } from '@/lib/supabase/hooks'
+import { UserProfileHeader } from './user-profile-header'
 
 export function Header() {
   const [open, setOpen] = useState(false)
+  const { user, loading } = useAuthState()
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100" role="banner">
@@ -63,20 +66,28 @@ export function Header() {
           </a>
         </nav>
 
-        {/* ── desktop CTA buttons ────────────── */}
+        {/* ── desktop CTA buttons / profile ────────────── */}
         <div className="hidden lg:flex items-center gap-3 xl:gap-4">
-          <Link
-            href="/auth/login"
-            className="text-base font-medium text-gray-700 hover:text-black px-3 py-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
-          >
-            Login
-          </Link>
-          <Link
-            href="/auth/signup"
-            className="rounded-md bg-black px-4 py-2 text-base font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
-          >
-            Sign up
-          </Link>
+          {loading ? (
+            <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+          ) : user ? (
+            <UserProfileHeader />
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="text-base font-medium text-gray-700 hover:text-black px-3 py-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="rounded-md bg-black px-4 py-2 text-base font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* ── hamburger icon ─────────────────── */}
@@ -145,22 +156,32 @@ export function Header() {
               Contacts
             </a>
 
-            {/* mobile CTA buttons */}
+            {/* mobile CTA buttons / profile */}
             <div className="flex flex-col items-center gap-3 pt-4 pb-2 border-t border-gray-200 mt-4">
-              <Link
-                href="/auth/login"
-                className="text-base font-medium text-gray-700 hover:text-black px-4 py-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                Login
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="w-full max-w-xs rounded-md bg-black px-4 py-2 text-base font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black text-center transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                Sign up
-              </Link>
+              {loading ? (
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+              ) : user ? (
+                <div className="w-full flex justify-center">
+                  <UserProfileHeader />
+                </div>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-base font-medium text-gray-700 hover:text-black px-4 py-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black rounded transition-colors"
+                    onClick={() => setOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="w-full max-w-xs rounded-md bg-black px-4 py-2 text-base font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black text-center transition-colors"
+                    onClick={() => setOpen(false)}
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>

@@ -5,17 +5,18 @@ import { createBrowserClient as _createBrowserClient } from "@supabase/ssr";
 import { startTransition } from 'react'
 
 // ---------------------------------------------------------------------------
-// Environment
+// Environment - gracefully handle missing env vars during build
 // ---------------------------------------------------------------------------
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  // Fail fast – it is better to surface a clear error than to silently
-  // instantiate the client with an undefined URL / key.
-  throw new Error(
-    "Supabase env vars are missing. Did you set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY?"
-  );
+// Only throw in runtime if we try to use the client without env vars
+function checkEnvironment() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Supabase env vars are missing. Did you set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY?"
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,8 @@ let _supabase:
  */
 export function getSupabaseBrowser() {
   if (!_supabase) {
-    _supabase = _createBrowserClient(supabaseUrl, supabaseKey, {
+    checkEnvironment(); // Only check env when actually creating the client
+    _supabase = _createBrowserClient(supabaseUrl!, supabaseKey!, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -70,4 +72,10 @@ export function createBrowserClient() {
  * import { supabase } from "@/lib/supabase/browser";
  * ```
  */
-export const supabase = getSupabaseBrowser();
+export const supabase = (() => {
+  // Don't initialize during build process
+  if (typeof window === 'undefined') {
+    return null as any;
+  }
+  return getSupabaseBrowser();
+})();
