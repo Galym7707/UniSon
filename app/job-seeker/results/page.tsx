@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ErrorDisplay } from "@/components/ui/error-display"
-import { Brain, Target, Users, Lightbulb, TrendingUp, Heart, Download, Share2 } from "lucide-react"
+import { Brain, Target, Users, Lightbulb, TrendingUp, Heart, Download, Share2, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logError, getUserFriendlyErrorMessage } from '@/lib/error-handling'
@@ -28,6 +28,7 @@ type TestResults = {
 
 export default function PersonalityResults() {
   const [results, setResults] = useState<TestResults | null>(null)
+  const [hasExistingResults, setHasExistingResults] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,7 +55,17 @@ export default function PersonalityResults() {
         }
 
         if (data?.test_results) {
-          setResults(data.test_results)
+          // Handle multiple test attempts - get the most recent one
+          if (Array.isArray(data.test_results)) {
+            const sortedResults = data.test_results.sort((a: any, b: any) => 
+              new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
+            )
+            setResults(sortedResults[0])
+            setHasExistingResults(sortedResults.length > 0)
+          } else {
+            setResults(data.test_results)
+            setHasExistingResults(true)
+          }
         }
       } catch (err) {
         const errorMessage = getUserFriendlyErrorMessage(err)
@@ -142,6 +153,11 @@ export default function PersonalityResults() {
               <CardHeader className="text-center">
                 <CardTitle className="text-3xl font-bold text-[#0A2540]">Your Strengths</CardTitle>
                 <CardDescription className="text-lg">Analysis based on your answers and experience</CardDescription>
+                {hasExistingResults && (
+                  <p className="text-sm text-[#666666] mt-2">
+                    Test completed on {new Date(results.completed_at).toLocaleDateString()}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="text-center mb-8">
@@ -244,6 +260,17 @@ export default function PersonalityResults() {
                 <CardTitle className="text-[#0A2540]">Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {hasExistingResults && (
+                  <Link href="/job-seeker/test" className="block">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-[#00C49A] text-[#00C49A] hover:bg-[#00C49A] hover:text-white bg-transparent"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Retake Test
+                    </Button>
+                  </Link>
+                )}
                 <Button className="w-full bg-[#00C49A] hover:bg-[#00A085]">
                   <Download className="w-4 h-4 mr-2" />
                   Download Report
