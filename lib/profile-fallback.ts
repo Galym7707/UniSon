@@ -6,7 +6,6 @@ export interface ProfileData {
   id: string
   email?: string
   role?: string
-  name?: string
   first_name?: string
   last_name?: string
   title?: string
@@ -129,7 +128,6 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
       id: userId,
       email: session.user.email,
       role: userMetadata.role || 'job_seeker',
-      name: fullName,
       first_name: firstName,
       last_name: lastName,
       title: '',
