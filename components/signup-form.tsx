@@ -15,7 +15,7 @@ import { ErrorDisplay } from "@/components/ui/error-display"
 import { Building2, User, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { signupAction } from "@/app/auth/signup/action"
+import { signupAction } from "@/actions/auth"
 
 /* ---------- types & schema ---------- */
 

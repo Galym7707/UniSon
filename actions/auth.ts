@@ -1,9 +1,7 @@
-/* app/auth/signup/action.ts */
 "use server"
 
 import { redirect } from "next/navigation"
 import { z } from "zod"
-
 import { createUserAccount } from "@/lib/supabase/server-utils"
 import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
 
