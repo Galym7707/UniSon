@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { redirect } from "next/navigation"
 import { createServerSupabaseAdmin } from "@/lib/supabase/admin"
-import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
+import { getUserFriendlyErrorMessage, logError } from "@/lib/error-handling"
 
 /* ---------- validation schema ---------- */
 const signupSchema = z
@@ -41,6 +41,180 @@ const signupSchema = z
     path: ["companyName"],
     message: "Company name is required for employers",
   })
+
+interface ProfileCreationData {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  role: string
+}
+
+// Server-side version of ensureUserProfile for use after user creation
+async function ensureUserProfile(profileData: ProfileCreationData) {
+  try {
+    const supabaseAdmin = createServerSupabaseAdmin()
+    const MAX_RETRIES = 3
+    let retryCount = 0
+
+    // First, try to fetch existing profile with retry logic
+    let existingProfile = null
+    let profileError = null
+
+    while (retryCount < MAX_RETRIES) {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', profileData.id)
+        .single()
+
+      if (data && !error) {
+        existingProfile = data
+        profileError = null
+        break
+      }
+
+      if (error && error.code === 'PGRST116') {
+        // No rows returned - profile doesn't exist, this is expected
+        profileError = error
+        break
+      }
+
+      if (error && (error.message.includes('timeout') || error.message.includes('network'))) {
+        retryCount++
+        if (retryCount < MAX_RETRIES) {
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
+          continue
+        }
+      }
+
+      profileError = error
+      break
+    }
+
+    // If profile exists, return it
+    if (existingProfile && !profileError) {
+      return {
+        profile: existingProfile,
+        error: null,
+        wasCreated: false
+      }
+    }
+
+    // If error is not "no rows returned", it's a real error
+    if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError.code === '42P01') {
+        throw new Error('Database configuration error. Please contact support.')
+      }
+      if (profileError.code === '42501') {
+        throw new Error('Database access denied. Please contact support.')
+      }
+      if (profileError.message.includes('timeout')) {
+        throw new Error('Database timeout. Please try again in a moment.')
+      }
+      throw new Error(`Profile fetch error: ${profileError.message}`)
+    }
+
+    // Profile doesn't exist, create it
+    const newProfile = {
+      id: profileData.id,
+      email: profileData.email,
+      role: profileData.role,
+      first_name: profileData.first_name,
+      last_name: profileData.last_name,
+      title: '',
+      summary: '',
+      experience: '',
+      skills: '',
+      resume_url: null
+    }
+
+    // Create profile with retry logic
+    let createdProfile = null
+    let createError = null
+    retryCount = 0
+
+    while (retryCount < MAX_RETRIES) {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .insert([newProfile])
+        .select()
+        .single()
+
+      if (data && !error) {
+        createdProfile = data
+        createError = null
+        break
+      }
+
+      if (error && (error.message.includes('timeout') || error.message.includes('network'))) {
+        retryCount++
+        if (retryCount < MAX_RETRIES) {
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
+          continue
+        }
+      }
+
+      createError = error
+      break
+    }
+
+    if (createError) {
+      if (createError.code === '23505') {
+        // Profile already exists (race condition), try to fetch it
+        const { data: raceProfile, error: raceError } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', profileData.id)
+          .single()
+
+        if (raceProfile && !raceError) {
+          return {
+            profile: raceProfile,
+            error: null,
+            wasCreated: false
+          }
+        }
+        throw new Error('Profile creation conflict. Please refresh the page and try again.')
+      }
+      if (createError.code === '23502') {
+        throw new Error('Missing required profile information. Please contact support.')
+      }
+      if (createError.code === '42501') {
+        throw new Error('Permission denied. Please contact support.')
+      }
+      if (createError.code === '42P01') {
+        throw new Error('Database configuration error. Please contact support.')
+      }
+      throw new Error(`Profile creation failed: ${createError.message}`)
+    }
+
+    if (!createdProfile) {
+      throw new Error('Profile creation failed: No profile data returned.')
+    }
+
+    return {
+      profile: createdProfile,
+      error: null,
+      wasCreated: true
+    }
+
+  } catch (err) {
+    const errorMessage = getUserFriendlyErrorMessage(err)
+    logError('server-ensure-user-profile', err, {
+      userId: profileData.id,
+      timestamp: new Date().toISOString()
+    })
+    
+    return {
+      profile: null,
+      error: errorMessage,
+      wasCreated: false
+    }
+  }
+}
 
 export async function signupAction(_prev: unknown, formData: FormData): Promise<{ error?: string; success?: boolean; message?: string } | null> {
   try {
@@ -102,26 +276,35 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
       throw new Error("User creation failed - no user ID returned")
     }
 
-    /* ---------- create profile record ---------- */
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert({
+    /* ---------- create profile record using ensureUserProfile ---------- */
+    try {
+      const profileResult = await ensureUserProfile({
         id: userId,
-        role: userRole,
+        email: parsed.email,
         first_name: parsed.first_name.trim(),
         last_name: parsed.last_name.trim(),
-        company_name: parsed.companyName || null,
-        email: parsed.email,
+        role: userRole,
       })
 
-    if (profileError) {
-      // Clean up auth user if profile creation fails
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(userId)
-      } catch (cleanupError) {
-        console.error("Failed to cleanup auth user after profile creation failure:", cleanupError)
+      if (profileResult.error) {
+        // Log the profile creation error but don't fail the entire signup
+        // The user account was successfully created
+        logError('signup-profile-creation-failed', new Error(profileResult.error), {
+          userId: userId,
+          email: parsed.email,
+        })
+        
+        // The profile will be created later via the fallback mechanism
+        // when the user first accesses their dashboard
       }
-      throw profileError
+    } catch (profileError) {
+      // Log any unexpected errors during profile creation
+      logError('signup-profile-creation-error', profileError, {
+        userId: userId,
+        email: parsed.email,
+      })
+      
+      // Continue with successful signup - profile will be created via fallback
     }
 
     /* ---------- create company profile for employers ---------- */
