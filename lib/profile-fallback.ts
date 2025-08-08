@@ -125,6 +125,12 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
       lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : ''
     }
 
+    // Validate role before creating profile
+    const userRole = userMetadata.role || 'job-seeker'
+    if (userRole !== 'employer' && userRole !== 'job-seeker') {
+      throw new Error('Invalid role. Role must be exactly \'employer\' or \'job-seeker\'')
+    }
+
     // Validate email
     if (!session.user.email) {
       throw new Error('User email is required for profile creation.')
@@ -133,7 +139,7 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
     const newProfile: Partial<ProfileData> = {
       id: userId,
       email: session.user.email,
-      role: userMetadata.role || 'job-seeker',
+      role: userRole,
       first_name: firstName,
       last_name: lastName,
       title: '',

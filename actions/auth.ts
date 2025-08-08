@@ -66,6 +66,14 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
     }
 
     // Log signup attempt for monitoring (without sensitive data)
+    // Validate role value before proceeding
+    if (rawData.role !== "employer" && rawData.role !== "job-seeker") {
+      return { 
+        error: "Invalid role selection. Please select either 'employer' or 'job-seeker'", 
+        field: "role" 
+      }
+    }
+
     console.log("Signup attempt for:", rawData.email, "Role:", rawData.role)
 
     // Validate form data

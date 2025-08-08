@@ -17,6 +17,10 @@ export interface SignupData {
  * Creates a new user account and associated profile records
  */
 export async function createUserAccount(data: SignupData) {
+  // Validate role before any database operations
+  if (data.role !== "employer" && data.role !== "job-seeker") {
+    throw new Error("Invalid role. Role must be exactly 'employer' or 'job-seeker'")
+  }
   const supabase = await createServerSupabase()
   const supabaseAdmin = createServerSupabaseAdmin()
 
