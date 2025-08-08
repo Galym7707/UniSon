@@ -60,6 +60,20 @@ export async function createUserAccount(data: SignupData) {
     })
 
     if (profErr) {
+      // Log comprehensive error details for debugging
+      console.error("Profile creation failed - Full error details:", {
+        error: profErr,
+        errorCode: profErr.code,
+        errorMessage: profErr.message,
+        errorDetails: profErr.details,
+        errorHint: profErr.hint,
+        constraintViolations: profErr.constraint,
+        userId: userId,
+        userEmail: data.email,
+        userRole: data.role,
+        timestamp: new Date().toISOString()
+      })
+
       // If profile creation fails, we should try to clean up the auth user
       try {
         await supabaseAdmin.auth.admin.deleteUser(userId)
@@ -70,7 +84,38 @@ export async function createUserAccount(data: SignupData) {
       throw profErr
     }
   } catch (error: any) {
-    throw new Error("Failed to create user profile. Please try again.")
+    // Log the full error object with all available details
+    console.error("Profile insertion operation failed - Complete error context:", {
+      originalError: error,
+      errorName: error?.name,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      errorDetails: error?.details,
+      errorHint: error?.hint,
+      constraintViolation: error?.constraint,
+      sqlState: error?.sqlState,
+      errorStack: error?.stack,
+      userId: userId,
+      userEmail: data.email,
+      userRole: data.role,
+      companyName: data.companyName,
+      timestamp: new Date().toISOString(),
+      profileData: {
+        id: userId,
+        role: data.role,
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
+        company_name: data.companyName ?? null,
+        email: data.email,
+      }
+    })
+
+    // Provide more descriptive error message that includes database error information
+    const errorDetails = error?.message || "Unknown database error"
+    const errorCode = error?.code ? ` (Code: ${error.code})` : ""
+    const constraintInfo = error?.constraint ? ` - Constraint: ${error.constraint}` : ""
+    
+    throw new Error(`Failed to create user profile due to database error: ${errorDetails}${errorCode}${constraintInfo}. Please try again or contact support if the problem persists.`)
   }
 
   /* ---------- 3. создаём запись в company_profiles, если роль = employer ---------- */
