@@ -30,12 +30,14 @@ const baseSignupSchema = z.object({
     .string()
     .min(2, "First name must be at least 2 characters")
     .max(25, "First name must be less than 25 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "First name can only contain letters, spaces, apostrophes, and hyphens"),
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "First name can only contain letters, spaces, apostrophes, and hyphens")
+    .refine((val) => val.trim().length > 0, "First name is required"),
   last_name: z
     .string()
     .min(2, "Last name must be at least 2 characters")
     .max(25, "Last name must be less than 25 characters")
-    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, apostrophes, and hyphens"),
+    .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, apostrophes, and hyphens")
+    .refine((val) => val.trim().length > 0, "Last name is required"),
   email: z.string().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
   password: z
     .string()
@@ -73,12 +75,14 @@ export function SignupForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors, isValid, touchedFields },
     clearErrors,
     watch,
+    trigger,
+    setValue,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    mode: "onChange",
+    mode: "onBlur",
     defaultValues: { role: "job-seeker" },
   })
 
@@ -96,8 +100,8 @@ export function SignupForm() {
 
     const formData = new FormData()
     formData.append("role", data.role)
-    formData.append("first_name", data.first_name)
-    formData.append("last_name", data.last_name)
+    formData.append("first_name", data.first_name?.trim() || "")
+    formData.append("last_name", data.last_name?.trim() || "")
     formData.append("email", data.email)
     formData.append("password", data.password)
     if (data.companyName) formData.append("companyName", data.companyName)
@@ -107,7 +111,16 @@ export function SignupForm() {
   }
 
   const handleRoleChange = (newRole: Role) => {
-    if (!isPending) setRole(newRole)
+    if (!isPending) {
+      setRole(newRole)
+      setValue("role", newRole)
+      trigger("companyName") // Re-validate company name when role changes
+    }
+  }
+
+  // Enhanced validation for name fields
+  const validateNameField = async (fieldName: 'first_name' | 'last_name') => {
+    await trigger(fieldName)
   }
 
   /* ---------- UI helpers ---------- */
@@ -116,18 +129,38 @@ export function SignupForm() {
     <>
       <div>
         <Label htmlFor="companyName">Company Name</Label>
-        <Input id="companyName" placeholder="Your Company Inc." disabled={isPending} {...register("companyName")} />
+        <Input 
+          id="companyName" 
+          placeholder="Your Company Inc." 
+          disabled={isPending} 
+          {...register("companyName")} 
+          className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
+        />
         {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="first_name">First Name</Label>
-          <Input id="first_name" placeholder="John" disabled={isPending} {...register("first_name")} />
+          <Label htmlFor="first_name">First Name *</Label>
+          <Input 
+            id="first_name" 
+            placeholder="John" 
+            disabled={isPending} 
+            {...register("first_name")} 
+            className={errors.first_name ? "border-red-500 focus:border-red-500" : ""}
+            onBlur={() => validateNameField('first_name')}
+          />
           {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
         </div>
         <div>
-          <Label htmlFor="last_name">Last Name</Label>
-          <Input id="last_name" placeholder="Doe" disabled={isPending} {...register("last_name")} />
+          <Label htmlFor="last_name">Last Name *</Label>
+          <Input 
+            id="last_name" 
+            placeholder="Doe" 
+            disabled={isPending} 
+            {...register("last_name")} 
+            className={errors.last_name ? "border-red-500 focus:border-red-500" : ""}
+            onBlur={() => validateNameField('last_name')}
+          />
           {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
         </div>
       </div>
@@ -137,13 +170,27 @@ export function SignupForm() {
   const jobSeekerFields = (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <Label htmlFor="first_name">First Name</Label>
-        <Input id="first_name" placeholder="Jane" disabled={isPending} {...register("first_name")} />
+        <Label htmlFor="first_name">First Name *</Label>
+        <Input 
+          id="first_name" 
+          placeholder="Jane" 
+          disabled={isPending} 
+          {...register("first_name")} 
+          className={errors.first_name ? "border-red-500 focus:border-red-500" : ""}
+          onBlur={() => validateNameField('first_name')}
+        />
         {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
       </div>
       <div>
-        <Label htmlFor="last_name">Last Name</Label>
-        <Input id="last_name" placeholder="Smith" disabled={isPending} {...register("last_name")} />
+        <Label htmlFor="last_name">Last Name *</Label>
+        <Input 
+          id="last_name" 
+          placeholder="Smith" 
+          disabled={isPending} 
+          {...register("last_name")} 
+          className={errors.last_name ? "border-red-500 focus:border-red-500" : ""}
+          onBlur={() => validateNameField('last_name')}
+        />
         {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
       </div>
     </div>
@@ -218,20 +265,33 @@ export function SignupForm() {
           {/* email */}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@example.com" disabled={isPending} {...register("email")} />
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="you@example.com" 
+              disabled={isPending} 
+              {...register("email")} 
+              className={errors.email ? "border-red-500 focus:border-red-500" : ""}
+            />
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
           </div>
 
           {/* password */}
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" disabled={isPending} {...register("password")} />
+            <Input 
+              id="password" 
+              type="password" 
+              disabled={isPending} 
+              {...register("password")} 
+              className={errors.password ? "border-red-500 focus:border-red-500" : ""}
+            />
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
             <p className="text-xs text-gray-500 mt-1">At least 8 chars with upper-, lower-case and number</p>
           </div>
 
           {/* server-side error */}
-          {state && !state.success && state.message && <ErrorDisplay error={state.message} variant="card" />}
+          {state && !state.success && state.error && <ErrorDisplay error={state.error} variant="card" />}
 
           <Button type="submit" className="w-full" disabled={isPending || (isFormSubmitted && !isValid)}>
             <LoadingButton isLoading={isPending} loadingText="Creating Account…">
