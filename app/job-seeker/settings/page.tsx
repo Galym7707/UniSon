@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +19,8 @@ import { Footer } from '@/components/footer'
 
 type Settings = {
   account: {
+    first_name: string
+    last_name: string
     email: string
     phone: string
     timezone: string
@@ -49,33 +50,11 @@ type Settings = {
   }
 }
 
-const SidebarLink = ({ href, icon, children, pathname }: {
-  href: string
-  icon: React.ReactNode
-  children: React.ReactNode
-  pathname: string
-}) => {
-  const isActive = pathname === href
-  
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 rounded-lg ${
-        isActive 
-          ? 'text-[#00C49A] bg-[#00C49A]/10' 
-          : 'text-[#333333] hover:bg-gray-100'
-      }`}
-    >
-      <div className="w-5 h-5 mr-3">{icon}</div>
-      {children}
-    </Link>
-  )
-}
-
 export default function JobSeekerSettings() {
-  const pathname = usePathname()
   const [settings, setSettings] = useState<Settings>({
     account: {
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       timezone: 'moscow'
@@ -156,7 +135,7 @@ export default function JobSeekerSettings() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('email, phone, settings')
+        .select('first_name, last_name, email, phone, settings')
         .eq('id', user.id)
         .single()
 
@@ -165,6 +144,8 @@ export default function JobSeekerSettings() {
         setSettings(prev => ({
           ...prev,
           account: {
+            first_name: data.first_name || '',
+            last_name: data.last_name || '',
             email: data.email || user.email || '',
             phone: data.phone || '',
             timezone: loadedSettings.account?.timezone || 'Europe/Moscow',
@@ -194,6 +175,8 @@ export default function JobSeekerSettings() {
         .from('profiles')
         .upsert({
           id: user.id,
+          first_name: settings.account.first_name,
+          last_name: settings.account.last_name,
           email: settings.account.email,
           phone: settings.account.phone,
           settings: JSON.stringify({
@@ -279,24 +262,48 @@ export default function JobSeekerSettings() {
               </Link>
             </div>
             <nav className="px-4 space-y-2">
-              <SidebarLink href="/job-seeker/dashboard" icon={<LayoutDashboard />} pathname={pathname}>
+              <Link
+                href="/job-seeker/dashboard"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <LayoutDashboard className="w-5 h-5 mr-3" />
                 Dashboard
-              </SidebarLink>
-              <SidebarLink href="/job-seeker/profile" icon={<User />} pathname={pathname}>
+              </Link>
+              <Link
+                href="/job-seeker/profile"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <User className="w-5 h-5 mr-3" />
                 Profile
-              </SidebarLink>
-              <SidebarLink href="/job-seeker/test" icon={<Brain />} pathname={pathname}>
+              </Link>
+              <Link
+                href="/job-seeker/test"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Brain className="w-5 h-5 mr-3" />
                 Test
-              </SidebarLink>
-              <SidebarLink href="/job-seeker/jobs" icon={<Search />} pathname={pathname}>
-                Jobs
-              </SidebarLink>
-              <SidebarLink href="/job-seeker/saved" icon={<Heart />} pathname={pathname}>
+              </Link>
+              <Link
+                href="/job-seeker/search"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Search className="w-5 h-5 mr-3" />
+                Job Search
+              </Link>
+              <Link
+                href="/job-seeker/saved"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Heart className="w-5 h-5 mr-3" />
                 Saved
-              </SidebarLink>
-              <SidebarLink href="/job-seeker/settings" icon={<Settings />} pathname={pathname}>
+              </Link>
+              <Link
+                href="/job-seeker/settings"
+                className="flex items-center px-4 py-3 text-[#00C49A] bg-[#00C49A]/10 rounded-lg"
+              >
+                <Settings className="w-5 h-5 mr-3" />
                 Settings
-              </SidebarLink>
+              </Link>
             </nav>
           </div>
 
@@ -343,6 +350,24 @@ export default function JobSeekerSettings() {
                       <CardDescription>Manage your account information</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input 
+                            id="firstName" 
+                            value={settings.account.first_name}
+                            onChange={(e) => updateSettings('account', 'first_name', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input 
+                            id="lastName" 
+                            value={settings.account.last_name}
+                            onChange={(e) => updateSettings('account', 'last_name', e.target.value)}
+                          />
+                        </div>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input 
@@ -376,214 +401,6 @@ export default function JobSeekerSettings() {
                             <SelectItem value="Asia/Tokyo">Tokyo (UTC+09:00)</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="notifications">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#0A2540] flex items-center">
-                        <Bell className="w-5 h-5 mr-2" />
-                        Notifications
-                      </CardTitle>
-                      <CardDescription>Control how you receive notifications</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Email notifications</h4>
-                          <p className="text-sm text-[#333333]">Receive notifications via email</p>
-                        </div>
-                        <Switch 
-                          checked={settings.notifications.email_notifications}
-                          onCheckedChange={(checked) => updateSettings('notifications', 'email_notifications', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">New job alerts</h4>
-                          <p className="text-sm text-[#333333]">Get notified about new jobs matching your criteria</p>
-                        </div>
-                        <Switch 
-                          checked={settings.notifications.new_jobs}
-                          onCheckedChange={(checked) => updateSettings('notifications', 'new_jobs', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Application responses</h4>
-                          <p className="text-sm text-[#333333]">Get notified about responses to your applications</p>
-                        </div>
-                        <Switch 
-                          checked={settings.notifications.responses}
-                          onCheckedChange={(checked) => updateSettings('notifications', 'responses', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Interview invitations</h4>
-                          <p className="text-sm text-[#333333]">Get notified about interview invitations</p>
-                        </div>
-                        <Switch 
-                          checked={settings.notifications.interviews}
-                          onCheckedChange={(checked) => updateSettings('notifications', 'interviews', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Marketing emails</h4>
-                          <p className="text-sm text-[#333333]">Receive occasional updates and tips</p>
-                        </div>
-                        <Switch 
-                          checked={settings.notifications.marketing}
-                          onCheckedChange={(checked) => updateSettings('notifications', 'marketing', checked)}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="privacy">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#0A2540] flex items-center">
-                        <Eye className="w-5 h-5 mr-2" />
-                        Privacy Settings
-                      </CardTitle>
-                      <CardDescription>Control your privacy and data preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Public profile</h4>
-                          <p className="text-sm text-[#333333]">Make your profile visible to employers</p>
-                        </div>
-                        <Switch 
-                          checked={settings.privacy.public_profile}
-                          onCheckedChange={(checked) => updateSettings('privacy', 'public_profile', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Show contact information</h4>
-                          <p className="text-sm text-[#333333]">Allow employers to see your contact details</p>
-                        </div>
-                        <Switch 
-                          checked={settings.privacy.show_contacts}
-                          onCheckedChange={(checked) => updateSettings('privacy', 'show_contacts', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Search history</h4>
-                          <p className="text-sm text-[#333333]">Save your search history for better recommendations</p>
-                        </div>
-                        <Switch 
-                          checked={settings.privacy.search_history}
-                          onCheckedChange={(checked) => updateSettings('privacy', 'search_history', checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Analytics</h4>
-                          <p className="text-sm text-[#333333]">Help us improve by sharing anonymous usage data</p>
-                        </div>
-                        <Switch 
-                          checked={settings.privacy.analytics}
-                          onCheckedChange={(checked) => updateSettings('privacy', 'analytics', checked)}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="preferences">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#0A2540] flex items-center">
-                        <Search className="w-5 h-5 mr-2" />
-                        Job Preferences
-                      </CardTitle>
-                      <CardDescription>Set your job search preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="location">Preferred Location</Label>
-                          <Select 
-                            value={settings.preferences.preferred_location}
-                            onValueChange={(value) => updateSettings('preferences', 'preferred_location', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="moscow">Moscow</SelectItem>
-                              <SelectItem value="spb">St. Petersburg</SelectItem>
-                              <SelectItem value="nyc">New York</SelectItem>
-                              <SelectItem value="london">London</SelectItem>
-                              <SelectItem value="berlin">Berlin</SelectItem>
-                              <SelectItem value="remote">Remote</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="employment">Employment Type</Label>
-                          <Select 
-                            value={settings.preferences.employment_type}
-                            onValueChange={(value) => updateSettings('preferences', 'employment_type', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="fulltime">Full-time</SelectItem>
-                              <SelectItem value="parttime">Part-time</SelectItem>
-                              <SelectItem value="contract">Contract</SelectItem>
-                              <SelectItem value="freelance">Freelance</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="salary">Minimum Salary</Label>
-                          <Input 
-                            id="salary" 
-                            placeholder="e.g., 100,000"
-                            value={settings.preferences.min_salary}
-                            onChange={(e) => updateSettings('preferences', 'min_salary', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="experience">Experience Level</Label>
-                          <Select 
-                            value={settings.preferences.experience_level}
-                            onValueChange={(value) => updateSettings('preferences', 'experience_level', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="junior">Junior (0-2 years)</SelectItem>
-                              <SelectItem value="middle">Middle (2-5 years)</SelectItem>
-                              <SelectItem value="senior">Senior (5+ years)</SelectItem>
-                              <SelectItem value="lead">Lead/Manager</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-[#0A2540]">Remote Only</h4>
-                          <p className="text-sm text-[#333333]">Only show remote job opportunities</p>
-                        </div>
-                        <Switch 
-                          checked={settings.preferences.remote_only}
-                          onCheckedChange={(checked) => updateSettings('preferences', 'remote_only', checked)}
-                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -686,13 +503,285 @@ export default function JobSeekerSettings() {
                           >
                             {deleting ? (
                               <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                 Deleting...
                               </>
                             ) : (
                               'Delete Account'
                             )}
                           </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="notifications">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#0A2540] flex items-center">
+                        <Bell className="w-5 h-5 mr-2" />
+                        Notification Settings
+                      </CardTitle>
+                      <CardDescription>Manage your notification preferences</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="emailNotifications" className="text-base font-medium text-[#0A2540]">
+                              Email Notifications
+                            </Label>
+                            <p className="text-sm text-[#333333]">Receive notifications via email</p>
+                          </div>
+                          <Switch 
+                            id="emailNotifications"
+                            checked={settings.notifications.email_notifications}
+                            onCheckedChange={(checked) => updateSettings('notifications', 'email_notifications', checked)}
+                          />
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="newJobs" className="text-base font-medium text-[#0A2540]">
+                                New Job Alerts
+                              </Label>
+                              <p className="text-sm text-[#333333]">Get notified when new jobs match your criteria</p>
+                            </div>
+                            <Switch 
+                              id="newJobs"
+                              checked={settings.notifications.new_jobs}
+                              onCheckedChange={(checked) => updateSettings('notifications', 'new_jobs', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="responses" className="text-base font-medium text-[#0A2540]">
+                                Application Responses
+                              </Label>
+                              <p className="text-sm text-[#333333]">Updates on your job applications</p>
+                            </div>
+                            <Switch 
+                              id="responses"
+                              checked={settings.notifications.responses}
+                              onCheckedChange={(checked) => updateSettings('notifications', 'responses', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="interviews" className="text-base font-medium text-[#0A2540]">
+                                Interview Invitations
+                              </Label>
+                              <p className="text-sm text-[#333333]">Notifications for interview requests</p>
+                            </div>
+                            <Switch 
+                              id="interviews"
+                              checked={settings.notifications.interviews}
+                              onCheckedChange={(checked) => updateSettings('notifications', 'interviews', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="marketing" className="text-base font-medium text-[#0A2540]">
+                                Marketing Communications
+                              </Label>
+                              <p className="text-sm text-[#333333]">Tips, insights, and product updates</p>
+                            </div>
+                            <Switch 
+                              id="marketing"
+                              checked={settings.notifications.marketing}
+                              onCheckedChange={(checked) => updateSettings('notifications', 'marketing', checked)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="privacy">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#0A2540] flex items-center">
+                        <Eye className="w-5 h-5 mr-2" />
+                        Privacy Settings
+                      </CardTitle>
+                      <CardDescription>Control your privacy and data sharing preferences</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="publicProfile" className="text-base font-medium text-[#0A2540]">
+                              Public Profile
+                            </Label>
+                            <p className="text-sm text-[#333333]">Make your profile visible to employers and recruiters</p>
+                          </div>
+                          <Switch 
+                            id="publicProfile"
+                            checked={settings.privacy.public_profile}
+                            onCheckedChange={(checked) => updateSettings('privacy', 'public_profile', checked)}
+                          />
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="showContacts" className="text-base font-medium text-[#0A2540]">
+                                Show Contact Information
+                              </Label>
+                              <p className="text-sm text-[#333333]">Display your email and phone number on your profile</p>
+                            </div>
+                            <Switch 
+                              id="showContacts"
+                              checked={settings.privacy.show_contacts}
+                              onCheckedChange={(checked) => updateSettings('privacy', 'show_contacts', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="searchHistory" className="text-base font-medium text-[#0A2540]">
+                                Save Search History
+                              </Label>
+                              <p className="text-sm text-[#333333]">Store your search history to improve job recommendations</p>
+                            </div>
+                            <Switch 
+                              id="searchHistory"
+                              checked={settings.privacy.search_history}
+                              onCheckedChange={(checked) => updateSettings('privacy', 'search_history', checked)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="analytics" className="text-base font-medium text-[#0A2540]">
+                                Usage Analytics
+                              </Label>
+                              <p className="text-sm text-[#333333]">Help us improve by sharing anonymous usage data</p>
+                            </div>
+                            <Switch 
+                              id="analytics"
+                              checked={settings.privacy.analytics}
+                              onCheckedChange={(checked) => updateSettings('privacy', 'analytics', checked)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="preferences">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[#0A2540] flex items-center">
+                        <Settings className="w-5 h-5 mr-2" />
+                        Job Preferences
+                      </CardTitle>
+                      <CardDescription>Set your job search criteria and preferences</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="preferredLocation">Preferred Location</Label>
+                          <Select 
+                            value={settings.preferences.preferred_location}
+                            onValueChange={(value) => updateSettings('preferences', 'preferred_location', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select preferred location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="moscow">Moscow</SelectItem>
+                              <SelectItem value="spb">St. Petersburg</SelectItem>
+                              <SelectItem value="novosibirsk">Novosibirsk</SelectItem>
+                              <SelectItem value="kazan">Kazan</SelectItem>
+                              <SelectItem value="yekaterinburg">Yekaterinburg</SelectItem>
+                              <SelectItem value="remote">Remote</SelectItem>
+                              <SelectItem value="any">Any Location</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="employmentType">Employment Type</Label>
+                          <Select 
+                            value={settings.preferences.employment_type}
+                            onValueChange={(value) => updateSettings('preferences', 'employment_type', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select employment type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="fulltime">Full-time</SelectItem>
+                              <SelectItem value="parttime">Part-time</SelectItem>
+                              <SelectItem value="contract">Contract</SelectItem>
+                              <SelectItem value="freelance">Freelance</SelectItem>
+                              <SelectItem value="internship">Internship</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="experienceLevel">Experience Level</Label>
+                          <Select 
+                            value={settings.preferences.experience_level}
+                            onValueChange={(value) => updateSettings('preferences', 'experience_level', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select experience level" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="entry">Entry Level</SelectItem>
+                              <SelectItem value="junior">Junior</SelectItem>
+                              <SelectItem value="middle">Middle</SelectItem>
+                              <SelectItem value="senior">Senior</SelectItem>
+                              <SelectItem value="lead">Lead</SelectItem>
+                              <SelectItem value="executive">Executive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="minSalary">Minimum Salary (RUB/month)</Label>
+                          <Input 
+                            id="minSalary"
+                            type="number"
+                            placeholder="e.g., 100000"
+                            value={settings.preferences.min_salary}
+                            onChange={(e) => updateSettings('preferences', 'min_salary', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="border-t pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label htmlFor="remoteOnly" className="text-base font-medium text-[#0A2540]">
+                                Remote Work Only
+                              </Label>
+                              <p className="text-sm text-[#333333]">Only show remote job opportunities</p>
+                            </div>
+                            <Switch 
+                              id="remoteOnly"
+                              checked={settings.preferences.remote_only}
+                              onCheckedChange={(checked) => updateSettings('preferences', 'remote_only', checked)}
+                            />
+                          </div>
                         </div>
                       </div>
                     </CardContent>
