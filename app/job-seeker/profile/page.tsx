@@ -1,7 +1,6 @@
 /* app/job-seeker/profile/page.tsx – SERVER COMPONENT */
 import { redirect } from 'next/navigation'
 import { getSupabaseServer } from '@/lib/supabase/server'
-import ClientProfileShell from './ClientProfileShell'
 import { logError } from '@/lib/error-handling'
 import { Header } from '@/components/header-landing'
 import { Footer } from '@/components/footer'
@@ -38,7 +37,7 @@ export default async function ProfilePage() {
     return (
       <>
         <Header />
-        <ClientProfileShell profile={profile} />
+        <div>Profile page content will be added here</div>
         <Footer />
       </>
     )
