@@ -12,6 +12,8 @@ import { createBrowserClient } from "@/lib/supabase/browser"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ErrorDisplay } from "@/components/ui/error-display"
 import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
+import { Header } from "@/components/header-landing"
+import { Footer } from "@/components/footer"
 
 export default function DashboardPage() {
   const supabase = createBrowserClient()
@@ -89,206 +91,218 @@ export default function DashboardPage() {
   /* ──────────────── loading / error states ──────────────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* Sidebar skeleton */}
-          <aside className="w-64 bg-white border-r shadow-sm">
-            <div className="p-6">
-              <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <nav className="px-4 space-y-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="flex items-center px-4 py-3">
-                  <div className="w-5 h-5 bg-gray-200 rounded animate-pulse mr-3"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>
-                </div>
-              ))}
-            </nav>
-          </aside>
-
-          {/* Main content skeleton */}
-          <main className="flex-1 p-8">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white p-6 rounded-lg border">
-                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50">
+          <div className="flex">
+            {/* Sidebar skeleton */}
+            <aside className="w-64 bg-white border-r shadow-sm">
+              <div className="p-6">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <nav className="px-4 space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex items-center px-4 py-3">
+                    <div className="w-5 h-5 bg-gray-200 rounded animate-pulse mr-3"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>
                   </div>
                 ))}
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-lg border">
-                  <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </nav>
+            </aside>
+
+            {/* Main content skeleton */}
+            <main className="flex-1 p-8">
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white p-6 rounded-lg border">
+                      <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-lg border">
+                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-6 rounded-lg border">
+                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-lg border">
-                  <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                  </div>
-                </div>
               </div>
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
-      </div>
+        <Footer />
+      </>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full">
-          <ErrorDisplay
-            error={error}
-            onRetry={retry}
-            variant="card"
-          />
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="max-w-md w-full">
+            <ErrorDisplay
+              error={error}
+              onRetry={retry}
+              variant="card"
+            />
+          </div>
         </div>
-      </div>
+        <Footer />
+      </>
     )
   }
 
   /* ──────────────── main UI ──────────────── */
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        {/* ========== SIDEBAR ========== */}
-        <aside className="w-64 bg-white border-r shadow-sm">
-          <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex">
+          {/* ========== SIDEBAR ========== */}
+          <aside className="w-64 bg-white border-r shadow-sm">
+            <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
 
-          <nav className="px-4 space-y-2">
-            <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
-            <SidebarLink href="/job-seeker/profile"   icon={User}            text="Profile" />
-            <SidebarLink href="/job-seeker/test"      icon={Brain}           text="Test" />
-            <SidebarLink href="/job-seeker/search"    icon={Search}          text="Job search" />
-            <SidebarLink href="/job-seeker/saved"     icon={Heart}           text="Saved" />
-            <SidebarLink href="/job-seeker/settings"  icon={Settings}        text="Settings" />
-          </nav>
-        </aside>
+            <nav className="px-4 space-y-2">
+              <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
+              <SidebarLink href="/job-seeker/profile"   icon={User}            text="Profile" />
+              <SidebarLink href="/job-seeker/test"      icon={Brain}           text="Test" />
+              <SidebarLink href="/job-seeker/search"    icon={Search}          text="Job search" />
+              <SidebarLink href="/job-seeker/saved"     icon={Heart}           text="Saved" />
+              <SidebarLink href="/job-seeker/settings"  icon={Settings}        text="Settings" />
+            </nav>
+          </aside>
 
-        {/* ========== MAIN CONTENT ========== */}
-        <main className="flex-1 p-8">
-          <h1 className="text-3xl font-bold text-[#0A2540] mb-6">
-            Welcome back, {userName}!
-          </h1>
+          {/* ========== MAIN CONTENT ========== */}
+          <main className="flex-1 p-8">
+            <h1 className="text-3xl font-bold text-[#0A2540] mb-6">
+              Welcome back, {userName}!
+            </h1>
 
-          {/* ========== STATS OVERVIEW ========== */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <StatsCard
-              title="Profile Completeness"
-              value={`${profilePct}%`}
-              icon={User}
-              color="text-[#00C49A]"
-            >
-              <div className="mt-2">
-                {loading ? (
-                  <div className="flex justify-center py-8">
-                    <LoadingSpinner size="lg" />
-                    <span className="ml-3 text-gray-600">Loading profile data...</span>
+            {/* ========== STATS OVERVIEW ========== */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <StatsCard
+                title="Profile Completeness"
+                value={`${profilePct}%`}
+                icon={User}
+                color="text-[#00C49A]"
+              >
+                <div className="mt-2">
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <LoadingSpinner size="lg" />
+                      <span className="ml-3 text-gray-600">Loading profile data...</span>
+                    </div>
+                  ) : error ? (
+                    <ErrorDisplay error={error} onRetry={retry} variant="card" />
+                  ) : (
+                    <Progress value={profilePct} className="w-full" />
+                  )}
+                </div>
+              </StatsCard>
+
+              <StatsCard
+                title="Job Applications"
+                value="0"
+                icon={Building2}
+                color="text-[#FF7A00]"
+              >
+                <p className="text-sm text-gray-600 mt-2">Start applying to jobs</p>
+              </StatsCard>
+
+              <StatsCard
+                title="Profile Views"
+                value="0"
+                icon={TrendingUp}
+                color="text-[#0A2540]"
+              >
+                <p className="text-sm text-gray-600 mt-2">Complete your profile</p>
+              </StatsCard>
+            </div>
+
+            {/* ========== RECENT ACTIVITY & QUICK ACTIONS ========== */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-[#0A2540]">
+                    <Star className="w-5 h-5 text-[#FF7A00]" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Link href="/job-seeker/profile">
+                    <Button variant="outline" className="w-full justify-start hover:bg-[#00C49A]/10">
+                      <User className="w-4 h-4 mr-2" />
+                      Complete Profile ({profilePct}%)
+                    </Button>
+                  </Link>
+                  <Link href="/job-seeker/test">
+                    <Button variant="outline" className="w-full justify-start hover:bg-[#FF7A00]/10">
+                      <Brain className="w-4 h-4 mr-2" />
+                      Take Skills Assessment
+                    </Button>
+                  </Link>
+                  <Link href="/job-seeker/search">
+                    <Button variant="outline" className="w-full justify-start hover:bg-[#0A2540]/10">
+                      <Search className="w-4 h-4 mr-2" />
+                      Find Jobs
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-[#0A2540]">
+                    <Bell className="w-5 h-5 text-[#00C49A]" />
+                    Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No recent activity</p>
+                    <p className="text-sm">Your job applications and updates will appear here</p>
                   </div>
-                ) : error ? (
-                  <ErrorDisplay error={error} onRetry={retry} variant="card" />
-                ) : (
-                  <Progress value={profilePct} className="w-full" />
-                )}
-              </div>
-            </StatsCard>
+                </CardContent>
+              </Card>
+            </div>
 
-            <StatsCard
-              title="Job Applications"
-              value="0"
-              icon={Building2}
-              color="text-[#FF7A00]"
-            >
-              <p className="text-sm text-gray-600 mt-2">Start applying to jobs</p>
-            </StatsCard>
-
-            <StatsCard
-              title="Profile Views"
-              value="0"
-              icon={TrendingUp}
-              color="text-[#0A2540]"
-            >
-              <p className="text-sm text-gray-600 mt-2">Complete your profile</p>
-            </StatsCard>
-          </div>
-
-          {/* ========== RECENT ACTIVITY & QUICK ACTIONS ========== */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Quick Actions */}
-            <Card>
+            {/* ========== RECOMMENDATIONS ========== */}
+            <Card className="mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                  <Star className="w-5 h-5 text-[#FF7A00]" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Link href="/job-seeker/profile">
-                  <Button variant="outline" className="w-full justify-start hover:bg-[#00C49A]/10">
-                    <User className="w-4 h-4 mr-2" />
-                    Complete Profile ({profilePct}%)
-                  </Button>
-                </Link>
-                <Link href="/job-seeker/test">
-                  <Button variant="outline" className="w-full justify-start hover:bg-[#FF7A00]/10">
-                    <Brain className="w-4 h-4 mr-2" />
-                    Take Skills Assessment
-                  </Button>
-                </Link>
-                <Link href="/job-seeker/search">
-                  <Button variant="outline" className="w-full justify-start hover:bg-[#0A2540]/10">
-                    <Search className="w-4 h-4 mr-2" />
-                    Find Jobs
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                  <Bell className="w-5 h-5 text-[#00C49A]" />
-                  Recent Activity
+                  <Users className="w-5 h-5 text-[#FF7A00]" />
+                  Recommended for You
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8 text-gray-500">
-                  <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recent activity</p>
-                  <p className="text-sm">Your job applications and updates will appear here</p>
+                  <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No recommendations yet</p>
+                  <p className="text-sm">Complete your profile and assessment to get personalized job recommendations</p>
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* ========== RECOMMENDATIONS ========== */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                <Users className="w-5 h-5 text-[#FF7A00]" />
-                Recommended for You
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No recommendations yet</p>
-                <p className="text-sm">Complete your profile and assessment to get personalized job recommendations</p>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   )
 }
 

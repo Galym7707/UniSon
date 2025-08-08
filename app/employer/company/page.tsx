@@ -5,6 +5,8 @@ import { cookies } from 'next/headers'
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import ClientCompanyProfile from './ClientCompanyProfile'
 import { logError } from '@/lib/error-handling'
+import { Header } from '@/components/header-landing'
+import { Footer } from '@/components/footer'
 
 export default async function CompanyProfilePage() {
   try {
@@ -21,7 +23,13 @@ export default async function CompanyProfilePage() {
     }
 
     // Let the client component handle company profile fallback logic
-    return <ClientCompanyProfile />
+    return (
+      <>
+        <Header />
+        <ClientCompanyProfile />
+        <Footer />
+      </>
+    )
   } catch (error) {
     logError('company-profile-page', error)
     redirect('/auth/login')

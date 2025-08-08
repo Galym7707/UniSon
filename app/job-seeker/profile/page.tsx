@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { getSupabaseServer } from '@/lib/supabase/server'
 import ClientProfileShell from './ClientProfileShell'
 import { logError } from '@/lib/error-handling'
+import { Header } from '@/components/header-landing'
+import { Footer } from '@/components/footer'
 
 export default async function ProfilePage() {
   try {
@@ -33,7 +35,13 @@ export default async function ProfilePage() {
     }
 
     // Pass profile data to client component (may be null for new users)
-    return <ClientProfileShell profile={profile} />
+    return (
+      <>
+        <Header />
+        <ClientProfileShell profile={profile} />
+        <Footer />
+      </>
+    )
   } catch (error) {
     logError('profile-page', error)
     redirect('/auth/login')
