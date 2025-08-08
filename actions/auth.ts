@@ -226,6 +226,13 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
       }
 
       if (accountError?.code === "23514" || accountError?.message?.includes("check constraint")) {
+        // Check if this is a role constraint violation
+        if (accountError?.message?.includes("Invalid role specified")) {
+          return {
+            error: "Invalid role specified",
+            field: "role"
+          }
+        }
         return { 
           error: "Invalid data provided. Please check your input and try again."
         }

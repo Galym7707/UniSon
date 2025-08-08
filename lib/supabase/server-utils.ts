@@ -101,8 +101,8 @@ export async function createUserAccount(data: SignupData) {
       if (profErr.code === "23514") {
         // Check constraint violation - likely invalid role value
         const errorDetails = profErr.details || profErr.message || ""
-        if (errorDetails.includes("role") || profErr.message?.includes("role")) {
-          throw new Error("Invalid role value provided. Please select either 'employer' or 'job-seeker' and try again.")
+        if (errorDetails.includes("role") || profErr.message?.includes("role") || errorDetails.includes("check_valid_role")) {
+          throw new Error("Invalid role specified")
         }
         // Generic check constraint violation
         throw new Error("The provided data violates database validation rules. Please check your input values and try again.")
@@ -159,7 +159,7 @@ export async function createUserAccount(data: SignupData) {
     })
 
     // If it's already a handled constraint error, re-throw as is
-    if (error?.message?.includes("Invalid role value") || 
+    if (error?.message?.includes("Invalid role specified") || 
         error?.message?.includes("violates database validation rules") ||
         error?.message?.includes("already exists") ||
         error?.message?.includes("Invalid data reference") ||
@@ -172,8 +172,8 @@ export async function createUserAccount(data: SignupData) {
     if (error?.code === "23514") {
       // Check constraint violation - likely invalid role value
       const errorDetails = error.details || error.message || ""
-      if (errorDetails.includes("role") || error.message?.includes("role")) {
-        throw new Error("Invalid role value provided. Please select either 'employer' or 'job-seeker' and try again.")
+      if (errorDetails.includes("role") || error.message?.includes("role") || errorDetails.includes("check_valid_role")) {
+        throw new Error("Invalid role specified")
       }
       throw new Error("The provided data violates database validation rules. Please check your input values and try again.")
     }
