@@ -30,13 +30,15 @@ const baseSignupSchema = z.object({
     .min(2, "First name must be at least 2 characters")
     .max(25, "First name must be less than 25 characters")
     .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "First name can only contain letters, spaces, apostrophes, and hyphens")
-    .refine((val) => val.trim().length > 0, "First name is required"),
+    .refine((val) => val.trim().length > 0, "First name is required")
+    .optional(),
   last_name: z
     .string()
     .min(2, "Last name must be at least 2 characters")
     .max(25, "Last name must be less than 25 characters")
     .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, apostrophes, and hyphens")
-    .refine((val) => val.trim().length > 0, "Last name is required"),
+    .refine((val) => val.trim().length > 0, "Last name is required")
+    .optional(),
   email: z.string().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
   password: z
     .string()
@@ -59,6 +61,20 @@ const signupSchema = baseSignupSchema
       return true
     },
     { message: "Company name is required for employers", path: ["companyName"] },
+  )
+  .refine(
+    (data) => {
+      if (data.role === "job-seeker" && (!data.first_name || data.first_name.trim().length === 0)) return false
+      return true
+    },
+    { message: "First name is required for job seekers", path: ["first_name"] },
+  )
+  .refine(
+    (data) => {
+      if (data.role === "job-seeker" && (!data.last_name || data.last_name.trim().length === 0)) return false
+      return true
+    },
+    { message: "Last name is required for job seekers", path: ["last_name"] },
   )
 
 type SignupFormData = z.infer<typeof signupSchema>
@@ -140,32 +156,6 @@ export function SignupForm({ signupAction }: SignupFormProps) {
           className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
         />
         {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="first_name">First Name *</Label>
-          <Input 
-            id="first_name" 
-            placeholder="John" 
-            disabled={isPending} 
-            {...register("first_name")} 
-            className={errors.first_name ? "border-red-500 focus:border-red-500" : ""}
-            onBlur={() => validateNameField('first_name')}
-          />
-          {errors.first_name && <p className="text-xs text-red-500 mt-1">{errors.first_name.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="last_name">Last Name *</Label>
-          <Input 
-            id="last_name" 
-            placeholder="Doe" 
-            disabled={isPending} 
-            {...register("last_name")} 
-            className={errors.last_name ? "border-red-500 focus:border-red-500" : ""}
-            onBlur={() => validateNameField('last_name')}
-          />
-          {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
-        </div>
       </div>
     </>
   )

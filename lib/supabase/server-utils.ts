@@ -50,14 +50,25 @@ export async function createUserAccount(data: SignupData) {
 
   /* ---------- 2. создаём запись в profiles (id = auth.uid) ---------- */
   try {
-    const { error: profErr } = await supabaseAdmin.from("profiles").insert({
+    const profileData: any = {
       id: userId,
       role: data.role,
-      first_name: data.first_name.trim(),
-      last_name: data.last_name.trim(),
-      company_name: data.companyName ?? null,
       email: data.email,
-    })
+    }
+
+    // For job seekers, include first_name and last_name
+    if (data.role === "job-seeker") {
+      profileData.first_name = data.first_name.trim()
+      profileData.last_name = data.last_name.trim()
+      profileData.company_name = null
+    } else {
+      // For employers, only include company_name, leave names as null
+      profileData.first_name = null
+      profileData.last_name = null
+      profileData.company_name = data.companyName ?? null
+    }
+
+    const { error: profErr } = await supabaseAdmin.from("profiles").insert(profileData)
 
     if (profErr) {
       // Log comprehensive error details for debugging
@@ -99,15 +110,7 @@ export async function createUserAccount(data: SignupData) {
       userEmail: data.email,
       userRole: data.role,
       companyName: data.companyName,
-      timestamp: new Date().toISOString(),
-      profileData: {
-        id: userId,
-        role: data.role,
-        first_name: data.first_name.trim(),
-        last_name: data.last_name.trim(),
-        company_name: data.companyName ?? null,
-        email: data.email,
-      }
+      timestamp: new Date().toISOString()
     })
 
     // Provide more descriptive error message that includes database error information

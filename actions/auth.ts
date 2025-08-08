@@ -19,12 +19,14 @@ const signupSchema = z
       .string()
       .min(2)
       .max(25)
-      .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/),
+      .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+      .optional(),
     last_name: z
       .string()
       .min(2)
       .max(25)
-      .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/),
+      .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+      .optional(),
     email: z.string().email().max(255),
     password: z
       .string()
@@ -35,6 +37,14 @@ const signupSchema = z
   .refine((data) => (data.role === "employer" ? !!data.companyName : true), {
     path: ["companyName"],
     message: "Company name is required for employers",
+  })
+  .refine((data) => (data.role === "job-seeker" ? !!data.first_name?.trim() : true), {
+    path: ["first_name"],
+    message: "First name is required for job seekers",
+  })
+  .refine((data) => (data.role === "job-seeker" ? !!data.last_name?.trim() : true), {
+    path: ["last_name"],
+    message: "Last name is required for job seekers",
   })
 
 interface SignupResult {
@@ -49,8 +59,8 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
     const rawData = {
       role: formData.get("role"),
       companyName: formData.get("companyName") || undefined,
-      first_name: formData.get("first_name"),
-      last_name: formData.get("last_name"),
+      first_name: formData.get("first_name") || undefined,
+      last_name: formData.get("last_name") || undefined,
       email: formData.get("email"),
       password: formData.get("password"),
     }
@@ -115,13 +125,21 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
       return { error: "Please check your input and try again" }
     }
 
-    // Additional validation for required fields
-    if (!parsedData.first_name || parsedData.first_name.trim().length === 0) {
-      return { error: "First name is required", field: "first_name" }
+    // For employers, set first_name and last_name to empty strings if not provided
+    if (parsedData.role === "employer") {
+      parsedData.first_name = parsedData.first_name || ""
+      parsedData.last_name = parsedData.last_name || ""
     }
-    
-    if (!parsedData.last_name || parsedData.last_name.trim().length === 0) {
-      return { error: "Last name is required", field: "last_name" }
+
+    // Additional validation for required fields (job seekers only)
+    if (parsedData.role === "job-seeker") {
+      if (!parsedData.first_name || parsedData.first_name.trim().length === 0) {
+        return { error: "First name is required for job seekers", field: "first_name" }
+      }
+      
+      if (!parsedData.last_name || parsedData.last_name.trim().length === 0) {
+        return { error: "Last name is required for job seekers", field: "last_name" }
+      }
     }
 
     if (!parsedData.email || parsedData.email.trim().length === 0) {
@@ -137,8 +155,8 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
     try {
       accountResult = await createUserAccount({
         role: parsedData.role,
-        first_name: parsedData.first_name.trim(),
-        last_name: parsedData.last_name.trim(),
+        first_name: parsedData.first_name?.trim() || "",
+        last_name: parsedData.last_name?.trim() || "",
         email: parsedData.email.trim().toLowerCase(),
         password: parsedData.password,
         companyName: parsedData.companyName?.trim(),
