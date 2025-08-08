@@ -26,6 +26,30 @@ import ImageUpload from '@/components/ui/image-upload'
 import ProfileAvatar from '@/components/ui/profile-avatar'
 import SkillsSection, { ProgrammingSkill, RegularLanguage } from '@/components/ui/skills-section'
 
+/* ─────────────── SidebarLink component ─────────────── */
+interface SidebarLinkProps {
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  text: string
+  active?: boolean
+}
+
+function SidebarLink({ href, icon: Icon, text, active }: SidebarLinkProps) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? 'bg-blue-50 text-blue-700 font-medium'
+          : 'text-gray-700 hover:bg-gray-50'
+      }`}
+    >
+      <Icon className="h-5 w-5 mr-3" />
+      {text}
+    </Link>
+  )
+}
+
 /* ─────────────── type ─────────────── */
 type Profile = {
   first_name : string
@@ -513,8 +537,8 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         {/* Error Display */}
         {error && (
           <div className="mb-6">
-            <ErrorDisplay 
-              error={error} 
+            <ErrorDisplay
+              error={error}
               onDismiss={clearError}
               variant="card"
             />
@@ -539,9 +563,8 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
           </Card>
         )}
 
-<<<<<<< HEAD
         <form id="profileForm" onSubmit={handleSave} className="space-y-6">
-          {/* Basic Info Tab */}
+          {/* Basic Info */}
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
@@ -558,115 +581,6 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
                     onChange={update('first_name')}
                     placeholder="Your first name"
                     required
-=======
-        {/* completeness */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Profile completeness: {completeness}%</CardTitle>
-            <CardDescription>
-              {completeness === 100 
-                ? "Your profile is complete! 🎉" 
-                : completeness >= 70 
-                ? "Almost there! Add a few more details."
-                : completeness >= 40 
-                ? "Good start! Keep adding information."
-                : "Let's fill in your basic information first."
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Progress value={completeness} className="w-full" />
-          </CardContent>
-        </Card>
-
-        {/* main form */}
-        <Card>
-          <CardContent className="pt-6">
-            <form id="profileForm" onSubmit={handleSave} className="space-y-6">
-              
-              <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="personal">Personal</TabsTrigger>
-                  <TabsTrigger value="professional">Professional</TabsTrigger>
-                  <TabsTrigger value="skills">Skills</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="personal" className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First name *</Label>
-                      <Input
-                        id="firstName"
-                        value={form.first_name}
-                        onChange={update('first_name')}
-                        placeholder="Enter your first name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last name *</Label>
-                      <Input
-                        id="lastName"
-                        value={form.last_name}
-                        onChange={update('last_name')}
-                        placeholder="Enter your last name"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="title">Professional title</Label>
-                    <Input
-                      id="title"
-                      value={form.title}
-                      onChange={update('title')}
-                      placeholder="e.g. Senior Software Engineer, Marketing Manager"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="summary">Professional summary</Label>
-                    <Textarea
-                      id="summary"
-                      rows={4}
-                      value={form.summary}
-                      onChange={update('summary')}
-                      placeholder="A brief overview of your professional background, key achievements, and career goals..."
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="professional" className="space-y-6">
-                  <div>
-                    <Label htmlFor="experience">Experience</Label>
-                    <Textarea
-                      id="experience"
-                      rows={6}
-                      value={form.experience}
-                      onChange={update('experience')}
-                      placeholder="Describe your work experience, including job titles, companies, dates, and key responsibilities..."
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="skills" className="space-y-6">
-                  <div>
-                    <Label htmlFor="skills">Skills (Legacy)</Label>
-                    <Textarea
-                      id="skills"
-                      rows={4}
-                      value={form.skills}
-                      onChange={update('skills')}
-                      placeholder="List your technical skills, programming languages, tools, certifications, etc..."
-                    />
-                  </div>
-
-                  <SkillsSection
-                    programmingSkills={form.programming_skills}
-                    regularLanguages={form.language_skills}
-                    onChange={handleSkillsChange}
->>>>>>> 656f5eb (Add dependency array to useCallback hook for handleSkillsChange function)
                   />
                 </div>
                 <div>
@@ -812,29 +726,5 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         </form>
       </main>
     </div>
-  )
-}
-
-/* ========== Sidebar Link Component ========== */
-interface SidebarLinkProps {
-  href: string
-  icon: React.ComponentType<any>
-  text: string
-  active?: boolean
-}
-
-function SidebarLink({ href, icon: Icon, text, active }: SidebarLinkProps) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-        active
-          ? 'bg-blue-50 text-blue-700 font-medium'
-          : 'text-gray-700 hover:bg-gray-50'
-      }`}
-    >
-      <Icon className="h-5 w-5 mr-3" />
-      {text}
-    </Link>
   )
 }
