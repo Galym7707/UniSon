@@ -99,6 +99,7 @@ export function SignupForm({ signupAction }: SignupFormProps) {
     watch,
     trigger,
     setValue,
+    resetField,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     mode: "onBlur",
@@ -119,8 +120,13 @@ export function SignupForm({ signupAction }: SignupFormProps) {
 
     const formData = new FormData()
     formData.append("role", data.role)
-    formData.append("first_name", data.first_name?.trim() || "")
-    formData.append("last_name", data.last_name?.trim() || "")
+    
+    // Only include name fields for job seekers
+    if (data.role === "job-seeker") {
+      formData.append("first_name", data.first_name?.trim() || "")
+      formData.append("last_name", data.last_name?.trim() || "")
+    }
+    
     formData.append("email", data.email)
     formData.append("password", data.password)
     if (data.companyName) formData.append("companyName", data.companyName)
@@ -133,7 +139,14 @@ export function SignupForm({ signupAction }: SignupFormProps) {
     if (!isPending) {
       setRole(newRole)
       setValue("role", newRole)
-      trigger("companyName") // Re-validate company name when role changes
+      
+      // Clear name fields when switching to employer
+      if (newRole === "employer") {
+        resetField("first_name")
+        resetField("last_name")
+      }
+      
+      trigger(["companyName", "first_name", "last_name"]) // Re-validate when role changes
     }
   }
 
@@ -145,19 +158,17 @@ export function SignupForm({ signupAction }: SignupFormProps) {
   /* ---------- UI helpers ---------- */
 
   const employerFields = (
-    <>
-      <div>
-        <Label htmlFor="companyName">Company Name</Label>
-        <Input 
-          id="companyName" 
-          placeholder="Your Company Inc." 
-          disabled={isPending} 
-          {...register("companyName")} 
-          className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
-        />
-        {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
-      </div>
-    </>
+    <div>
+      <Label htmlFor="companyName">Company Name</Label>
+      <Input 
+        id="companyName" 
+        placeholder="Your Company Inc." 
+        disabled={isPending} 
+        {...register("companyName")} 
+        className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
+      />
+      {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
+    </div>
   )
 
   const jobSeekerFields = (
