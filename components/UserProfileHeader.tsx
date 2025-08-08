@@ -10,7 +10,7 @@ interface Profile {
   id: string
   first_name?: string
   last_name?: string
-
+  name?: string
   profile_image_url?: string
   role?: string
 }
@@ -28,11 +28,11 @@ export function UserProfileHeader() {
         return
       }
 
+      setProfileLoading(true)
       try {
-        setProfileLoading(true)
-        const { data, error } = await supabase
+        const { data: profileData, error } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, profile_image_url, role')
+          .select('id, first_name, last_name, name, profile_image_url, role')
           .eq('id', user.id)
           .single()
 
@@ -41,7 +41,7 @@ export function UserProfileHeader() {
           return
         }
 
-        setProfile(data)
+        setProfile(profileData)
       } catch (error) {
         console.error('Error fetching profile:', error)
       } finally {
@@ -52,21 +52,38 @@ export function UserProfileHeader() {
     fetchProfile()
   }, [user, supabase])
 
-  // Don't render anything if not authenticated or still loading
-  if (loading || !user) {
+  // Don't render anything while auth is loading
+  if (loading) {
     return null
   }
 
-  const displayName = 
-    (profile?.first_name && profile?.last_name ? 
-      `${profile.first_name} ${profile.last_name}` : 
-      profile?.first_name || 
-      profile?.last_name || 
-      'User')
+  // Don't render if no user
+  if (!user) {
+    return null
+  }
 
-  const profilePath = profile?.role === 'employer' ? '/employer/profile' : '/job-seeker/profile'
+  // Get display name
+  const getDisplayName = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`
+    }
+    if (profile?.first_name) return profile.first_name
+    if (profile?.last_name) return profile.last_name
+    if (profile?.name) return profile.name
+    return user.email || 'User'
+  }
 
-  // Generate initials from first_name and last_name
+  // Determine profile path based on role
+  const getProfilePath = () => {
+    if (profile?.role === 'employer') {
+      return '/employer/profile'
+    }
+    return '/job-seeker/profile'
+  }
+
+  const profilePath = getProfilePath()
+
+  // Generate initials for avatar
   const getInitials = () => {
     if (profile?.first_name || profile?.last_name) {
       const first = profile?.first_name?.[0] || ''
@@ -83,20 +100,25 @@ export function UserProfileHeader() {
     <div className="flex items-center gap-3">
       <Link
         href={profilePath}
-        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
+        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
       >
-        <Avatar className="w-8 h-8">
-          <AvatarImage 
-            src={profile?.profile_image_url || ''} 
-            alt={`${displayName}'s profile`}
-          />
-          <AvatarFallback className="bg-gray-600 text-white text-sm font-medium">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={profile?.profile_image_url || undefined} />
+          <AvatarFallback className="text-xs bg-purple-100 text-purple-700">
             {getInitials()}
           </AvatarFallback>
         </Avatar>
-        <span className="hidden sm:block text-sm font-medium text-gray-700 hover:text-black transition-colors">
-          {displayName}
-        </span>
+        
+        <div className="hidden md:block">
+          <div className="text-sm font-medium text-gray-900">
+            {profileLoading ? 'Loading...' : getDisplayName()}
+          </div>
+          {profile?.role && (
+            <div className="text-xs text-gray-500 capitalize">
+              {profile.role.replace('-', ' ')}
+            </div>
+          )}
+        </div>
       </Link>
     </div>
   )

@@ -347,7 +347,7 @@ export default function PersonalityResults() {
               {/* Detailed Scores */}
               <div className="grid md:grid-cols-2 gap-6">
                 {skillCategories.map((category) => {
-                  const score = results!.scores[category.key as keyof typeof results.scores]
+                  const score = results?.scores[category.key as keyof typeof results.scores] ?? 0
                   const IconComponent = category.icon
                   
                   return (

@@ -78,7 +78,7 @@ export async function createUserAccount(data: SignupData) {
         errorMessage: profErr.message,
         errorDetails: profErr.details,
         errorHint: profErr.hint,
-        constraintViolations: profErr.constraint,
+        constraintViolations: (profErr as any).constraint,
         userId: userId,
         userEmail: data.email,
         userRole: data.role,

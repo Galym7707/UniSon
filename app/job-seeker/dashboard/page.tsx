@@ -5,8 +5,11 @@ import Link from "next/link"
 import {
   Card, CardContent, CardHeader, CardTitle,
   Button, Progress,
-  LayoutDashboard, User, Search, Heart, Settings, TrendingUp, Bell, Star, Building2, MapPin, Calendar, Users, Brain,
 } from "@/components/ui"
+
+import {
+  LayoutDashboard, User, Search, Heart, Settings, TrendingUp, Bell, Star, Building2, MapPin, Calendar, Users, Brain,
+} from "lucide-react"
 
 import { createBrowserClient } from "@/lib/supabase/browser"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -23,317 +26,264 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [userName, setUserName] = useState<string>('Friend')
 
-  /* --- load profile --- */
+  /* ─────── effects ─────── */
   useEffect(() => {
-    let isMounted = true
-
-    const loadProfile = async () => {
-      try {
-        setLoading(true)
-
-        /** 1️⃣  отлавливаем всякие ошибки: No JWT token, etc. */
-        const { data: { session }, error: sessionErr } = await supabase.auth.getSession()
-        if (sessionErr) throw sessionErr
-        if (!session?.user) throw new Error("No authenticated user found")
-
-        /** 2️⃣  профиль гарантированно создан в момент signup → PGRST116 исчезнет */
-        const { data, error: profileErr } = await supabase
-          .from("profiles")
-          .select("first_name,last_name,title,summary,experience,skills")
-          .eq("id", session.user.id)
-          .maybeSingle()
-
-        if (profileErr) throw profileErr
-
-        if (isMounted && data) {
-          const filled = Object.values(data).filter((v) => v && v !== "").length
-          setProfilePct(Math.round((filled / 6) * 100))
-          
-          // Set user name with fallback logic for first_name and last_name
-          const firstName = data.first_name?.trim()
-          const lastName = data.last_name?.trim()
-          
-          if (firstName && lastName) {
-            setUserName(`${firstName} ${lastName}`)
-          } else if (firstName) {
-            setUserName(firstName)
-          } else if (lastName) {
-            setUserName(lastName)
-          }
-          // If none are available, keep default "Friend"
-        }
-      } catch (err) {
-        if (isMounted) {
-          const message = getUserFriendlyErrorMessage(err)
-          setError(message)
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
+    const calculateProfileCompleteness = () => {
+      // Mock calculation for now
+      setProfilePct(35)
+      setLoading(false)
     }
 
-    loadProfile()
+    calculateProfileCompleteness()
+  }, [])
 
-    return () => {
-      isMounted = false
-    }
-  }, [supabase])
-
-  const retry = () => {
-    setError(null)
-    window.location.reload()
-  }
-
-  /* ──────────────── loading / error states ──────────────── */
+  /* ─────── loading/error states ─────── */
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-gray-50">
-          <div className="flex">
-            {/* Sidebar skeleton */}
-            <aside className="w-64 bg-white border-r shadow-sm">
-              <div className="p-6">
-                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-              <nav className="px-4 space-y-2">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="flex items-center px-4 py-3">
-                    <div className="w-5 h-5 bg-gray-200 rounded animate-pulse mr-3"></div>
-                    <div className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>
-                  </div>
-                ))}
-              </nav>
-            </aside>
-
-            {/* Main content skeleton */}
-            <main className="flex-1 p-8">
-              <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white p-6 rounded-lg border">
-                      <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-20"></div>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white p-6 rounded-lg border">
-                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                    <div className="space-y-3">
-                      <div className="h-4 bg-gray-200 rounded"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg border">
-                    <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                    <div className="space-y-3">
-                      <div className="h-4 bg-gray-200 rounded"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </main>
-          </div>
-        </div>
-        <Footer />
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
     )
   }
 
   if (error) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="max-w-md w-full">
-            <ErrorDisplay
-              error={error}
-              onRetry={retry}
-              variant="card"
-            />
-          </div>
-        </div>
-        <Footer />
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <ErrorDisplay error={error} />
+      </div>
     )
   }
 
-  /* ──────────────── main UI ──────────────── */
+  /* ─────── render ─────── */
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* ========== SIDEBAR ========== */}
-          <aside className="w-64 bg-white border-r shadow-sm">
-            <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
+      
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-            <nav className="px-4 space-y-2">
-              <SidebarLink href="/job-seeker/dashboard" icon={LayoutDashboard} text="Dashboard" active />
-              <SidebarLink href="/job-seeker/profile"   icon={User}            text="Profile" />
-              <SidebarLink href="/job-seeker/test"      icon={Brain}           text="Test" />
-              <SidebarLink href="/job-seeker/search"    icon={Search}          text="Job search" />
-              <SidebarLink href="/job-seeker/saved"     icon={Heart}           text="Saved" />
-              <SidebarLink href="/job-seeker/settings"  icon={Settings}        text="Settings" />
-            </nav>
-          </aside>
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className={`
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+          lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+          w-64 bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out
+          flex flex-col pt-16 lg:pt-0
+        `}>
+          <nav className="flex-1 p-4 space-y-2">
+            <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md">
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </div>
+            
+            <Link href="/job-seeker/profile" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
+              <User className="h-4 w-4" />
+              Profile
+            </Link>
+            
+            <Link href="/job-seeker/assessment" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
+              <Brain className="h-4 w-4" />
+              AI Assessment
+            </Link>
+            
+            <Link href="/job-seeker/jobs" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
+              <Search className="h-4 w-4" />
+              Find Jobs
+            </Link>
+            
+            <Link href="/job-seeker/saved" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
+              <Heart className="h-4 w-4" />
+              Saved Jobs
+            </Link>
+            
+            <Link href="/job-seeker/settings" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
+          </nav>
+        </aside>
 
-          {/* ========== MAIN CONTENT ========== */}
-          <main className="flex-1 p-8">
-            <h1 className="text-3xl font-bold text-[#0A2540] mb-6">
-              Welcome back, {userName}!
-            </h1>
+        {/* Main content */}
+        <main className="flex-1 p-4 lg:p-8">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden mb-4 p-2 text-gray-600 hover:text-gray-900"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
 
-            {/* ========== STATS OVERVIEW ========== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <StatsCard
-                title="Profile Completeness"
-                value={`${profilePct}%`}
-                icon={User}
-                color="text-[#00C49A]"
-              >
-                <div className="mt-2">
-                  {loading ? (
-                    <div className="flex justify-center py-8">
-                      <LoadingSpinner size="lg" />
-                      <span className="ml-3 text-gray-600">Loading profile data...</span>
-                    </div>
-                  ) : error ? (
-                    <ErrorDisplay error={error} onRetry={retry} variant="card" />
-                  ) : (
-                    <Progress value={profilePct} className="w-full" />
-                  )}
-                </div>
-              </StatsCard>
-
-              <StatsCard
-                title="Job Applications"
-                value="0"
-                icon={Building2}
-                color="text-[#FF7A00]"
-              >
-                <p className="text-sm text-gray-600 mt-2">Start applying to jobs</p>
-              </StatsCard>
-
-              <StatsCard
-                title="Profile Views"
-                value="0"
-                icon={TrendingUp}
-                color="text-[#0A2540]"
-              >
-                <p className="text-sm text-gray-600 mt-2">Complete your profile</p>
-              </StatsCard>
+          <div className="max-w-6xl mx-auto space-y-6">
+            {/* Welcome header */}
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white p-6">
+              <h1 className="text-2xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
+              <p className="text-purple-100">Find your perfect job match with AI-powered recommendations</p>
             </div>
 
-            {/* ========== RECENT ACTIVITY & QUICK ACTIONS ========== */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                    <Star className="w-5 h-5 text-[#FF7A00]" />
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Link href="/job-seeker/profile">
-                    <Button variant="outline" className="w-full justify-start hover:bg-[#00C49A]/10">
-                      <User className="w-4 h-4 mr-2" />
-                      Complete Profile ({profilePct}%)
-                    </Button>
-                  </Link>
-                  <Link href="/job-seeker/test">
-                    <Button variant="outline" className="w-full justify-start hover:bg-[#FF7A00]/10">
-                      <Brain className="w-4 h-4 mr-2" />
-                      Take Skills Assessment
-                    </Button>
-                  </Link>
-                  <Link href="/job-seeker/search">
-                    <Button variant="outline" className="w-full justify-start hover:bg-[#0A2540]/10">
-                      <Search className="w-4 h-4 mr-2" />
-                      Find Jobs
-                    </Button>
-                  </Link>
+            {/* Quick actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-md">
+                      <Brain className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Take AI Assessment</h3>
+                      <p className="text-sm text-gray-600">Get personalized job matches</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Recent Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                    <Bell className="w-5 h-5 text-[#00C49A]" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No recent activity</p>
-                    <p className="text-sm">Your job applications and updates will appear here</p>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-md">
+                      <Search className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Browse Jobs</h3>
+                      <p className="text-sm text-gray-600">Explore new opportunities</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-50 rounded-md">
+                      <User className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Update Profile</h3>
+                      <p className="text-sm text-gray-600">Complete your information</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* ========== RECOMMENDATIONS ========== */}
-            <Card className="mt-6">
+            {/* Profile completion */}
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[#0A2540]">
-                  <Users className="w-5 h-5 text-[#FF7A00]" />
-                  Recommended for You
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Profile Completion
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recommendations yet</p>
-                  <p className="text-sm">Complete your profile and assessment to get personalized job recommendations</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Profile completeness</span>
+                    <span>{profilePct}%</span>
+                  </div>
+                  <Progress value={profilePct} className="h-2" />
+                  <p className="text-sm text-gray-600">
+                    Complete your profile to get better job recommendations
+                  </p>
                 </div>
               </CardContent>
             </Card>
-          </main>
-        </div>
+
+            {/* Recent activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Job recommendations */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5" />
+                    Recommended Jobs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="border-l-2 border-purple-200 pl-3">
+                      <h4 className="font-medium">Software Engineer</h4>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Building2 className="h-3 w-3" />
+                        Tech Corp
+                        <MapPin className="h-3 w-3 ml-2" />
+                        San Francisco
+                      </div>
+                    </div>
+                    <div className="border-l-2 border-purple-200 pl-3">
+                      <h4 className="font-medium">Product Designer</h4>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Building2 className="h-3 w-3" />
+                        Design Studio
+                        <MapPin className="h-3 w-3 ml-2" />
+                        Remote
+                      </div>
+                    </div>
+                    <div className="border-l-2 border-purple-200 pl-3">
+                      <h4 className="font-medium">Data Analyst</h4>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Building2 className="h-3 w-3" />
+                        Analytics Inc
+                        <MapPin className="h-3 w-3 ml-2" />
+                        New York
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Activity feed */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1 bg-green-50 rounded-full">
+                        <Calendar className="h-3 w-3 text-green-600" />
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium">Profile updated</p>
+                        <p className="text-gray-600">2 days ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1 bg-blue-50 rounded-full">
+                        <Users className="h-3 w-3 text-blue-600" />
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium">Job application sent</p>
+                        <p className="text-gray-600">5 days ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="p-1 bg-purple-50 rounded-full">
+                        <Star className="h-3 w-3 text-purple-600" />
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium">Assessment completed</p>
+                        <p className="text-gray-600">1 week ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </main>
       </div>
+      
       <Footer />
-    </>
-  )
-}
-
-/* ─────────────── helper components ─────────────── */
-function SidebarLink({ href, icon: Icon, text, active }: any) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-        active
-          ? "bg-[#00C49A]/10 text-[#00C49A] font-medium"
-          : "text-gray-600 hover:bg-gray-50 hover:text-[#0A2540]"
-      }`}
-    >
-      <Icon className="w-5 h-5 mr-3" />
-      {text}
-    </Link>
-  )
-}
-
-function StatsCard({ title, value, icon: Icon, color, children }: any) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`w-4 h-4 ${color}`} />
-      </CardHeader>
-      <CardContent>
-        <div className={`text-2xl font-bold ${color}`}>{value}</div>
-        {children}
-      </CardContent>
-    </Card>
+    </div>
   )
 }

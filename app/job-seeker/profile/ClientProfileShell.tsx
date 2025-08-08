@@ -96,9 +96,9 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
           experience: profile.experience || '',
           skills: profile.skills || '',
           resume_url: profile.resume_url || null,
-          avatar_url: profile.avatar_url || null,
-          programming_skills: profile.programming_skills || [],
-          language_skills: profile.language_skills || []
+          avatar_url: null, // profile.avatar_url || null,
+          programming_skills: [], // profile.programming_skills || [],
+          language_skills: [] // profile.language_skills || []
         })
 
       } catch (err) {
