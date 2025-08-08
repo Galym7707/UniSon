@@ -110,12 +110,16 @@ export default function DashboardPage() {
               Profile
             </SidebarLink>
             
-            <SidebarLink href="/job-seeker/assessment" icon={<Brain className="h-4 w-4" />} pathname={pathname}>
-              AI Assessment
+            <SidebarLink href="/job-seeker/test" icon={<Brain className="h-4 w-4" />} pathname={pathname}>
+              Test
             </SidebarLink>
             
             <SidebarLink href="/job-seeker/jobs" icon={<Search className="h-4 w-4" />} pathname={pathname}>
-              Find Jobs
+              Browse Jobs
+            </SidebarLink>
+            
+            <SidebarLink href="/job-seeker/search" icon={<Search className="h-4 w-4" />} pathname={pathname}>
+              Job Search
             </SidebarLink>
             
             <SidebarLink href="/job-seeker/saved" icon={<Heart className="h-4 w-4" />} pathname={pathname}>

@@ -1,17 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { LayoutDashboard, User, Search, Settings, Heart, MapPin, Clock, Building2, Filter, Brain, AlertCircle } from "lucide-react"
+import { LayoutDashboard, User, Search, Settings, Heart, MapPin, Clock, Building2, Brain, AlertCircle } from "lucide-react"
+import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { Header } from '@/components/header-landing'
 import { Footer } from '@/components/footer'
@@ -30,16 +26,6 @@ type Job = {
   skills: string[]
   description: string
   match_score?: number
-}
-
-type Filters = {
-  search: string
-  location: string
-  salary_min: string
-  salary_max: string
-  employment_types: string[]
-  remote_only: boolean
-  experience_level: string
 }
 
 const SidebarLink = ({ href, icon, children, pathname }: {
@@ -72,41 +58,19 @@ export default function JobsPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [savingJob, setSavingJob] = useState<string | null>(null)
-  const [filters, setFilters] = useState<Filters>({
-    search: '',
-    location: '',
-    salary_min: '',
-    salary_max: '',
-    employment_types: [],
-    remote_only: false,
-    experience_level: ''
-  })
-  const [sortBy, setSortBy] = useState('match')
+  
   const supabase = createBrowserClient()
 
   useEffect(() => {
     loadJobs()
-  }, [filters, sortBy])
+  }, [])
 
   const loadJobs = async () => {
-    setLoading(true)
-    setError(null)
-    
     try {
-      // Build query parameters
-      const params = new URLSearchParams()
+      setLoading(true)
+      setError(null)
       
-      if (filters.search) params.append('search', filters.search)
-      if (filters.location) params.append('location', filters.location)
-      if (filters.salary_min) params.append('salary_min', filters.salary_min)
-      if (filters.salary_max) params.append('salary_max', filters.salary_max)
-      if (filters.employment_types.length > 0) params.append('employment_types', filters.employment_types.join(','))
-      if (filters.remote_only) params.append('remote_only', 'true')
-      if (filters.experience_level) params.append('experience_level', filters.experience_level)
-      if (sortBy) params.append('sort_by', sortBy)
-
-      const response = await fetch(`/api/jobs?${params.toString()}`)
-      
+      const response = await fetch('/api/jobs')
       if (!response.ok) {
         throw new Error(`Failed to fetch jobs: ${response.status}`)
       }
@@ -158,10 +122,6 @@ export default function JobsPage() {
     }
   }
 
-  const updateFilters = (key: keyof Filters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
-  }
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -195,18 +155,27 @@ export default function JobsPage() {
               <SidebarLink href="/job-seeker/dashboard" icon={<LayoutDashboard />} pathname={pathname}>
                 Dashboard
               </SidebarLink>
+              
               <SidebarLink href="/job-seeker/profile" icon={<User />} pathname={pathname}>
                 Profile
               </SidebarLink>
+              
               <SidebarLink href="/job-seeker/test" icon={<Brain />} pathname={pathname}>
                 Test
               </SidebarLink>
+              
               <SidebarLink href="/job-seeker/jobs" icon={<Search />} pathname={pathname}>
-                Jobs
+                Browse Jobs
               </SidebarLink>
+              
+              <SidebarLink href="/job-seeker/search" icon={<Search />} pathname={pathname}>
+                Job Search
+              </SidebarLink>
+              
               <SidebarLink href="/job-seeker/saved" icon={<Heart />} pathname={pathname}>
                 Saved
               </SidebarLink>
+              
               <SidebarLink href="/job-seeker/settings" icon={<Settings />} pathname={pathname}>
                 Settings
               </SidebarLink>
@@ -216,10 +185,17 @@ export default function JobsPage() {
           {/* Main Content */}
           <div className="flex-1 p-8">
             <div className="max-w-6xl mx-auto">
-              <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Jobs</h1>
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-[#0A2540] mb-2">Browse Jobs</h1>
+                  <p className="text-gray-600">
+                    {jobs.length > 0 ? `${jobs.length} job opportunities available` : 'Discover your next opportunity'}
+                  </p>
+                </div>
+              </div>
 
               {message && (
-                <Alert className={`mb-4 ${
+                <Alert className={`mb-6 ${
                   message.type === 'success' 
                     ? 'border-green-200 bg-green-50' 
                     : 'border-red-200 bg-red-50'
@@ -231,210 +207,120 @@ export default function JobsPage() {
                 </Alert>
               )}
 
-              <div className="grid lg:grid-cols-4 gap-8">
-                {/* Filters Sidebar */}
-                <div className="lg:col-span-1">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-[#0A2540] flex items-center">
-                        <Filter className="w-5 h-5 mr-2" />
-                        Filters
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Search */}
-                      <div className="space-y-2">
-                        <Label>Search</Label>
-                        <Input 
-                          placeholder="Job title, company, skills..."
-                          value={filters.search}
-                          onChange={(e) => updateFilters('search', e.target.value)}
-                        />
-                      </div>
-
-                      {/* Location */}
-                      <div className="space-y-2">
-                        <Label>Location</Label>
-                        <Input 
-                          placeholder="City or remote"
-                          value={filters.location}
-                          onChange={(e) => updateFilters('location', e.target.value)}
-                        />
-                      </div>
-
-                      {/* Employment Type */}
-                      <div className="space-y-2">
-                        <Label>Employment Type</Label>
-                        <div className="space-y-2">
-                          {['Full-time', 'Part-time', 'Contract', 'Freelance'].map((type) => (
-                            <div key={type} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={type}
-                                checked={filters.employment_types.includes(type.toLowerCase())}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    updateFilters('employment_types', [...filters.employment_types, type.toLowerCase()])
-                                  } else {
-                                    updateFilters('employment_types', filters.employment_types.filter(t => t !== type.toLowerCase()))
-                                  }
-                                }}
-                              />
-                              <Label htmlFor={type}>{type}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Remote Only */}
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="remote"
-                          checked={filters.remote_only}
-                          onCheckedChange={(checked) => updateFilters('remote_only', checked)}
-                        />
-                        <Label htmlFor="remote">Remote only</Label>
-                      </div>
-
-                      {/* Salary Range */}
-                      <div className="space-y-2">
-                        <Label>Salary Range (₽)</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input 
-                            placeholder="Min"
-                            type="number"
-                            value={filters.salary_min}
-                            onChange={(e) => updateFilters('salary_min', e.target.value)}
-                          />
-                          <Input 
-                            placeholder="Max"
-                            type="number"
-                            value={filters.salary_max}
-                            onChange={(e) => updateFilters('salary_max', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              {/* Jobs List */}
+              {loading ? (
+                <div className="text-center py-12">
+                  <LoadingSpinner className="w-8 h-8 mx-auto" />
+                  <p className="text-gray-600 mt-4">Loading jobs...</p>
                 </div>
-
-                {/* Job Results */}
-                <div className="lg:col-span-3">
-                  <div className="mb-4 flex justify-between items-center">
-                    <p className="text-[#333333]">
-                      {loading ? 'Loading...' : `${jobs.length} jobs found`}
-                    </p>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="match">Best Match</SelectItem>
-                        <SelectItem value="date">Most Recent</SelectItem>
-                        <SelectItem value="salary">Highest Salary</SelectItem>
-                        <SelectItem value="company">Company A-Z</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {loading && (
-                    <div className="flex items-center justify-center py-12">
-                      <LoadingSpinner />
+              ) : error ? (
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-center text-center">
+                      <div>
+                        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-red-700 mb-2">Failed to Load Jobs</h3>
+                        <p className="text-red-600 mb-4">{error}</p>
+                        <Button
+                          onClick={loadJobs}
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-100"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
                     </div>
-                  )}
-
-                  {error && (
-                    <Alert className="border-red-200 bg-red-50">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription className="text-red-700">{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {!loading && !error && jobs.length === 0 && (
-                    <Card>
-                      <CardContent className="text-center py-12">
-                        <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-[#0A2540] mb-2">No jobs found</h3>
-                        <p className="text-[#333333]">Try adjusting your filters or search terms.</p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <div className="space-y-4">
-                    {jobs.map((job) => (
-                      <Card key={job.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="text-xl font-semibold text-[#0A2540] mb-1">{job.title}</h3>
-                              <div className="flex items-center gap-2 text-[#333333] mb-2">
+                  </CardContent>
+                </Card>
+              ) : jobs.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12">
+                    <div className="text-center">
+                      <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Jobs Available</h3>
+                      <p className="text-gray-500">Check back later for new opportunities.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {jobs.map((job) => (
+                    <Card key={job.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-[#0A2540] mb-2">{job.title}</h3>
+                            
+                            <div className="flex items-center gap-4 text-gray-600 mb-3">
+                              <div className="flex items-center gap-1">
                                 <Building2 className="w-4 h-4" />
                                 <span>{job.company}</span>
-                                <MapPin className="w-4 h-4 ml-2" />
-                                <span>{job.location}</span>
-                                {job.remote && (
-                                  <Badge variant="secondary" className="ml-2">Remote</Badge>
-                                )}
                               </div>
-                              <div className="flex items-center gap-4 text-sm text-[#666666]">
-                                <span className="font-medium text-[#00C49A]">
-                                  {formatSalary(job.salary_min, job.salary_max)}
-                                </span>
-                                <Badge variant="outline">{job.employment_type}</Badge>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <span>{formatDate(job.posted_at)}</span>
-                                </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                <span>{job.location}</span>
+                                {job.remote && <Badge variant="secondary" className="ml-1">Remote</Badge>}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{formatDate(job.posted_at)}</span>
                               </div>
                             </div>
-                            {job.match_score && (
-                              <Badge className="bg-[#00C49A] hover:bg-[#00A085]">
-                                {job.match_score}% match
-                              </Badge>
+
+                            <div className="flex items-center gap-4 mb-4">
+                              <div className="text-sm text-gray-600">
+                                <span className="font-medium">{formatSalary(job.salary_min, job.salary_max)}</span>
+                              </div>
+                              <Badge variant="outline">{job.employment_type}</Badge>
+                            </div>
+
+                            <p className="text-gray-700 mb-4 line-clamp-2">{job.description}</p>
+
+                            {job.skills && job.skills.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {job.skills.slice(0, 5).map((skill, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                                {job.skills.length > 5 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{job.skills.length - 5} more
+                                  </Badge>
+                                )}
+                              </div>
                             )}
                           </div>
 
-                          <p className="text-[#333333] mb-4 line-clamp-3">{job.description}</p>
-
-                          {job.skills && job.skills.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {job.skills.slice(0, 6).map((skill) => (
-                                <Badge key={skill} variant="secondary" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                              {job.skills.length > 6 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{job.skills.length - 6} more
-                                </Badge>
+                          <div className="flex flex-col gap-2 ml-6">
+                            <Button
+                              onClick={() => saveJob(job.id)}
+                              disabled={savingJob === job.id}
+                              variant="outline"
+                              size="sm"
+                              className="min-w-[100px]"
+                            >
+                              {savingJob === job.id ? (
+                                <LoadingSpinner className="w-4 h-4" />
+                              ) : (
+                                <>
+                                  <Heart className="w-4 h-4 mr-2" />
+                                  Save
+                                </>
                               )}
-                            </div>
-                          )}
-
-                          <div className="flex justify-between items-center">
-                            <Button variant="outline" size="sm">
-                              View Details
                             </Button>
-                            <div className="space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => saveJob(job.id)}
-                                disabled={savingJob === job.id}
-                              >
-                                <Heart className="w-4 h-4 mr-1" />
-                                {savingJob === job.id ? 'Saving...' : 'Save'}
+                            <Link href={`/job-seeker/results?job=${job.id}`}>
+                              <Button size="sm" className="w-full">
+                                View Details
                               </Button>
-                              <Button size="sm" className="bg-[#00C49A] hover:bg-[#00A085]">
-                                Apply Now
-                              </Button>
-                            </div>
+                            </Link>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
