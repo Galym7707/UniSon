@@ -23,7 +23,7 @@ export default async function ProfilePage() {
     // ────────────────────────────────────
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name,last_name,title,summary,experience,skills')
+      .select('first_name,last_name,title,summary,experience,skills,programming_skills,language_skills')
       .eq('id', user.id)           // ← keyed by auth.user.id
       .maybeSingle()              // ← returns null if no row exists
 

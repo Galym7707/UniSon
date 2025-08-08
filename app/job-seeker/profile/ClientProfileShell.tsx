@@ -24,6 +24,7 @@ import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast
 import { ensureUserProfile, ProfileData } from '@/lib/profile-fallback'
 import ImageUpload from '@/components/ui/image-upload'
 import ProfileAvatar from '@/components/ui/profile-avatar'
+import SkillsSection, { ProgrammingSkill, RegularLanguage } from '@/components/ui/skills-section'
 
 /* ─────────────── type ─────────────── */
 type Profile = {
@@ -35,6 +36,8 @@ type Profile = {
   skills     : string
   resume_url : string | null
   avatar_url : string | null
+  programming_skills: ProgrammingSkill[]
+  language_skills: RegularLanguage[]
 }
 
 interface ClientProfileShellProps {
@@ -52,7 +55,10 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
     summary    : '',
     experience : '',
     skills     : '',
-    resume_url : null
+    resume_url : null,
+    avatar_url : null,
+    programming_skills: [],
+    language_skills: []
   })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -89,7 +95,10 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
           summary: profile.summary || '',
           experience: profile.experience || '',
           skills: profile.skills || '',
-          resume_url: profile.resume_url || null
+          resume_url: profile.resume_url || null,
+          avatar_url: profile.avatar_url || null,
+          programming_skills: profile.programming_skills || [],
+          language_skills: profile.language_skills || []
         })
 
       } catch (err) {
@@ -115,6 +124,15 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
   const update = (key: keyof Profile) =>
     (e: ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) =>
       setForm(f => ({ ...f, [key]: e.target.value }))
+
+  /* ---------- skills handlers ---------- */
+  const handleSkillsChange = (skills: { programmingSkills: ProgrammingSkill[], regularLanguages: RegularLanguage[] }) => {
+    setForm(prev => ({
+      ...prev,
+      programming_skills: skills.programmingSkills,
+      language_skills: skills.regularLanguages
+    }))
+  }
 
   /* ---------- resume upload ---------- */
   async function handleResume(e: ChangeEvent<HTMLInputElement>) {
@@ -296,6 +314,8 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         experience: form.experience?.trim() || '',
         skills: form.skills?.trim() || '',
         resume_url: form.resume_url,
+        programming_skills: form.programming_skills,
+        language_skills: form.language_skills,
         updated_at: new Date().toISOString()
       }
   
@@ -663,7 +683,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
 
                 <TabsContent value="skills" className="space-y-6">
                   <div>
-                    <Label htmlFor="skills">Skills</Label>
+                    <Label htmlFor="skills">Skills (Legacy)</Label>
                     <Textarea
                       id="skills"
                       rows={4}
@@ -672,6 +692,12 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
                       placeholder="List your technical skills, programming languages, tools, certifications, etc..."
                     />
                   </div>
+                  
+                  <SkillsSection
+                    programmingSkills={form.programming_skills}
+                    regularLanguages={form.language_skills}
+                    onChange={handleSkillsChange}
+                  />
                 </TabsContent>
 
               </Tabs>
@@ -698,10 +724,10 @@ function SidebarLink({
   return (
     <Link
       href={href}
-      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-        active
-          ? 'bg-[#00C49A]/10 text-[#00C49A] font-medium'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+      className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+        active 
+          ? 'text-[#00C49A] bg-emerald-50' 
+          : 'text-gray-600 hover:text-[#00C49A] hover:bg-gray-50'
       }`}
     >
       <Icon className="h-5 w-5 mr-3" />
