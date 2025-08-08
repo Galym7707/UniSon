@@ -26,7 +26,7 @@ BEGIN
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'role', 'employee'),
+        COALESCE(NEW.raw_user_meta_data->>'role', 'job-seeker'),
         COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', '')
     );
     RETURN NEW;

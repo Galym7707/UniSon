@@ -133,7 +133,7 @@ export async function ensureUserProfile(): Promise<ProfileFallbackResult> {
     const newProfile: Partial<ProfileData> = {
       id: userId,
       email: session.user.email,
-      role: userMetadata.role || 'job_seeker',
+      role: userMetadata.role || 'job-seeker',
       first_name: firstName,
       last_name: lastName,
       title: '',

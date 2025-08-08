@@ -3,7 +3,7 @@
 
 interface User {
   id: string
-  role: "employer" | "employee"
+  role: "employer" | "job-seeker"
   companyName?: string
   fullName: string
   email: string
@@ -20,9 +20,9 @@ const users: User[] = [
   },
   {
     id: "usr_employee_1",
-    role: "employee",
+    role: "job-seeker",
     fullName: "Jane Employee",
-    email: "employee@unison.ai",
+    email: "job-seeker@unison.ai",
   },
 ]
 

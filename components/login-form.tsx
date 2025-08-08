@@ -81,7 +81,7 @@ export function LoginForm() {
           Enter your credentials to access your account.
           <br />
           <span className="text-xs text-gray-400 mt-2 block">
-            (Try employer@unison.ai or employee@unison.ai)
+            (Try employer@unison.ai or job-seeker@unison.ai)
           </span>
         </CardDescription>
       </CardHeader>
