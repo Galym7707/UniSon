@@ -69,7 +69,7 @@ export default function SkillsSection({
       programmingSkills: localProgrammingSkills,
       regularLanguages: localRegularLanguages
     })
-  }, [localProgrammingSkills, localRegularLanguages, onChange])
+  }, [localProgrammingSkills, localRegularLanguages])
 
   // Programming Skills Functions
   const addProgrammingSkill = () => {
