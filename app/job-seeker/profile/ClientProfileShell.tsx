@@ -1,7 +1,7 @@
 /*  app/job-seeker/profile/ClientProfileShell.tsx  – CLIENT COMPONENT */
 'use client'
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
+import { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react'
 import Link from 'next/link'
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
@@ -126,13 +126,13 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
       setForm(f => ({ ...f, [key]: e.target.value }))
 
   /* ---------- skills handlers ---------- */
-  const handleSkillsChange = (skills: { programmingSkills: ProgrammingSkill[], regularLanguages: RegularLanguage[] }) => {
+  const handleSkillsChange = useCallback((skills: { programmingSkills: ProgrammingSkill[], regularLanguages: RegularLanguage[] }) => {
     setForm(prev => ({
       ...prev,
       programming_skills: skills.programmingSkills,
       language_skills: skills.regularLanguages
     }))
-  }
+  }, [])
 
   /* ---------- resume upload ---------- */
   async function handleResume(e: ChangeEvent<HTMLInputElement>) {
@@ -501,233 +501,226 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         {/* Show message for first-time profile creation */}
         {profileCreated && !error && (
           <Card className="mb-6 border-green-200 bg-green-50">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-green-800 mb-2">Welcome! Your Profile is Ready</h3>
-              <p className="text-green-700">
-                Your profile has been created using your account information. Complete the remaining fields 
-                below to improve your job matching and attract employers.
-              </p>
-            </CardContent>
+            <CardHeader>
+              <CardTitle className="text-green-800 text-lg">Welcome to Unison AI!</CardTitle>
+              <CardDescription className="text-green-700">
+                We've created a new profile for you. Please fill in your information below to get started.
+              </CardDescription>
+            </CardHeader>
           </Card>
         )}
 
-        {/* Show "Complete Your Profile" message for empty profiles */}
-        {isEmptyProfile && !profileCreated && !error && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-blue-800 mb-2">Complete Your Profile</h3>
-              <p className="text-blue-700">
-                Let's get your profile set up! Fill in the information below to help employers find you 
-                and match you with the perfect job opportunities.
-              </p>
-              <div className="mt-3 text-sm text-blue-600">
-                <p>✓ Upload your resume to get started quickly</p>
-                <p>✓ Add your experience and skills</p>
-                <p>✓ Write a compelling summary</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Error display - only show if we have some profile data to work with */}
-        {error && (form.first_name || form.last_name) && (
+        {/* Error Display */}
+        {error && (
           <div className="mb-6">
             <ErrorDisplay 
-              error={error}
+              error={error} 
               onDismiss={clearError}
               variant="card"
             />
           </div>
         )}
 
-        {/* résumé */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Upload your résumé</CardTitle>
-            <CardDescription>PDF, DOC or DOCX (max 10MB)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <label className={`flex flex-col items-center justify-center
-                               border-2 border-dashed border-gray-300 rounded-lg
-                               p-8 text-center cursor-pointer hover:border-[#00C49A]
-                               transition-colors duration-200
-                               ${uploading ? 'opacity-50 cursor-not-allowed border-gray-200' : ''}`}>
-              {uploading ? (
-                <div className="flex flex-col items-center">
-                  <LoadingSpinner size="lg" className="mb-4" />
-                  <span className="text-gray-600">Uploading resume...</span>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                  {form.resume_url ? (
-                    <div className="text-center">
-                      <Link href={form.resume_url} target="_blank" className="text-[#00C49A] underline font-medium">
-                        Resume uploaded successfully — click to preview
-                      </Link>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Upload a new file to replace the current resume
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <p className="font-medium">Drop a file here or click to choose</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Upload your resume to automatically populate some fields
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-              <input 
-                hidden 
-                type="file" 
-                accept=".pdf,.doc,.docx" 
-                onChange={handleResume}
-                disabled={uploading}
-              />
-            </label>
-          </CardContent>
-        </Card>
+        {/* Show profile completeness if profile has some data */}
+        {!isEmptyProfile && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Profile Completeness</CardTitle>
+              <CardDescription>
+                Complete your profile to improve your chances of finding the perfect job
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <Progress value={completeness} className="flex-1" />
+                <span className="text-sm font-medium">{completeness}%</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* completeness */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Profile completeness: {completeness}%</CardTitle>
-            <CardDescription>
-              {completeness === 100 
-                ? "Your profile is complete! 🎉" 
-                : completeness >= 70 
-                ? "Almost there! Add a few more details."
-                : completeness >= 40 
-                ? "Good start! Keep adding information."
-                : "Let's fill in your basic information first."
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Progress value={completeness} className="w-full" />
-          </CardContent>
-        </Card>
-
-        {/* main form */}
-        <Card>
-          <CardContent className="pt-6">
-            <form id="profileForm" onSubmit={handleSave} className="space-y-6">
-              
-              <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="personal">Personal</TabsTrigger>
-                  <TabsTrigger value="professional">Professional</TabsTrigger>
-                  <TabsTrigger value="skills">Skills</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="personal" className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First name *</Label>
-                      <Input
-                        id="firstName"
-                        value={form.first_name}
-                        onChange={update('first_name')}
-                        placeholder="Enter your first name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last name *</Label>
-                      <Input
-                        id="lastName"
-                        value={form.last_name}
-                        onChange={update('last_name')}
-                        placeholder="Enter your last name"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="title">Professional title</Label>
-                    <Input
-                      id="title"
-                      value={form.title}
-                      onChange={update('title')}
-                      placeholder="e.g. Senior Software Engineer, Marketing Manager"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="summary">Professional summary</Label>
-                    <Textarea
-                      id="summary"
-                      rows={4}
-                      value={form.summary}
-                      onChange={update('summary')}
-                      placeholder="A brief overview of your professional background, key achievements, and career goals..."
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="professional" className="space-y-6">
-                  <div>
-                    <Label htmlFor="experience">Experience</Label>
-                    <Textarea
-                      id="experience"
-                      rows={6}
-                      value={form.experience}
-                      onChange={update('experience')}
-                      placeholder="Describe your work experience, including job titles, companies, dates, and key responsibilities..."
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="skills" className="space-y-6">
-                  <div>
-                    <Label htmlFor="skills">Skills (Legacy)</Label>
-                    <Textarea
-                      id="skills"
-                      rows={4}
-                      value={form.skills}
-                      onChange={update('skills')}
-                      placeholder="List your technical skills, programming languages, tools, certifications, etc..."
-                    />
-                  </div>
-                  
-                  <SkillsSection
-                    programmingSkills={form.programming_skills}
-                    regularLanguages={form.language_skills}
-                    onChange={handleSkillsChange}
+        <form id="profileForm" onSubmit={handleSave} className="space-y-6">
+          {/* Basic Info Tab */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+              <CardDescription>Your personal and contact information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Names - side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="first_name">First Name *</Label>
+                  <Input
+                    id="first_name"
+                    value={form.first_name}
+                    onChange={update('first_name')}
+                    placeholder="Your first name"
+                    required
                   />
-                </TabsContent>
+                </div>
+                <div>
+                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Input
+                    id="last_name"
+                    value={form.last_name}
+                    onChange={update('last_name')}
+                    placeholder="Your last name"
+                    required
+                  />
+                </div>
+              </div>
 
-              </Tabs>
-            </form>
-          </CardContent>
-        </Card>
+              {/* Title */}
+              <div>
+                <Label htmlFor="title">Professional Title</Label>
+                <Input
+                  id="title"
+                  value={form.title}
+                  onChange={update('title')}
+                  placeholder="e.g., Software Engineer, Data Scientist"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Professional Summary</CardTitle>
+              <CardDescription>A brief overview of your background and expertise</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={form.summary}
+                onChange={update('summary')}
+                placeholder="Write a brief summary about yourself, your experience, and what you're looking for..."
+                rows={4}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Experience */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Experience</CardTitle>
+              <CardDescription>Your professional background and accomplishments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={form.experience}
+                onChange={update('experience')}
+                placeholder="Describe your work experience, including previous roles, responsibilities, and achievements..."
+                rows={6}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Skills Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Skills & Languages</CardTitle>
+              <CardDescription>Your technical skills and language proficiencies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SkillsSection
+                programmingSkills={form.programming_skills}
+                regularLanguages={form.language_skills}
+                onChange={handleSkillsChange}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Legacy Skills Input */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Skills</CardTitle>
+              <CardDescription>Any other relevant skills not covered above</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={form.skills}
+                onChange={update('skills')}
+                placeholder="List any additional skills, certifications, or tools you're proficient with..."
+                rows={3}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Resume Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Resume</CardTitle>
+              <CardDescription>Upload your resume (PDF, DOC, or DOCX - Max 10MB)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {form.resume_url && (
+                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Upload className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-800">Resume uploaded successfully</span>
+                    </div>
+                    <Link
+                      href={form.resume_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Resume
+                    </Link>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-4">
+                  <Label
+                    htmlFor="resume"
+                    className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span>{uploading ? 'Uploading...' : (form.resume_url ? 'Replace Resume' : 'Choose File')}</span>
+                  </Label>
+                  <Input
+                    id="resume"
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleResume}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                  {uploading && (
+                    <LoadingSpinner size="sm" />
+                  )}
+                </div>
+
+                <p className="text-sm text-gray-600">
+                  Accepted formats: PDF, DOC, DOCX. Maximum file size: 10MB.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
       </main>
     </div>
   )
 }
 
-/* ─────────────────────────────── helper ─────────────────────────────── */
-function SidebarLink({
-  href,
-  icon: Icon,
-  text,
-  active = false,
-}: {
+/* ========== Sidebar Link Component ========== */
+interface SidebarLinkProps {
   href: string
-  icon: any
+  icon: React.ComponentType<any>
   text: string
   active?: boolean
-}) {
+}
+
+function SidebarLink({ href, icon: Icon, text, active }: SidebarLinkProps) {
   return (
     <Link
       href={href}
-      className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-        active 
-          ? 'text-[#00C49A] bg-emerald-50' 
-          : 'text-gray-600 hover:text-[#00C49A] hover:bg-gray-50'
+      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
+        active
+          ? 'bg-blue-50 text-blue-700 font-medium'
+          : 'text-gray-700 hover:bg-gray-50'
       }`}
     >
       <Icon className="h-5 w-5 mr-3" />
