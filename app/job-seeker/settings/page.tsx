@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,7 +51,31 @@ type Settings = {
   }
 }
 
+const SidebarLink = ({ href, icon, children, pathname }: {
+  href: string
+  icon: React.ReactNode
+  children: React.ReactNode
+  pathname: string
+}) => {
+  const isActive = pathname === href
+  
+  return (
+    <Link
+      href={href}
+      className={`flex items-center px-4 py-3 rounded-lg ${
+        isActive 
+          ? 'text-[#00C49A] bg-[#00C49A]/10' 
+          : 'text-[#333333] hover:bg-gray-100'
+      }`}
+    >
+      <div className="w-5 h-5 mr-3">{icon}</div>
+      {children}
+    </Link>
+  )
+}
+
 export default function JobSeekerSettings() {
+  const pathname = usePathname()
   const [settings, setSettings] = useState<Settings>({
     account: {
       first_name: '',
@@ -262,48 +287,24 @@ export default function JobSeekerSettings() {
               </Link>
             </div>
             <nav className="px-4 space-y-2">
-              <Link
-                href="/job-seeker/dashboard"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <LayoutDashboard className="w-5 h-5 mr-3" />
+              <SidebarLink href="/job-seeker/dashboard" icon={<LayoutDashboard />} pathname={pathname}>
                 Dashboard
-              </Link>
-              <Link
-                href="/job-seeker/profile"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <User className="w-5 h-5 mr-3" />
+              </SidebarLink>
+              <SidebarLink href="/job-seeker/profile" icon={<User />} pathname={pathname}>
                 Profile
-              </Link>
-              <Link
-                href="/job-seeker/test"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Brain className="w-5 h-5 mr-3" />
+              </SidebarLink>
+              <SidebarLink href="/job-seeker/test" icon={<Brain />} pathname={pathname}>
                 Test
-              </Link>
-              <Link
-                href="/job-seeker/search"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Search className="w-5 h-5 mr-3" />
-                Job Search
-              </Link>
-              <Link
-                href="/job-seeker/saved"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Heart className="w-5 h-5 mr-3" />
+              </SidebarLink>
+              <SidebarLink href="/job-seeker/jobs" icon={<Search />} pathname={pathname}>
+                Jobs
+              </SidebarLink>
+              <SidebarLink href="/job-seeker/saved" icon={<Heart />} pathname={pathname}>
                 Saved
-              </Link>
-              <Link
-                href="/job-seeker/settings"
-                className="flex items-center px-4 py-3 text-[#00C49A] bg-[#00C49A]/10 rounded-lg"
-              >
-                <Settings className="w-5 h-5 mr-3" />
+              </SidebarLink>
+              <SidebarLink href="/job-seeker/settings" icon={<Settings />} pathname={pathname}>
                 Settings
-              </Link>
+              </SidebarLink>
             </nav>
           </div>
 
@@ -515,8 +516,6 @@ export default function JobSeekerSettings() {
                     </CardContent>
                   </Card>
                 </TabsContent>
-
-                {/* Other tabs - notifications, privacy, preferences omitted for brevity */}
               </Tabs>
             </div>
           </div>

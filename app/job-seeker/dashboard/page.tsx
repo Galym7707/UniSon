@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from 'next/navigation'
 import Link from "next/link"
 import {
   Card, CardContent, CardHeader, CardTitle,
@@ -18,8 +19,32 @@ import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
 
+const SidebarLink = ({ href, icon, children, pathname }: {
+  href: string
+  icon: React.ReactNode
+  children: React.ReactNode
+  pathname: string
+}) => {
+  const isActive = pathname === href
+  
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md ${
+        isActive 
+          ? 'font-medium text-purple-600 bg-purple-50' 
+          : 'text-gray-700 hover:bg-gray-100'
+      }`}
+    >
+      <div className="h-4 w-4">{icon}</div>
+      {children}
+    </Link>
+  )
+}
+
 export default function DashboardPage() {
   const supabase = createBrowserClient()
+  const pathname = usePathname()
 
   /* ─────── state ─────── */
   const [profilePct, setProfilePct] = useState(0)
@@ -77,35 +102,29 @@ export default function DashboardPage() {
           flex flex-col pt-16 lg:pt-0
         `}>
           <nav className="flex-1 p-4 space-y-2">
-            <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md">
-              <LayoutDashboard className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} pathname={pathname}>
               Dashboard
-            </div>
+            </SidebarLink>
             
-            <Link href="/job-seeker/profile" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
-              <User className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/profile" icon={<User className="h-4 w-4" />} pathname={pathname}>
               Profile
-            </Link>
+            </SidebarLink>
             
-            <Link href="/job-seeker/assessment" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
-              <Brain className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/assessment" icon={<Brain className="h-4 w-4" />} pathname={pathname}>
               AI Assessment
-            </Link>
+            </SidebarLink>
             
-            <Link href="/job-seeker/jobs" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
-              <Search className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/jobs" icon={<Search className="h-4 w-4" />} pathname={pathname}>
               Find Jobs
-            </Link>
+            </SidebarLink>
             
-            <Link href="/job-seeker/saved" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
-              <Heart className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/saved" icon={<Heart className="h-4 w-4" />} pathname={pathname}>
               Saved Jobs
-            </Link>
+            </SidebarLink>
             
-            <Link href="/job-seeker/settings" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-md hover:bg-gray-100">
-              <Settings className="h-4 w-4" />
+            <SidebarLink href="/job-seeker/settings" icon={<Settings className="h-4 w-4" />} pathname={pathname}>
               Settings
-            </Link>
+            </SidebarLink>
           </nav>
         </aside>
 
