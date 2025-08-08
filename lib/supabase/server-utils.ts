@@ -1,0 +1,101 @@
+/* lib/supabase/server-utils.ts */
+
+import "server-only"
+import { createServerSupabase } from "./server"
+import { createServerSupabaseAdmin } from "./admin"
+
+export interface SignupData {
+  role: "employer" | "job-seeker"
+  first_name: string
+  last_name: string
+  email: string
+  password: string
+  companyName?: string
+}
+
+/**
+ * Creates a new user account and associated profile records
+ */
+export async function createUserAccount(data: SignupData) {
+  const supabase = await createServerSupabase()
+  const supabaseAdmin = createServerSupabaseAdmin()
+
+  /* ---------- 1. создаём пользователя ---------- */
+  let authData, authError
+  try {
+    const response = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          role: data.role,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          companyName: data.companyName ?? null,
+        },
+      },
+    })
+    authData = response.data
+    authError = response.error
+  } catch (error: any) {
+    throw error
+  }
+
+  if (authError) throw authError
+  
+  const userId = authData.user?.id
+  if (!userId) {
+    throw new Error("User creation failed - no user ID returned")
+  }
+
+  /* ---------- 2. создаём запись в profiles (id = auth.uid) ---------- */
+  try {
+    const { error: profErr } = await supabaseAdmin.from("profiles").insert({
+      id: userId,
+      role: data.role,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      company_name: data.companyName ?? null,
+      email: data.email,
+    })
+
+    if (profErr) {
+      // If profile creation fails, we should try to clean up the auth user
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(userId)
+      } catch (cleanupError) {
+        // Log cleanup error but don't expose it to user
+        console.error("Failed to cleanup auth user after profile creation failure:", cleanupError)
+      }
+      throw profErr
+    }
+  } catch (error: any) {
+    throw new Error("Failed to create user profile. Please try again.")
+  }
+
+  /* ---------- 3. создаём запись в company_profiles, если роль = employer ---------- */
+  if (data.role === "employer" && data.companyName) {
+    try {
+      const { error: companyErr } = await supabaseAdmin.from("company_profiles").insert({
+        user_id: userId,
+        company_name: data.companyName,
+        website: "",
+        industry: "",
+        company_size: "",
+        description: "",
+        location: "",
+      })
+
+      if (companyErr) {
+        // If company profile creation fails, log the error but don't fail the entire signup
+        console.error("Failed to create company profile:", companyErr)
+        // User can still access the platform and create company profile later
+      }
+    } catch (error: any) {
+      console.error("Error creating company profile:", error)
+      // Don't fail signup for company profile errors
+    }
+  }
+
+  return { userId, role: data.role }
+}
