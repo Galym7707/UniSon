@@ -15,7 +15,6 @@ import { ErrorDisplay } from "@/components/ui/error-display"
 import { Building2, User, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { signupAction } from "@/actions/auth"
 
 /* ---------- types & schema ---------- */
 
@@ -66,7 +65,11 @@ type SignupFormData = z.infer<typeof signupSchema>
 
 /* ---------- component ---------- */
 
-export function SignupForm() {
+interface SignupFormProps {
+  signupAction: (prevState: unknown, formData: FormData) => Promise<{ error?: string; success?: boolean; message?: string } | null>
+}
+
+export function SignupForm({ signupAction }: SignupFormProps) {
   /* state/hooks */
   const [state, formAction, isPending] = useActionState(signupAction, null)
   const [role, setRole] = useState<Role>("job-seeker") // ← по-умолчанию Job Seeker
@@ -291,7 +294,7 @@ export function SignupForm() {
           </div>
 
           {/* server-side error */}
-          {state && !state.success && state.error && <ErrorDisplay error={state.error} variant="card" />}
+          {state?.error && <ErrorDisplay error={state.error} variant="card" />}
 
           <Button type="submit" className="w-full" disabled={isPending || (isFormSubmitted && !isValid)}>
             <LoadingButton isLoading={isPending} loadingText="Creating Account…">

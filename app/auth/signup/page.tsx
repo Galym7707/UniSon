@@ -1,6 +1,7 @@
 //app/auth/signup/page.tsx
 
 import { SignupForm } from "@/components/signup-form";
+import { signupAction } from "./action";
 import { Logotype } from "@/components/logotype"
 import Link from "next/link"
 
@@ -14,7 +15,7 @@ export default function SignupPage() {
             <span>UnisonAI</span>
           </Link>
         </div>
-        <SignupForm />
+        <SignupForm signupAction={signupAction} />
       </div>
     </div>
   )
