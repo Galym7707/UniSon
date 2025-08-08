@@ -8,6 +8,7 @@ export interface ProfileData {
   role?: string
   first_name?: string
   last_name?: string
+  name?: string // Computed automatically by database from first_name and last_name
   title?: string
   summary?: string
   experience?: string
