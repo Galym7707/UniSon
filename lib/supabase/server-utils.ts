@@ -92,6 +92,47 @@ export async function createUserAccount(data: SignupData) {
         // Log cleanup error but don't expose it to user
         console.error("Failed to cleanup auth user after profile creation failure:", cleanupError)
       }
+
+      // Handle specific PostgreSQL constraint violation errors
+      if (profErr.code === "23514") {
+        // Check constraint violation - likely invalid role value
+        const errorDetails = profErr.details || profErr.message || ""
+        if (errorDetails.includes("role") || profErr.message?.includes("role")) {
+          throw new Error("Invalid role value provided. Please select either 'employer' or 'job-seeker' and try again.")
+        }
+        // Generic check constraint violation
+        throw new Error("The provided data violates database validation rules. Please check your input values and try again.")
+      }
+
+      // Handle other common constraint violations
+      if (profErr.code === "23505") {
+        // Unique constraint violation
+        const errorDetails = profErr.details || profErr.message || ""
+        if (errorDetails.includes("email") || profErr.message?.includes("email")) {
+          throw new Error("An account with this email address already exists. Please use a different email or sign in instead.")
+        }
+        throw new Error("A profile with this information already exists. Please check your details and try again.")
+      }
+
+      if (profErr.code === "23503") {
+        // Foreign key constraint violation
+        throw new Error("Invalid data reference detected. Please try again or contact support if the problem persists.")
+      }
+
+      if (profErr.code === "23502") {
+        // Not null constraint violation
+        const errorDetails = profErr.details || profErr.message || ""
+        const fieldMatch = errorDetails.match(/column "([^"]+)"/) || errorDetails.match(/([a-zA-Z_]+)_not_null/)
+        const field = fieldMatch ? fieldMatch[1] : "required field"
+        throw new Error(`Missing required field: ${field}. Please ensure all required information is provided.`)
+      }
+
+      // Generic constraint violation handler
+      if (profErr.code?.startsWith("23")) {
+        const constraintDetails = profErr.details ? ` (${profErr.details})` : ""
+        throw new Error(`Database constraint violation${constraintDetails}. Please verify your input data meets all requirements and try again.`)
+      }
+
       throw profErr
     }
   } catch (error: any) {
@@ -113,12 +154,59 @@ export async function createUserAccount(data: SignupData) {
       timestamp: new Date().toISOString()
     })
 
-    // Provide more descriptive error message that includes database error information
+    // If it's already a handled constraint error, re-throw as is
+    if (error?.message?.includes("Invalid role value") || 
+        error?.message?.includes("violates database validation rules") ||
+        error?.message?.includes("already exists") ||
+        error?.message?.includes("Invalid data reference") ||
+        error?.message?.includes("Missing required field") ||
+        error?.message?.includes("Database constraint violation")) {
+      throw error
+    }
+
+    // Handle specific PostgreSQL errors that might not be caught above
+    if (error?.code === "23514") {
+      // Check constraint violation - likely invalid role value
+      const errorDetails = error.details || error.message || ""
+      if (errorDetails.includes("role") || error.message?.includes("role")) {
+        throw new Error("Invalid role value provided. Please select either 'employer' or 'job-seeker' and try again.")
+      }
+      throw new Error("The provided data violates database validation rules. Please check your input values and try again.")
+    }
+
+    if (error?.code === "23505") {
+      // Unique constraint violation
+      const errorDetails = error.details || error.message || ""
+      if (errorDetails.includes("email") || error.message?.includes("email")) {
+        throw new Error("An account with this email address already exists. Please use a different email or sign in instead.")
+      }
+      throw new Error("A profile with this information already exists. Please check your details and try again.")
+    }
+
+    if (error?.code === "23503") {
+      // Foreign key constraint violation
+      throw new Error("Invalid data reference detected. Please try again or contact support if the problem persists.")
+    }
+
+    if (error?.code === "23502") {
+      // Not null constraint violation
+      const errorDetails = error.details || error.message || ""
+      const fieldMatch = errorDetails.match(/column "([^"]+)"/) || errorDetails.match(/([a-zA-Z_]+)_not_null/)
+      const field = fieldMatch ? fieldMatch[1] : "required field"
+      throw new Error(`Missing required field: ${field}. Please ensure all required information is provided.`)
+    }
+
+    // Generic constraint violation handler for other 23xxx codes
+    if (error?.code?.startsWith("23")) {
+      const constraintDetails = error.details ? ` (${error.details})` : ""
+      throw new Error(`Database constraint violation${constraintDetails}. Please verify your input data meets all requirements and try again.`)
+    }
+
+    // For non-constraint errors, provide a more informative but still generic message
     const errorDetails = error?.message || "Unknown database error"
     const errorCode = error?.code ? ` (Code: ${error.code})` : ""
-    const constraintInfo = error?.constraint ? ` - Constraint: ${error.constraint}` : ""
     
-    throw new Error(`Failed to create user profile due to database error: ${errorDetails}${errorCode}${constraintInfo}. Please try again or contact support if the problem persists.`)
+    throw new Error(`Failed to create user profile: ${errorDetails}${errorCode}. Please try again or contact support if the problem persists.`)
   }
 
   /* ---------- 3. создаём запись в company_profiles, если роль = employer ---------- */
