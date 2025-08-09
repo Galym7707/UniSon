@@ -506,13 +506,27 @@ export default function JobSearch() {
                 ) : (
                   <Card>
                     <CardContent className="p-12 text-center">
-                      <div className="text-gray-400 mb-4">
-                        <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-[#0A2540] mb-2">No jobs found</h3>
-                      <p className="text-[#333333]">Try adjusting your search criteria</p>
+                      <h3 className="text-lg font-semibold text-[#0A2540] mb-2">No Jobs Found</h3>
+                      <p className="text-[#333333] mb-4">
+                        Try adjusting your filters or search terms to find more opportunities.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          setFilters({
+                            search: '',
+                            location: '',
+                            salary_min: '',
+                            salary_max: '',
+                            employment_types: [],
+                            remote_only: false,
+                            experience_level: ''
+                          })
+                          setSelectedCountry('')
+                        }}
+                        variant="outline"
+                      >
+                        Clear All Filters
+                      </Button>
                     </CardContent>
                   </Card>
                 )}

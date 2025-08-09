@@ -1,11 +1,24 @@
 'use client'
 
 import { ReactNode, useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import Navbar from './Navbar'
-import { Button } from './ui/button'
-import { Menu, X, LayoutDashboard, User, Search, Heart, Settings, Building2 } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  User,
+  Brain,
+  Search,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Heart,
+  ChevronLeft
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { getSupabaseBrowser } from '@/lib/supabase/browser'
+import { useToast } from '@/hooks/use-toast'
 
 interface JobSeekerLayoutProps {
   children: ReactNode
@@ -13,173 +26,258 @@ interface JobSeekerLayoutProps {
   userName?: string
   isAuthenticated?: boolean
   className?: string
-  showSidebar?: boolean
-  sidebarContent?: ReactNode
 }
 
-const JobSeekerSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const pathname = usePathname()
-
-  const navigation = [
-    { name: 'Dashboard', href: '/job-seeker/dashboard', icon: LayoutDashboard },
-    { name: 'Job Search', href: '/job-seeker/search', icon: Search },
-    { name: 'Saved Jobs', href: '/job-seeker/saved', icon: Heart },
-    { name: 'Profile', href: '/job-seeker/profile', icon: User },
-    { name: 'Companies', href: '/job-seeker/companies', icon: Building2 },
-    { name: 'Settings', href: '/job-seeker/settings', icon: Settings },
-  ]
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 md:pt-20 bg-white border-r border-gray-200">
-        <div className="flex-1 flex flex-col min-h-0 px-4 py-4">
-          <nav className="flex-1 space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive
-                      ? 'bg-purple-50 text-purple-700 border-r-2 border-purple-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-      </aside>
-
-      {/* Mobile Sidebar Overlay */}
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-            onClick={onClose}
-          />
-          
-          {/* Sidebar */}
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform z-50">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="p-2"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            
-            <div className="flex-1 px-4 py-4">
-              <nav className="space-y-1">
-                {navigation.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={onClose}
-                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        isActive
-                          ? 'bg-purple-50 text-purple-700'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <Icon className="mr-3 h-5 w-5" />
-                      {item.name}
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
+const navigationItems = [
+  {
+    href: '/job-seeker/dashboard',
+    icon: LayoutDashboard,
+    text: 'Dashboard',
+    key: 'dashboard'
+  },
+  {
+    href: '/job-seeker/profile',
+    icon: User,
+    text: 'Profile',
+    key: 'profile'
+  },
+  {
+    href: '/job-seeker/search',
+    icon: Search,
+    text: 'Browse & Search Jobs',
+    key: 'search'
+  },
+  {
+    href: '/job-seeker/saved',
+    icon: Heart,
+    text: 'Saved Jobs',
+    key: 'saved'
+  },
+  {
+    href: '/job-seeker/results',
+    icon: Brain,
+    text: 'Test Results',
+    key: 'results'
+  },
+  {
+    href: '/job-seeker/settings',
+    icon: Settings,
+    text: 'Settings',
+    key: 'settings'
+  }
+]
 
 export default function JobSeekerLayout({
   children,
   userEmail,
   userName,
   isAuthenticated,
-  className = '',
-  showSidebar = true,
-  sidebarContent
+  className = ''
 }: JobSeekerLayoutProps) {
+  const [user, setUser] = useState<{
+    email: string
+    name: string
+  } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  // Close sidebar on route change (mobile)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [pathname])
+  const { toast } = useToast()
 
-  // Close sidebar on escape key
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSidebarOpen(false)
+    if (isAuthenticated !== undefined && userEmail && userName) {
+      setUser({ email: userEmail, name: userName })
+      return
+    }
+
+    const checkAuth = async () => {
+      try {
+        const supabase = getSupabaseBrowser()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, name')
+            .eq('id', session.user.id)
+            .maybeSingle()
+
+          let displayName = 'User'
+          if (profile?.name?.trim()) {
+            displayName = profile.name.trim()
+          } else if (profile?.first_name?.trim()) {
+            displayName = profile.first_name.trim()
+          }
+
+          setUser({
+            email: session.user.email || '',
+            name: displayName
+          })
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error)
       }
     }
 
-    if (sidebarOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [sidebarOpen])
+    checkAuth()
+  }, [isAuthenticated, userEmail, userName])
 
-  return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
-      {/* Enhanced Navbar with Hamburger Menu */}
-      <div className="fixed top-0 left-0 right-0 z-40">
-        <Navbar 
-          userEmail={userEmail}
-          userName={userName}
-          isAuthenticated={isAuthenticated}
-        />
-        {showSidebar && (
-          <div className="md:hidden bg-white border-b border-gray-200 px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(true)}
-              className="p-2"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="ml-2">Menu</span>
-            </Button>
-          </div>
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabaseBrowser()
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) throw error
+
+      setUser(null)
+      setSidebarOpen(false)
+      router.push('/')
+      
+      toast({
+        title: 'Signed out successfully',
+        description: 'You have been logged out of your account.'
+      })
+    } catch (error) {
+      console.error('Error signing out:', error)
+      toast({
+        title: 'Error signing out',
+        description: 'There was a problem signing you out. Please try again.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const isActive = (href: string) => {
+    // Handle special case for /job-seeker/jobs route when on /job-seeker/search
+    if (href === '/job-seeker/search') {
+      return pathname === href || pathname === '/job-seeker/jobs'
+    }
+    
+    // Handle exact matches
+    if (pathname === href) return true
+    
+    // Handle nested routes
+    if (pathname.startsWith(href + '/')) return true
+    
+    return false
+  }
+
+  const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
+    <div className={`flex flex-col h-full ${mobile ? 'bg-white' : 'bg-gray-50 border-r border-gray-200'}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b">
+        <Link href="/job-seeker/dashboard" className="flex items-center">
+          <span className="font-bold text-xl text-[#0A2540]">
+            Unison AI
+          </span>
+        </Link>
+        {!mobile && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1"
+          >
+            <ChevronLeft className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+          </Button>
         )}
       </div>
 
-      <div className="flex">
-        {/* Sidebar */}
-        {showSidebar && (
-          <JobSeekerSidebar 
-            isOpen={sidebarOpen} 
-            onClose={() => setSidebarOpen(false)} 
-          />
-        )}
+      {/* User Info */}
+      {user && !sidebarCollapsed && (
+        <div className="p-4 border-b bg-white">
+          <div className="text-sm font-medium text-gray-900 truncate">
+            {user.name}
+          </div>
+          <div className="text-xs text-gray-600 truncate">
+            {user.email}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 space-y-1">
+        {navigationItems.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item.href)
+          
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              onClick={() => mobile && setSidebarOpen(false)}
+              className={`flex items-center px-4 py-3 mx-2 rounded-lg text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-[#00C49A] text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+              }`}
+              title={sidebarCollapsed ? item.text : undefined}
+            >
+              <Icon className={`h-5 w-5 ${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+              {!sidebarCollapsed && item.text}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Logout */}
+      <div className="p-4 border-t">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className={`${sidebarCollapsed ? 'px-2' : 'w-full'} flex items-center justify-center`}
+        >
+          <LogOut className={`h-4 w-4 ${sidebarCollapsed ? '' : 'mr-2'}`} />
+          {!sidebarCollapsed && 'Sign out'}
+        </Button>
+      </div>
+    </div>
+  )
+
+  // If user is not authenticated, render children without layout
+  if (!user) {
+    return <>{children}</>
+  }
+
+  return (
+    <div className={`min-h-screen bg-gray-50 ${className}`}>
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white border-b shadow-sm sticky top-0 z-40">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link href="/job-seeker/dashboard" className="flex items-center">
+            <span className="font-bold text-lg text-[#0A2540]">
+              Unison AI
+            </span>
+          </Link>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-2">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0">
+              <Sidebar mobile />
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+
+      <div className="flex h-screen lg:h-auto">
+        {/* Desktop Sidebar */}
+        <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'
+        }`}>
+          <div className="w-full">
+            <Sidebar />
+          </div>
+        </div>
 
         {/* Main Content */}
-        <main className={`flex-1 ${showSidebar ? 'md:ml-64' : ''} ${showSidebar ? 'pt-24 md:pt-20' : 'pt-16'}`}>
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex-1 overflow-auto">
+          <main className="p-4 lg:p-6">
             {children}
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   )

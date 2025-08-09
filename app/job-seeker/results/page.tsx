@@ -139,7 +139,7 @@ export default function PersonalityResults() {
   if (error || !hasExistingResults) {
     return (
       <JobSeekerLayout>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle className="text-[#0A2540]">No Test Results Found</CardTitle>
@@ -167,7 +167,7 @@ export default function PersonalityResults() {
 
   return (
     <JobSeekerLayout>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-[#0A2540]">Your Assessment Results</h1>
           <div className="flex space-x-3">

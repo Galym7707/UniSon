@@ -2,20 +2,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, ChangeEvent, FormEvent } from 'react'
-import Link from 'next/link'
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
   Button, Tabs, TabsList, TabsTrigger, TabsContent,
   Input, Textarea, Label, Progress
 } from '@/components/ui'
 import {
-  LayoutDashboard,       // ← Lucide icons (same set as Dashboard)
-  User,
-  Search,
-  Heart,
-  Settings,
   Upload,
-  Brain
 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { LoadingSpinner, LoadingButton } from '@/components/ui/loading-spinner'
@@ -25,28 +18,7 @@ import { ensureUserProfile, ProfileData } from '@/lib/profile-fallback'
 import ImageUpload from '@/components/ui/image-upload'
 import ProfileAvatar from '@/components/ui/profile-avatar'
 import SkillsSection, { ProgrammingSkill, RegularLanguage } from '@/components/ui/skills-section'
-
-/* ─────────────── SidebarLink Component ─────────────── */
-interface SidebarLinkProps {
-  href: string
-  children: React.ReactNode
-  isActive?: boolean
-}
-
-function SidebarLink({ href, children, isActive = false }: SidebarLinkProps) {
-  return (
-    <Link 
-      href={href}
-      className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-        isActive 
-          ? 'bg-[#00C49A]/10 text-[#00C49A] font-semibold' 
-          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-      }`}
-    >
-      {children}
-    </Link>
-  )
-}
+import JobSeekerLayout from '@/components/JobSeekerLayout'
 
 /* ─────────────── type ─────────────── */
 type Profile = {
@@ -406,342 +378,337 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
   /* ============================================================ */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar Skeleton */}
-        <aside className="w-64 bg-white border-r shadow-sm">
-          <div className="p-6">
-            <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+      <JobSeekerLayout>
+        <div className="animate-pulse">
+          <div className="flex items-center justify-between mb-6">
+            <div className="h-8 bg-gray-200 rounded w-48"></div>
+            <div className="h-10 bg-gray-200 rounded w-20"></div>
           </div>
-          <nav className="px-4 space-y-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex items-center px-4 py-3">
-                <div className="w-5 h-5 bg-gray-200 rounded animate-pulse mr-3"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse flex-1"></div>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main Content Loading */}
-        <main className="flex-1 p-8">
-          <div className="animate-pulse">
-            <div className="flex items-center justify-between mb-6">
-              <div className="h-8 bg-gray-200 rounded w-48"></div>
-              <div className="h-10 bg-gray-200 rounded w-20"></div>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="h-32 bg-gray-200 rounded"></div>
-              <div className="h-20 bg-gray-200 rounded"></div>
-              <div className="h-96 bg-gray-200 rounded"></div>
-            </div>
+          
+          <div className="space-y-6">
+            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
+            <div className="h-96 bg-gray-200 rounded"></div>
           </div>
-        </main>
-      </div>
+        </div>
+      </JobSeekerLayout>
     )
   }
 
   // Show error state if we can't load profile and have no fallback data
   if (error && !form.first_name && !form.last_name && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* ========== SIDEBAR ========== */}
-        <aside className="w-64 bg-white border-r shadow-sm">
-          <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
-          <nav className="px-4 space-y-2">
-            <SidebarLink href="/job-seeker/dashboard">
-              <LayoutDashboard className="mr-3 h-5 w-5" />
-              Dashboard
-            </SidebarLink>
-            <SidebarLink href="/job-seeker/profile" isActive={true}>
-              <User className="mr-3 h-5 w-5" />
-              Profile
-            </SidebarLink>
-            <SidebarLink href="/job-seeker/test">
-              <Brain className="mr-3 h-5 w-5" />
-              Test
-            </SidebarLink>
-            <SidebarLink href="/job-seeker/search">
-              <Search className="mr-3 h-5 w-5" />
-              Job search
-            </SidebarLink>
-            <SidebarLink href="/job-seeker/saved">
-              <Heart className="mr-3 h-5 w-5" />
-              Saved
-            </SidebarLink>
-            <SidebarLink href="/job-seeker/settings">
-              <Settings className="mr-3 h-5 w-5" />
-              Settings
-            </SidebarLink>
-          </nav>
-        </aside>
-
-        {/* Error State */}
-        <main className="flex-1 p-8">
-          <div className="max-w-2xl mx-auto">
-            <Card className="border-red-200">
-              <CardHeader>
-                <CardTitle className="text-red-600">Unable to Load Profile</CardTitle>
-                <CardDescription>
-                  We encountered an issue loading your profile data. This could be due to a network error or temporary server issue.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ErrorDisplay 
-                  error={error} 
-                  onDismiss={clearError} 
-                  onRetry={retryLoad}
-                  variant="card"
-                />
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">What you can try:</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Check your internet connection</li>
-                    <li>• Refresh the page</li>
-                    <li>• Sign out and sign back in</li>
-                    <li>• Contact support if the problem persists</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
+      <JobSeekerLayout>
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="text-red-600">Unable to Load Profile</CardTitle>
+              <CardDescription>
+                We encountered an issue loading your profile data. This could be due to a network error or temporary server issue.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ErrorDisplay 
+                error={error} 
+                onDismiss={clearError} 
+                onRetry={retryLoad}
+                variant="card"
+              />
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">What you can try:</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Check your internet connection</li>
+                  <li>• Refresh the page</li>
+                  <li>• Sign out and sign back in</li>
+                  <li>• Contact support if the problem persists</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </JobSeekerLayout>
     )
   }
 
   const isEmptyProfile = !form.first_name && !form.last_name && !form.title && !form.summary
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* ========== SIDEBAR ========== */}
-      <aside className="w-64 bg-white border-r shadow-sm">
-        <div className="p-6 font-bold text-xl text-[#0A2540]">Unison AI</div>
-
-        <nav className="px-4 space-y-2">
-          <SidebarLink href="/job-seeker/dashboard">
-            <LayoutDashboard className="mr-3 h-5 w-5" />
-            Dashboard
-          </SidebarLink>
-          <SidebarLink href="/job-seeker/profile" isActive={true}>
-            <User className="mr-3 h-5 w-5" />
-            Profile
-          </SidebarLink>
-          <SidebarLink href="/job-seeker/test">
-            <Brain className="mr-3 h-5 w-5" />
-            Test
-          </SidebarLink>
-          <SidebarLink href="/job-seeker/search">
-            <Search className="mr-3 h-5 w-5" />
-            Job search
-          </SidebarLink>
-          <SidebarLink href="/job-seeker/saved">
-            <Heart className="mr-3 h-5 w-5" />
-            Saved
-          </SidebarLink>
-          <SidebarLink href="/job-seeker/settings">
-            <Settings className="mr-3 h-5 w-5" />
-            Settings
-          </SidebarLink>
-        </nav>
-      </aside>
-
-      {/* ========== MAIN ========== */}
-      <main className="flex-1 p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-[#0A2540]">My profile</h1>
-          <Button type="submit" form="profileForm" disabled={saving || uploading}>
-            <LoadingButton isLoading={saving} loadingText="Saving...">
-              Save
-            </LoadingButton>
-          </Button>
-        </div>
-
-        {/* Show message for first-time profile creation */}
-        {profileCreated && !error && (
-          <Card className="mb-6 border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-800 text-lg">Welcome to Unison AI!</CardTitle>
-              <CardDescription className="text-green-700">
-                We've created a new profile for you. Please fill in your information below to get started.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6">
-            <ErrorDisplay 
-              error={error} 
-              onDismiss={clearError}
-              variant="card"
-            />
-          </div>
-        )}
-
-        {/* Show profile completeness if profile has some data */}
-        {!isEmptyProfile && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Profile Completeness</CardTitle>
-              <CardDescription>
-                Complete your profile to improve your chances of finding the perfect job
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-3">
-                <Progress value={completeness} className="flex-1" />
-                <span className="text-sm font-medium text-gray-600 min-w-[3rem]">
-                  {completeness}%
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <form id="profileForm" onSubmit={handleSave} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                Personal Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="first_name">First Name *</Label>
-                <Input
-                  id="first_name"
-                  value={form.first_name}
-                  onChange={update('first_name')}
-                  placeholder="Enter your first name"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="last_name">Last Name *</Label>
-                <Input
-                  id="last_name"
-                  value={form.last_name}
-                  onChange={update('last_name')}
-                  placeholder="Enter your last name"
-                  required
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <Label htmlFor="title">Professional Title</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={update('title')}
-                  placeholder="e.g. Software Engineer, Product Manager"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Professional Summary</CardTitle>
-              <CardDescription>
-                A brief overview of your background and career goals
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                id="summary"
-                value={form.summary}
-                onChange={update('summary')}
-                placeholder="Tell us about your background, experience, and what you're looking for in your next role..."
-                rows={4}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Experience & Skills</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label htmlFor="experience">Work Experience</Label>
-                <Textarea
-                  id="experience"
-                  value={form.experience}
-                  onChange={update('experience')}
-                  placeholder="Describe your relevant work experience, including company names, roles, and key achievements..."
-                  rows={6}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="skills">Skills</Label>
-                <Textarea
-                  id="skills"
-                  value={form.skills}
-                  onChange={update('skills')}
-                  placeholder="List your key skills, technologies, tools, and areas of expertise..."
-                  rows={4}
-                />
-              </div>
-              
-              {/* Skills Section Component */}
-              <SkillsSection 
-                programmingSkills={form.programming_skills}
-                regularLanguages={form.language_skills}
-                onChange={handleSkillsChange}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Upload className="h-5 w-5 mr-2" />
-                Resume Upload
-              </CardTitle>
-              <CardDescription>
-                Upload your resume (PDF, DOC, or DOCX format, max 10MB)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {form.resume_url && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-700 mb-2">✓ Resume uploaded successfully</p>
-                    <a 
-                      href={form.resume_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm underline"
-                    >
-                      View uploaded resume
-                    </a>
-                  </div>
-                )}
-                
+    <JobSeekerLayout>
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Progress */}
+        {profileCreated && (
+          <Card className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
                 <div>
-                  <Input
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleResume}
-                    disabled={uploading}
-                  />
-                  {uploading && (
-                    <div className="mt-2 flex items-center space-x-2">
-                      <LoadingSpinner size="sm" />
-                      <span className="text-sm text-gray-600">Uploading resume...</span>
-                    </div>
-                  )}
+                  <h3 className="font-medium text-green-800">Welcome to Unison AI!</h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    We've set up your basic profile. Complete the information below to improve your job matching experience.
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-[#0A2540]">Profile Completion</CardTitle>
+                <CardDescription>
+                  {completeness}% complete • {isEmptyProfile ? 'Start by filling in your basic information' : 'Looking good! Keep adding more details.'}
+                </CardDescription>
+              </div>
+              <div className="text-2xl font-bold text-[#00C49A]">{completeness}%</div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Progress value={completeness} className="w-full" />
+          </CardContent>
+        </Card>
+
+        {error && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <ErrorDisplay error={error} onDismiss={clearError} />
+            </CardContent>
+          </Card>
+        )}
+
+        <form onSubmit={handleSave}>
+          <Tabs defaultValue="basic" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="experience">Experience</TabsTrigger>
+              <TabsTrigger value="skills">Skills</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0A2540]">Personal Information</CardTitle>
+                  <CardDescription>
+                    Tell us about yourself. This information will be visible to potential employers.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name" className="text-sm font-medium">
+                        First Name <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="first_name"
+                        value={form.first_name}
+                        onChange={update('first_name')}
+                        placeholder="Enter your first name"
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name" className="text-sm font-medium">
+                        Last Name <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="last_name"
+                        value={form.last_name}
+                        onChange={update('last_name')}
+                        placeholder="Enter your last name"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-sm font-medium">
+                      Professional Title
+                    </Label>
+                    <Input
+                      id="title"
+                      value={form.title}
+                      onChange={update('title')}
+                      placeholder="e.g., Senior Software Engineer, Marketing Manager"
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="summary" className="text-sm font-medium">
+                      Professional Summary
+                    </Label>
+                    <Textarea
+                      id="summary"
+                      value={form.summary}
+                      onChange={update('summary')}
+                      placeholder="Write a brief summary about your professional background, skills, and career goals..."
+                      rows={4}
+                      className="w-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="experience" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0A2540]">Work Experience</CardTitle>
+                  <CardDescription>
+                    Describe your work experience, achievements, and responsibilities.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="experience" className="text-sm font-medium">
+                      Experience Details
+                    </Label>
+                    <Textarea
+                      id="experience"
+                      value={form.experience}
+                      onChange={update('experience')}
+                      placeholder="Describe your work experience, including job titles, companies, dates, and key achievements..."
+                      rows={8}
+                      className="w-full"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="skills" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0A2540]">Skills & Languages</CardTitle>
+                  <CardDescription>
+                    Add your technical and soft skills to help employers find you.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="skills" className="text-sm font-medium">
+                      General Skills
+                    </Label>
+                    <Textarea
+                      id="skills"
+                      value={form.skills}
+                      onChange={update('skills')}
+                      placeholder="List your skills, separated by commas. e.g., Project Management, Communication, Problem Solving, Leadership..."
+                      rows={4}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <SkillsSection
+                    programmingSkills={form.programming_skills}
+                    regularLanguages={form.language_skills}
+                    onChange={handleSkillsChange}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="documents" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#0A2540]">Resume & Portfolio</CardTitle>
+                  <CardDescription>
+                    Upload your resume and other relevant documents.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Resume</Label>
+                      {form.resume_url ? (
+                        <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="font-medium text-green-800">Resume uploaded successfully</p>
+                              <p className="text-sm text-green-600">Your resume is now attached to your profile</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(form.resume_url!, '_blank')}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600 mb-4">
+                            Upload your resume (PDF, DOC, or DOCX, max 10MB)
+                          </p>
+                          <label htmlFor="resume-upload" className="cursor-pointer">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={uploading}
+                              asChild
+                            >
+                              <span>
+                                {uploading ? (
+                                  <>
+                                    <LoadingSpinner className="w-4 h-4 mr-2" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  'Choose File'
+                                )}
+                              </span>
+                            </Button>
+                            <input
+                              id="resume-upload"
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={handleResume}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end pt-6">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="bg-[#00C49A] hover:bg-[#00A085] text-white px-8"
+            >
+              {saving ? (
+                <>
+                  <LoadingSpinner className="w-4 h-4 mr-2" />
+                  Saving...
+                </>
+              ) : (
+                'Save Profile'
+              )}
+            </Button>
+          </div>
         </form>
-      </main>
-    </div>
+      </div>
+    </JobSeekerLayout>
   )
 }

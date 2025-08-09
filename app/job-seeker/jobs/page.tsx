@@ -263,7 +263,7 @@ export default function JobsPage() {
 
   return (
     <JobSeekerLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#0A2540] mb-2">Browse Jobs</h1>

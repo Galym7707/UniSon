@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { usePathname } from 'next/navigation'
 import Link from "next/link"
 import {
   Card, CardContent, CardHeader, CardTitle,
@@ -9,7 +8,7 @@ import {
 } from "@/components/ui"
 
 import {
-  LayoutDashboard, User, Search, Heart, Settings, TrendingUp, Bell, Star, Building2, MapPin, Calendar, Users, Brain,
+  TrendingUp, Bell, Star, Building2, MapPin, Brain,
 } from "lucide-react"
 
 import { createBrowserClient } from "@/lib/supabase/browser"
@@ -82,7 +81,6 @@ const RecommendedJobs = ({ recommendations, loading }: { recommendations: JobRec
 
 export default function DashboardPage() {
   const supabase = createBrowserClient()
-  const pathname = usePathname()
 
   /* ─────── state ─────── */
   const [profilePct, setProfilePct] = useState(0)
@@ -165,47 +163,53 @@ export default function DashboardPage() {
 
         {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-md">
-                  <Brain className="h-5 w-5 text-blue-600" />
+          <Link href="/job-seeker/test">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-md">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Take AI Assessment</h3>
+                    <p className="text-sm text-gray-600">Get personalized job matches</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">Take AI Assessment</h3>
-                  <p className="text-sm text-gray-600">Get personalized job matches</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded-md">
-                  <Search className="h-5 w-5 text-green-600" />
+          <Link href="/job-seeker/search">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-50 rounded-md">
+                    <Brain className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Browse Jobs</h3>
+                    <p className="text-sm text-gray-600">Explore new opportunities</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">Browse Jobs</h3>
-                  <p className="text-sm text-gray-600">Explore new opportunities</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded-md">
-                  <User className="h-5 w-5 text-purple-600" />
+          <Link href="/job-seeker/profile">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-md">
+                    <Brain className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Update Profile</h3>
+                    <p className="text-sm text-gray-600">Complete your information</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">Update Profile</h3>
-                  <p className="text-sm text-gray-600">Complete your information</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Profile completion */}
