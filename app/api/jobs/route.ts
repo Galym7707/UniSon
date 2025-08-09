@@ -8,8 +8,8 @@ interface QueryParams {
   salaryMin?: number | null
   salaryMax?: number | null
   employmentTypes?: string[]
-  remoteOnly?: boolean
-  experienceLevel?: string | null
+  experienceLevels?: string[]
+  remoteWorkOption?: boolean
   sortBy?: string
 }
 
@@ -37,9 +37,9 @@ export async function GET(request: Request) {
     const location = searchParams.get('location')
     const salaryMinStr = searchParams.get('salary_min')
     const salaryMaxStr = searchParams.get('salary_max')
-    const employmentTypesStr = searchParams.get('employment_types')
-    const remoteOnly = searchParams.get('remote_only') === 'true'
-    const experienceLevel = searchParams.get('experience_level')
+    const employmentTypesStr = searchParams.get('employment_type')
+    const experienceLevelsStr = searchParams.get('experience_level')
+    const remoteWorkOption = searchParams.get('remote_work_option') === 'true'
     const sortBy = searchParams.get('sort_by') || 'date'
 
     // Validate and parse numeric parameters
@@ -94,12 +94,21 @@ export async function GET(request: Request) {
       )
     }
 
-    // Parse employment types
+    // Parse employment types array
     let employmentTypes: string[] | undefined
     if (employmentTypesStr) {
       employmentTypes = employmentTypesStr.split(',').map(type => type.trim()).filter(Boolean)
       if (employmentTypes.length === 0) {
         employmentTypes = undefined
+      }
+    }
+
+    // Parse experience levels array
+    let experienceLevels: string[] | undefined
+    if (experienceLevelsStr) {
+      experienceLevels = experienceLevelsStr.split(',').map(level => level.trim()).filter(Boolean)
+      if (experienceLevels.length === 0) {
+        experienceLevels = undefined
       }
     }
 
@@ -126,8 +135,8 @@ export async function GET(request: Request) {
       salaryMin,
       salaryMax,
       employmentTypes,
-      remoteOnly,
-      experienceLevel,
+      experienceLevels,
+      remoteWorkOption,
       sortBy
     }
     queryMetrics.filters = queryParams
@@ -166,7 +175,8 @@ export async function GET(request: Request) {
         query = query.or(`country.ilike.%${location}%,city.ilike.%${location}%`)
       }
 
-      if (remoteOnly) {
+      // Filter by remote work option
+      if (remoteWorkOption) {
         query = query.in('remote_work_option', ['yes', 'hybrid'])
       }
 
@@ -178,12 +188,14 @@ export async function GET(request: Request) {
         query = query.lte('salary_max', salaryMax)
       }
 
+      // Filter by employment types using IN clause
       if (employmentTypes && employmentTypes.length > 0) {
         query = query.in('employment_type', employmentTypes)
       }
 
-      if (experienceLevel) {
-        query = query.eq('experience_level', experienceLevel)
+      // Filter by experience levels using IN clause
+      if (experienceLevels && experienceLevels.length > 0) {
+        query = query.in('experience_level', experienceLevels)
       }
 
       // Apply sorting
@@ -271,11 +283,17 @@ export async function GET(request: Request) {
         // Transform remote_work_option to boolean remote field
         const remote = job.remote_work_option === 'yes' || job.remote_work_option === 'hybrid' || job.remote_work_option === true
 
+        // Format salary fields
+        const salary_min = job.salary_min || null
+        const salary_max = job.salary_max || null
+
         return {
           ...job,
           location,
           remote,
-          skills
+          skills,
+          salary_min,
+          salary_max
         }
       }) || []
 
