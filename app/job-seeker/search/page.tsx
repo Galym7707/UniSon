@@ -235,7 +235,7 @@ export default function JobSearch() {
 
   return (
     <JobSeekerLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
 
         {message && (

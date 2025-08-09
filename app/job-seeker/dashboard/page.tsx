@@ -156,7 +156,7 @@ export default function DashboardPage() {
   /* ─────── render ─────── */
   return (
     <JobSeekerLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Welcome header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white p-6">
           <h1 className="text-2xl font-bold mb-2">Welcome to Your Job Search Dashboard</h1>
