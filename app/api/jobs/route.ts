@@ -2,78 +2,14 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { logError, logInfo, getUserFriendlyErrorMessage, ErrorType } from '@/lib/error-handling'
 
-// Function to calculate match score between job and candidate profile
-async function calculateJobMatchScore(job: any, candidateProfile: any): Promise<number> {
-  let skillsMatch = 0
-  let experienceMatch = 0
-
-  // Calculate skills match
-  const jobSkills = Array.isArray(job.required_skills) ? job.required_skills : []
-  const candidateSkills = candidateProfile.extracted_skills || []
-  
-  if (jobSkills.length > 0 && candidateSkills.length > 0) {
-    let matchedSkills = 0
-    let totalWeight = 0
-    
-    jobSkills.forEach((requiredSkill: string) => {
-      const skillLower = requiredSkill.toLowerCase()
-      const candidateSkill = candidateSkills.find((cs: any) => {
-        const csName = typeof cs === 'object' ? cs.skill.toLowerCase() : cs.toLowerCase()
-        return csName === skillLower || csName.includes(skillLower) || skillLower.includes(csName)
-      })
-      
-      if (candidateSkill) {
-        const confidence = typeof candidateSkill === 'object' ? candidateSkill.confidence || 0.8 : 0.8
-        matchedSkills += confidence
-      }
-      totalWeight += 1
-    })
-    
-    skillsMatch = totalWeight > 0 ? (matchedSkills / totalWeight) * 100 : 0
-  } else {
-    skillsMatch = candidateSkills.length > 0 ? 50 : 0
-  }
-
-  // Calculate experience match
-  const jobExpLevel = job.experience_level
-  const candidateExpLevel = candidateProfile.experience_level
-
-  if (jobExpLevel && candidateExpLevel) {
-    const expLevels = ['entry', 'mid', 'senior', 'lead', 'executive']
-    const jobExpIndex = expLevels.indexOf(jobExpLevel)
-    const candidateExpIndex = expLevels.indexOf(candidateExpLevel)
-    
-    if (jobExpIndex >= 0 && candidateExpIndex >= 0) {
-      const levelDiff = Math.abs(jobExpIndex - candidateExpIndex)
-      if (levelDiff === 0) {
-        experienceMatch = 100
-      } else if (levelDiff === 1) {
-        experienceMatch = 80
-      } else if (levelDiff === 2) {
-        experienceMatch = 60
-      } else {
-        experienceMatch = 40
-      }
-    } else {
-      experienceMatch = 50
-    }
-  } else {
-    experienceMatch = 50
-  }
-
-  // Calculate overall score (weighted average: 70% skills, 30% experience)
-  const overallScore = Math.round((skillsMatch * 0.7) + (experienceMatch * 0.3))
-  return Math.max(0, Math.min(100, overallScore))
-}
-
 interface QueryParams {
   search?: string | null
   location?: string | null
   salaryMin?: number | null
   salaryMax?: number | null
   employmentTypes?: string[]
-  experienceLevels?: string[]
-  remoteWorkOption?: boolean
+  remoteOnly?: boolean
+  experienceLevel?: string | null
   sortBy?: string
 }
 
@@ -101,9 +37,9 @@ export async function GET(request: Request) {
     const location = searchParams.get('location')
     const salaryMinStr = searchParams.get('salary_min')
     const salaryMaxStr = searchParams.get('salary_max')
-    const employmentTypesStr = searchParams.get('employment_type')
-    const experienceLevelsStr = searchParams.get('experience_level')
-    const remoteWorkOption = searchParams.get('remote_work_option') === 'true'
+    const employmentTypesStr = searchParams.get('employment_types')
+    const remoteOnly = searchParams.get('remote_only') === 'true'
+    const experienceLevel = searchParams.get('experience_level')
     const sortBy = searchParams.get('sort_by') || 'date'
 
     // Validate and parse numeric parameters
@@ -158,7 +94,7 @@ export async function GET(request: Request) {
       )
     }
 
-    // Parse employment types array
+    // Parse employment types
     let employmentTypes: string[] | undefined
     if (employmentTypesStr) {
       employmentTypes = employmentTypesStr.split(',').map(type => type.trim()).filter(Boolean)
@@ -167,17 +103,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Parse experience levels array
-    let experienceLevels: string[] | undefined
-    if (experienceLevelsStr) {
-      experienceLevels = experienceLevelsStr.split(',').map(level => level.trim()).filter(Boolean)
-      if (experienceLevels.length === 0) {
-        experienceLevels = undefined
-      }
-    }
-
     // Validate sort parameter
-    const validSortOptions = ['date', 'salary']
+    const validSortOptions = ['date', 'salary', 'relevance', 'match']
     if (!validSortOptions.includes(sortBy)) {
       const validationError = new Error(`Invalid sort_by parameter: ${sortBy}`)
       logError('jobs-api-validation', validationError, {
@@ -199,8 +126,8 @@ export async function GET(request: Request) {
       salaryMin,
       salaryMax,
       employmentTypes,
-      experienceLevels,
-      remoteWorkOption,
+      remoteOnly,
+      experienceLevel,
       sortBy
     }
     queryMetrics.filters = queryParams
@@ -239,8 +166,7 @@ export async function GET(request: Request) {
         query = query.or(`country.ilike.%${location}%,city.ilike.%${location}%`)
       }
 
-      // Filter by remote work option
-      if (remoteWorkOption) {
+      if (remoteOnly) {
         query = query.in('remote_work_option', ['yes', 'hybrid'])
       }
 
@@ -252,14 +178,12 @@ export async function GET(request: Request) {
         query = query.lte('salary_max', salaryMax)
       }
 
-      // Filter by employment types using IN clause
       if (employmentTypes && employmentTypes.length > 0) {
         query = query.in('employment_type', employmentTypes)
       }
 
-      // Filter by experience levels using IN clause
-      if (experienceLevels && experienceLevels.length > 0) {
-        query = query.in('experience_level', experienceLevels)
+      if (experienceLevel) {
+        query = query.eq('experience_level', experienceLevel)
       }
 
       // Apply sorting
@@ -267,6 +191,12 @@ export async function GET(request: Request) {
         query = query.order('posted_at', { ascending: false })
       } else if (sortBy === 'salary') {
         query = query.order('salary_max', { ascending: false })
+      } else if (sortBy === 'relevance') {
+        // For relevance, we can use a combination of factors or use posted_at as fallback
+        query = query.order('posted_at', { ascending: false })
+      } else if (sortBy === 'match') {
+        // For match sorting, we'll sort by posted_at for now (match scores are added later)
+        query = query.order('posted_at', { ascending: false })
       } else {
         // Default: by date
         query = query.order('posted_at', { ascending: false })
@@ -347,65 +277,34 @@ export async function GET(request: Request) {
         // Transform remote_work_option to boolean remote field
         const remote = job.remote_work_option === 'yes' || job.remote_work_option === 'hybrid' || job.remote_work_option === true
 
-        // Format salary fields
-        const salary_min = job.salary_min || null
-        const salary_max = job.salary_max || null
-
         return {
           ...job,
           location,
           remote,
-          skills,
-          salary_min,
-          salary_max
+          skills
         }
       }) || []
 
       // Calculate match scores (simplified placeholder)
-      let jobsWithScores = transformedJobs.map((job: any) => ({
+      const jobsWithScores = transformedJobs.map((job: any) => ({
         ...job,
         match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
       }))
 
-      // Calculate match scores if user is authenticated
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          // Get candidate profile for match scoring
-          const { data: candidateProfile } = await supabase
-            .from('candidate_profiles')
-            .select('*')
-            .eq('candidate_id', user.id)
-            .single()
-          
-          if (candidateProfile) {
-            // Calculate match scores for each job
-            jobsWithScores = await Promise.all(
-              jobsWithScores.map(async (job: any) => {
-                try {
-                  const matchScore = await calculateJobMatchScore(job, candidateProfile)
-                  return {
-                    ...job,
-                    match_score: matchScore
-                  }
-                } catch (error) {
-                  console.error('Error calculating match score for job:', job.id, error)
-                  return job // Keep original score
-                }
-              })
-            )
-          }
-        }
-      } catch (authError) {
-        // User not authenticated or other auth error, continue without match scores
-        console.log('No authenticated user for match scoring')
+      // Apply post-processing sorting for match scores
+      let sortedJobs = jobsWithScores
+      if (sortBy === 'match') {
+        sortedJobs = jobsWithScores.sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
+      } else if (sortBy === 'relevance') {
+        // For relevance, we can sort by a combination of factors
+        // For now, using match score as a proxy for relevance
+        sortedJobs = jobsWithScores.sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
       }
 
       // Log successful query metrics
       logInfo('jobs-api-query-success', {
         queryParams,
-        resultCount: jobsWithScores.length,
+        resultCount: sortedJobs.length,
         queryDurationMs: queryMetrics.queryDurationMs,
         timestamp: new Date().toISOString(),
         performance: {
@@ -415,7 +314,7 @@ export async function GET(request: Request) {
         }
       })
 
-      return NextResponse.json({ jobs: jobsWithScores }, { status: 200 })
+      return NextResponse.json({ jobs: sortedJobs }, { status: 200 })
 
     } catch (queryError) {
       logError('jobs-api-query-execution', queryError, {
