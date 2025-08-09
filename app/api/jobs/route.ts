@@ -17,69 +17,117 @@ export async function GET(request: Request) {
 
     const supabase = await createRouteHandlerClient()
 
-    // Build query
-    let query = supabase.from('jobs').select('*')
+    try {
+      // Build query - select all columns to handle column mapping
+      let query = supabase.from('jobs').select('*')
 
-    // Apply filters
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,skills.ilike.%${search}%`)
-    }
+      // Apply filters
+      if (search) {
+        // Update skills reference to required_skills
+        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,required_skills.ilike.%${search}%`)
+      }
 
-    if (location && location !== 'remote') {
-      query = query.eq('location', location)
-    }
+      if (location && location !== 'remote') {
+        // Parse location to check if it's a specific city or country
+        // For now, try to match both city and country columns
+        query = query.or(`city.ilike.%${location}%,country.ilike.%${location}%`)
+      }
 
-    if (remoteOnly) {
-      query = query.eq('remote', true)
-    }
+      if (remoteOnly) {
+        // Update remote reference to remote_work_option (assuming true means remote is available)
+        query = query.eq('remote_work_option', true)
+      }
 
-    if (salaryMin) {
-      query = query.gte('salary_min', parseInt(salaryMin))
-    }
+      if (salaryMin) {
+        query = query.gte('salary_min', parseInt(salaryMin))
+      }
 
-    if (salaryMax) {
-      query = query.lte('salary_max', parseInt(salaryMax))
-    }
+      if (salaryMax) {
+        query = query.lte('salary_max', parseInt(salaryMax))
+      }
 
-    if (employmentTypes && employmentTypes.length > 0) {
-      query = query.in('employment_type', employmentTypes)
-    }
+      if (employmentTypes && employmentTypes.length > 0) {
+        query = query.in('employment_type', employmentTypes)
+      }
 
-    if (experienceLevel) {
-      query = query.eq('experience_level', experienceLevel)
-    }
+      if (experienceLevel) {
+        query = query.eq('experience_level', experienceLevel)
+      }
 
-    // Apply sorting
-    if (sortBy === 'date') {
-      query = query.order('posted_at', { ascending: false })
-    } else if (sortBy === 'salary') {
-      query = query.order('salary_max', { ascending: false })
-    } else {
-      // Default: by date
-      query = query.order('posted_at', { ascending: false })
-    }
+      // Apply sorting
+      if (sortBy === 'date') {
+        query = query.order('posted_at', { ascending: false })
+      } else if (sortBy === 'salary') {
+        query = query.order('salary_max', { ascending: false })
+      } else {
+        // Default: by date
+        query = query.order('posted_at', { ascending: false })
+      }
 
-    const { data, error } = await query
+      const { data, error } = await query
 
-    if (error) {
-      console.error('Database error:', error)
+      if (error) {
+        console.error('Database query error:', error)
+        return NextResponse.json(
+          { error: 'Failed to fetch jobs from database' },
+          { status: 500 }
+        )
+      }
+
+      // Map database columns to frontend expected field names
+      const mappedJobs = data?.map((job: any) => {
+        // Construct location field from city and country
+        let location = ''
+        if (job.city && job.country) {
+          location = `${job.city}, ${job.country}`
+        } else if (job.city) {
+          location = job.city
+        } else if (job.country) {
+          location = job.country
+        } else {
+          location = 'Not specified'
+        }
+
+        return {
+          ...job,
+          // Map database columns to expected frontend fields
+          location: location,
+          remote: job.remote_work_option || false,
+          skills: job.required_skills ? (
+            Array.isArray(job.required_skills) 
+              ? job.required_skills 
+              : typeof job.required_skills === 'string'
+                ? job.required_skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : []
+          ) : [],
+          // Keep original database fields for any backend processing
+          city: job.city,
+          country: job.country,
+          remote_work_option: job.remote_work_option,
+          required_skills: job.required_skills
+        }
+      }) || []
+
+      // Calculate match scores (simplified placeholder)
+      const jobsWithScores = mappedJobs.map((job: any) => ({
+        ...job,
+        match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
+      }))
+
+      return NextResponse.json({ jobs: jobsWithScores }, { status: 200 })
+
+    } catch (queryError) {
+      console.error('Database query execution error:', queryError)
       return NextResponse.json(
-        { error: 'Failed to fetch jobs' },
+        { error: 'Database query failed during execution' },
         { status: 500 }
       )
     }
 
-    // Calculate match scores (simplified placeholder)
-    const jobsWithScores = data?.map((job: any) => ({
-      ...job,
-      match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
-    })) || []
-
-    return NextResponse.json({ jobs: jobsWithScores }, { status: 200 })
   } catch (error) {
-    console.error('Error fetching jobs:', error)
+    console.error('Unexpected error in jobs API:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch jobs' },
+      { error: 'An unexpected error occurred while fetching jobs' },
       { status: 500 }
     )
   }
