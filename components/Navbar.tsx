@@ -40,15 +40,9 @@ const navigationItems = [
     key: 'profile'
   },
   {
-    href: '/job-seeker/results',
-    icon: Brain,
-    text: 'Test Results',
-    key: 'results'
-  },
-  {
     href: '/job-seeker/search',
     icon: Search,
-    text: 'Job Search',
+    text: 'Browse & Search Jobs',
     key: 'search'
   },
   {
@@ -56,6 +50,12 @@ const navigationItems = [
     icon: Heart,
     text: 'Saved Jobs',
     key: 'saved'
+  },
+  {
+    href: '/job-seeker/results',
+    icon: Brain,
+    text: 'Test Results',
+    key: 'results'
   },
   {
     href: '/job-seeker/settings',
@@ -145,7 +145,18 @@ export default function Navbar({
   }
 
   const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(href + '/')
+    // Handle special case for /job-seeker/jobs route when on /job-seeker/search
+    if (href === '/job-seeker/search') {
+      return pathname === href || pathname === '/job-seeker/jobs'
+    }
+    
+    // Handle exact matches
+    if (pathname === href) return true
+    
+    // Handle nested routes
+    if (pathname.startsWith(href + '/')) return true
+    
+    return false
   }
 
   // If user is not authenticated, don't render the navbar
@@ -178,7 +189,7 @@ export default function Navbar({
                   href={item.href}
                   className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-[#00C49A]/10 text-[#00C49A]'
+                      ? 'bg-[#00C49A]/10 text-[#00C49A] font-semibold'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
@@ -251,7 +262,7 @@ export default function Navbar({
                           onClick={() => setMobileMenuOpen(false)}
                           className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
                             active
-                              ? 'bg-[#00C49A]/10 text-[#00C49A] border-r-2 border-[#00C49A]'
+                              ? 'bg-[#00C49A]/10 text-[#00C49A] border-r-2 border-[#00C49A] font-semibold'
                               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                           }`}
                         >

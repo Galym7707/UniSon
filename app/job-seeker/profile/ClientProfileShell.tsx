@@ -39,7 +39,7 @@ function SidebarLink({ href, children, isActive = false }: SidebarLinkProps) {
       href={href}
       className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
         isActive 
-          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+          ? 'bg-[#00C49A]/10 text-[#00C49A] font-semibold' 
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
       }`}
     >
