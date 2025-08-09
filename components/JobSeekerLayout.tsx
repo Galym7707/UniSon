@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { getSupabaseBrowser } from '@/lib/supabase/browser'
 import { useToast } from '@/hooks/use-toast'
+import { Header } from '@/components/header-landing'
+import { Footer } from '@/components/footer'
 
 interface JobSeekerLayoutProps {
   children: ReactNode
@@ -240,29 +242,11 @@ export default function JobSeekerLayout({
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-white border-b shadow-sm sticky top-0 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/job-seeker/dashboard" className="flex items-center">
-            <span className="font-bold text-lg text-[#0A2540]">
-              Unison AI
-            </span>
-          </Link>
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-2">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <Sidebar mobile />
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
+    <div className={`min-h-screen bg-gray-50 flex flex-col ${className}`}>
+      {/* Header */}
+      <Header />
 
-      <div className="flex h-screen lg:h-auto">
+      <div className="flex flex-1">
         {/* Desktop Sidebar */}
         <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${
           sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'
@@ -278,7 +262,24 @@ export default function JobSeekerLayout({
             {children}
           </main>
         </div>
+
+        {/* Mobile Navigation */}
+        <div className="lg:hidden fixed bottom-4 right-4 z-50">
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="default" size="lg" className="rounded-full shadow-lg">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0">
+              <Sidebar mobile />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }
