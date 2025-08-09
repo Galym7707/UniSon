@@ -18,13 +18,14 @@ type Job = {
   id: string
   title: string
   company: string
-  location: string
+  city: string | null
+  country: string | null
   salary_min: number
   salary_max: number
   employment_type: string
-  remote: boolean
+  remote_work_option: boolean
   posted_at: string
-  skills: string[]
+  required_skills: string[]
   description: string
   match_score?: number
   reasoning?: string
@@ -51,6 +52,19 @@ const SidebarLink = ({ href, icon, children, pathname }: {
       {children}
     </Link>
   )
+}
+
+const formatLocation = (city: string | null, country: string | null) => {
+  if (city && country) {
+    return `${city}, ${country}`
+  }
+  if (city) {
+    return city
+  }
+  if (country) {
+    return country
+  }
+  return 'Location not specified'
 }
 
 export default function JobsPage() {
@@ -213,8 +227,8 @@ export default function JobsPage() {
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
-                <span>{job.location}</span>
-                {job.remote && <Badge variant="secondary" className="ml-1">Remote</Badge>}
+                <span>{formatLocation(job.city, job.country)}</span>
+                {job.remote_work_option && <Badge variant="secondary" className="ml-1">Remote</Badge>}
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -243,16 +257,16 @@ export default function JobsPage() {
               </div>
             )}
 
-            {job.skills && job.skills.length > 0 && (
+            {job.required_skills && job.required_skills.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {job.skills.slice(0, 5).map((skill, index) => (
+                {job.required_skills.slice(0, 5).map((skill, index) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     {skill}
                   </Badge>
                 ))}
-                {job.skills.length > 5 && (
+                {job.required_skills.length > 5 && (
                   <Badge variant="secondary" className="text-xs">
-                    +{job.skills.length - 5} more
+                    +{job.required_skills.length - 5} more
                   </Badge>
                 )}
               </div>
