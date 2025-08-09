@@ -40,22 +40,22 @@ const navigationItems = [
     key: 'profile'
   },
   {
-    href: '/job-seeker/results',
-    icon: Brain,
-    text: 'Test Results',
-    key: 'results'
-  },
-  {
-    href: '/job-seeker/search',
+    href: '/job-seeker/jobs',
     icon: Search,
-    text: 'Job Search',
-    key: 'search'
+    text: 'Browse Jobs',
+    key: 'jobs'
   },
   {
     href: '/job-seeker/saved',
     icon: Heart,
     text: 'Saved Jobs',
     key: 'saved'
+  },
+  {
+    href: '/job-seeker/results',
+    icon: Brain,
+    text: 'Test Results',
+    key: 'results'
   },
   {
     href: '/job-seeker/settings',
@@ -145,6 +145,10 @@ export default function Navbar({
   }
 
   const isActive = (href: string) => {
+    // Handle special case for /job-seeker/jobs route when on /job-seeker/search
+    if (href === '/job-seeker/jobs') {
+      return pathname === href || pathname === '/job-seeker/search'
+    }
     return pathname === href || pathname.startsWith(href + '/')
   }
 
