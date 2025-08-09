@@ -154,10 +154,10 @@ export async function GET(request: Request) {
     }
 
     try {
-      // Build query - select all columns to handle column mapping
+      // Build query using standardized UUID-based schema column names
       let query = supabase.from('jobs').select('*')
 
-      // Apply filters
+      // Apply filters using correct database column names
       if (search) {
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,required_skills::text.ilike.%${search}%`)
       }
@@ -244,8 +244,8 @@ export async function GET(request: Request) {
         )
       }
 
-      // Map database columns to frontend expected field names
-      const mappedJobs = data?.map((job: any) => {
+      // Transform database fields to match frontend expectations
+      const transformedJobs = data?.map((job: any) => {
         // Construct location field from city and country
         let location = ''
         if (job.city && job.country) {
@@ -258,28 +258,29 @@ export async function GET(request: Request) {
           location = 'Not specified'
         }
 
+        // Transform required_skills to skills array
+        let skills: string[] = []
+        if (job.required_skills) {
+          if (Array.isArray(job.required_skills)) {
+            skills = job.required_skills
+          } else if (typeof job.required_skills === 'string') {
+            skills = job.required_skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+          }
+        }
+
+        // Transform remote_work_option to boolean remote field
+        const remote = job.remote_work_option === 'yes' || job.remote_work_option === 'hybrid' || job.remote_work_option === true
+
         return {
           ...job,
-          // Map database columns to expected frontend fields
-          location: location,
-          remote: job.remote_work_option || false,
-          skills: job.required_skills ? (
-            Array.isArray(job.required_skills) 
-              ? job.required_skills 
-              : typeof job.required_skills === 'string'
-                ? job.required_skills.split(',').map((s: string) => s.trim()).filter(Boolean)
-                : []
-          ) : [],
-          // Keep original database fields for any backend processing
-          city: job.city,
-          country: job.country,
-          remote_work_option: job.remote_work_option,
-          required_skills: job.required_skills
+          location,
+          remote,
+          skills
         }
       }) || []
 
       // Calculate match scores (simplified placeholder)
-      const jobsWithScores = mappedJobs.map((job: any) => ({
+      const jobsWithScores = transformedJobs.map((job: any) => ({
         ...job,
         match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
       }))
