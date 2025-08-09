@@ -83,6 +83,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
     language_skills: []
   })
   const [saving, setSaving] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

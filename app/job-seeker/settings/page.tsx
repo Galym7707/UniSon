@@ -19,8 +19,6 @@ import { Footer } from '@/components/footer'
 
 type Settings = {
   account: {
-    first_name: string
-    last_name: string
     email: string
     phone: string
     timezone: string
@@ -53,8 +51,6 @@ type Settings = {
 export default function JobSeekerSettings() {
   const [settings, setSettings] = useState<Settings>({
     account: {
-      first_name: '',
-      last_name: '',
       email: '',
       phone: '',
       timezone: 'moscow'
@@ -104,19 +100,19 @@ export default function JobSeekerSettings() {
     try {
       setDeleting(true)
       setDeleteMsg(null)
-  
-      const response = await fetch('/api/user/delete', { 
+
+      const response = await fetch('/api/user/delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
       })
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.message || data.error || 'Failed to delete account')
       }
-  
+
       setDeleteMsg({ type: 'success', text: data.message || 'Account deleted successfully goodbye!' })
       await supabase.auth.signOut()
       window.location.href = '/'
@@ -127,7 +123,7 @@ export default function JobSeekerSettings() {
       setDeleting(false)
     }
   }
-  
+
   const loadSettings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -135,7 +131,7 @@ export default function JobSeekerSettings() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, phone, settings')
+        .select('email, phone, settings')
         .eq('id', user.id)
         .single()
 
@@ -144,8 +140,6 @@ export default function JobSeekerSettings() {
         setSettings(prev => ({
           ...prev,
           account: {
-            first_name: data.first_name || '',
-            last_name: data.last_name || '',
             email: data.email || user.email || '',
             phone: data.phone || '',
             timezone: loadedSettings.account?.timezone || 'Europe/Moscow',
@@ -175,8 +169,6 @@ export default function JobSeekerSettings() {
         .from('profiles')
         .upsert({
           id: user.id,
-          first_name: settings.account.first_name,
-          last_name: settings.account.last_name,
           email: settings.account.email,
           phone: settings.account.phone,
           settings: JSON.stringify({
@@ -312,7 +304,7 @@ export default function JobSeekerSettings() {
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold text-[#0A2540]">Settings</h1>
-                <Button 
+                <Button
                   className="bg-[#00C49A] hover:bg-[#00A085]"
                   onClick={handleSave}
                   disabled={saving}
@@ -323,8 +315,8 @@ export default function JobSeekerSettings() {
 
               {message && (
                 <div className={`mb-4 p-3 rounded-lg ${
-                  message.type === 'success' 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                  message.type === 'success'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-red-50 text-red-700 border border-red-200'
                 }`}>
                   {message.text}
@@ -350,44 +342,26 @@ export default function JobSeekerSettings() {
                       <CardDescription>Manage your account information</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input 
-                            id="firstName" 
-                            value={settings.account.first_name}
-                            onChange={(e) => updateSettings('account', 'first_name', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input 
-                            id="lastName" 
-                            value={settings.account.last_name}
-                            onChange={(e) => updateSettings('account', 'last_name', e.target.value)}
-                          />
-                        </div>
-                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input 
-                          id="email" 
-                          type="email" 
+                        <Input
+                          id="email"
+                          type="email"
                           value={settings.account.email}
                           onChange={(e) => updateSettings('account', 'email', e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone</Label>
-                        <Input 
-                          id="phone" 
+                        <Input
+                          id="phone"
                           value={settings.account.phone}
                           onChange={(e) => updateSettings('account', 'phone', e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="timezone">Time Zone</Label>
-                        <Select 
+                        <Select
                           value={settings.account.timezone}
                           onValueChange={(value) => updateSettings('account', 'timezone', value)}
                         >
@@ -418,21 +392,21 @@ export default function JobSeekerSettings() {
                     <CardContent className="space-y-6">
                       {passwordMessage && (
                         <div className={`mb-4 p-3 rounded-lg ${
-                          passwordMessage.type === 'success' 
-                            ? 'bg-green-50 text-green-700 border border-green-200' 
+                          passwordMessage.type === 'success'
+                            ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-red-50 text-red-700 border border-red-200'
                         }`}>
                           {passwordMessage.text}
                         </div>
                       )}
-                      
+
                       <div className="space-y-4">
                         <h4 className="font-medium text-[#0A2540]">Change Password</h4>
                         <div className="grid grid-cols-1 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="currentPassword">Current Password</Label>
-                            <Input 
-                              id="currentPassword" 
+                            <Input
+                              id="currentPassword"
                               type="password"
                               value={currentPassword}
                               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -441,7 +415,7 @@ export default function JobSeekerSettings() {
                           <div className="space-y-2">
                             <Label htmlFor="newPassword">New Password</Label>
                             <Input 
-                              id="newPassword" 
+                              id="newPassword"
                               type="password"
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
@@ -449,15 +423,15 @@ export default function JobSeekerSettings() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                            <Input 
-                              id="confirmPassword" 
+                            <Input
+                              id="confirmPassword"
                               type="password"
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
                             />
                           </div>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             onClick={handlePasswordChange}
                           >
                             Change Password
@@ -471,7 +445,7 @@ export default function JobSeekerSettings() {
                             <h4 className="font-medium text-[#0A2540]">Two-Factor Authentication</h4>
                             <p className="text-sm text-[#333333]">Add an extra layer of security to your account</p>
                           </div>
-                          <Switch 
+                          <Switch
                             checked={settings.security.two_factor}
                             onCheckedChange={(checked) => updateSettings('security', 'two_factor', checked)}
                           />
@@ -489,14 +463,14 @@ export default function JobSeekerSettings() {
                           </p>
                           {deleteMsg && (
                             <div className={`mb-3 p-3 rounded ${
-                              deleteMsg.type === 'success' 
-                                ? 'bg-green-100 text-green-800' 
+                              deleteMsg.type === 'success'
+                                ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
                             }`}>
                               {deleteMsg.text}
                             </div>
                           )}
-                          <Button 
+                          <Button
                             variant="destructive"
                             onClick={handleDeleteAccount}
                             disabled={deleting}
@@ -534,7 +508,7 @@ export default function JobSeekerSettings() {
                             </Label>
                             <p className="text-sm text-[#333333]">Receive notifications via email</p>
                           </div>
-                          <Switch 
+                          <Switch
                             id="emailNotifications"
                             checked={settings.notifications.email_notifications}
                             onCheckedChange={(checked) => updateSettings('notifications', 'email_notifications', checked)}
@@ -549,7 +523,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Get notified when new jobs match your criteria</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="newJobs"
                               checked={settings.notifications.new_jobs}
                               onCheckedChange={(checked) => updateSettings('notifications', 'new_jobs', checked)}
@@ -565,7 +539,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Updates on your job applications</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="responses"
                               checked={settings.notifications.responses}
                               onCheckedChange={(checked) => updateSettings('notifications', 'responses', checked)}
@@ -581,7 +555,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Notifications for interview requests</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="interviews"
                               checked={settings.notifications.interviews}
                               onCheckedChange={(checked) => updateSettings('notifications', 'interviews', checked)}
@@ -597,7 +571,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Tips, insights, and product updates</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="marketing"
                               checked={settings.notifications.marketing}
                               onCheckedChange={(checked) => updateSettings('notifications', 'marketing', checked)}
@@ -627,7 +601,7 @@ export default function JobSeekerSettings() {
                             </Label>
                             <p className="text-sm text-[#333333]">Make your profile visible to employers and recruiters</p>
                           </div>
-                          <Switch 
+                          <Switch
                             id="publicProfile"
                             checked={settings.privacy.public_profile}
                             onCheckedChange={(checked) => updateSettings('privacy', 'public_profile', checked)}
@@ -642,7 +616,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Display your email and phone number on your profile</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="showContacts"
                               checked={settings.privacy.show_contacts}
                               onCheckedChange={(checked) => updateSettings('privacy', 'show_contacts', checked)}
@@ -658,7 +632,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Store your search history to improve job recommendations</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="searchHistory"
                               checked={settings.privacy.search_history}
                               onCheckedChange={(checked) => updateSettings('privacy', 'search_history', checked)}
@@ -674,7 +648,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Help us improve by sharing anonymous usage data</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="analytics"
                               checked={settings.privacy.analytics}
                               onCheckedChange={(checked) => updateSettings('privacy', 'analytics', checked)}
@@ -699,7 +673,7 @@ export default function JobSeekerSettings() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="preferredLocation">Preferred Location</Label>
-                          <Select 
+                          <Select
                             value={settings.preferences.preferred_location}
                             onValueChange={(value) => updateSettings('preferences', 'preferred_location', value)}
                           >
@@ -720,7 +694,7 @@ export default function JobSeekerSettings() {
 
                         <div className="space-y-2">
                           <Label htmlFor="employmentType">Employment Type</Label>
-                          <Select 
+                          <Select
                             value={settings.preferences.employment_type}
                             onValueChange={(value) => updateSettings('preferences', 'employment_type', value)}
                           >
@@ -739,7 +713,7 @@ export default function JobSeekerSettings() {
 
                         <div className="space-y-2">
                           <Label htmlFor="experienceLevel">Experience Level</Label>
-                          <Select 
+                          <Select
                             value={settings.preferences.experience_level}
                             onValueChange={(value) => updateSettings('preferences', 'experience_level', value)}
                           >
@@ -759,7 +733,7 @@ export default function JobSeekerSettings() {
 
                         <div className="space-y-2">
                           <Label htmlFor="minSalary">Minimum Salary (RUB/month)</Label>
-                          <Input 
+                          <Input
                             id="minSalary"
                             type="number"
                             placeholder="e.g., 100000"
@@ -776,7 +750,7 @@ export default function JobSeekerSettings() {
                               </Label>
                               <p className="text-sm text-[#333333]">Only show remote job opportunities</p>
                             </div>
-                            <Switch 
+                            <Switch
                               id="remoteOnly"
                               checked={settings.preferences.remote_only}
                               onCheckedChange={(checked) => updateSettings('preferences', 'remote_only', checked)}
