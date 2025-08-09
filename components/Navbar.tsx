@@ -40,10 +40,10 @@ const navigationItems = [
     key: 'profile'
   },
   {
-    href: '/job-seeker/jobs',
+    href: '/job-seeker/search',
     icon: Search,
-    text: 'Browse Jobs',
-    key: 'jobs'
+    text: 'Browse & Search Jobs',
+    key: 'search'
   },
   {
     href: '/job-seeker/saved',
@@ -146,8 +146,8 @@ export default function Navbar({
 
   const isActive = (href: string) => {
     // Handle special case for /job-seeker/jobs route when on /job-seeker/search
-    if (href === '/job-seeker/jobs') {
-      return pathname === href || pathname === '/job-seeker/search'
+    if (href === '/job-seeker/search') {
+      return pathname === href || pathname === '/job-seeker/jobs'
     }
     return pathname === href || pathname.startsWith(href + '/')
   }

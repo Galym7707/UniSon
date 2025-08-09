@@ -273,7 +273,7 @@ export default function JobSearch() {
                 className="flex items-center px-4 py-3 text-[#00C49A] bg-[#00C49A]/10 rounded-lg"
               >
                 <Search className="w-5 h-5 mr-3" />
-                Job Search
+                Browse & Search Jobs
               </Link>
               <Link
                 href="/job-seeker/saved"
@@ -295,7 +295,7 @@ export default function JobSearch() {
           {/* Main Content */}
           <div className="flex-1 p-8">
             <div className="max-w-6xl mx-auto">
-              <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
+              <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Browse & Search Jobs</h1>
 
               {message && (
                 <Alert className={`mb-4 ${
