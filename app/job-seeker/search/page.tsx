@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MapPin, Clock, Building2, Filter, AlertCircle } from "lucide-react"
+import { MapPin, Clock, Building2, Filter, AlertCircle, Brain } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import JobSeekerLayout from '@/components/JobSeekerLayout'
+import JobMatchCard from '@/components/JobMatchCard'
 
 type Job = {
   id: string
@@ -80,12 +81,15 @@ export default function JobSearch() {
     remote_only: false,
     experience_level: ''
   })
-  const [sortBy, setSortBy] = useState<'date' | 'salary'>('date')
+  const [sortBy, setSortBy] = useState<'date' | 'salary' | 'match'>('match')
+  const [candidateProfile, setCandidateProfile] = useState<any>(null)
+  const [aiMatchingEnabled, setAiMatchingEnabled] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
     loadCountries()
     loadJobs()
+    loadCandidateProfile()
   }, [])
 
   useEffect(() => {
@@ -99,6 +103,37 @@ export default function JobSearch() {
       setCities([])
     }
   }, [selectedCountry])
+
+  const loadCandidateProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        console.error('Error loading candidate profile:', error)
+        return
+      }
+
+      if (profile) {
+        setCandidateProfile(profile)
+        // Enable AI matching if profile has sufficient data
+        const hasSkills = (profile.skills && profile.skills.length > 0) || 
+                         (profile.programming_skills && profile.programming_skills.length > 0)
+        const hasExperience = profile.experience && profile.experience.trim().length > 0
+        const hasTestResults = profile.test_results && profile.test_results.scores
+        
+        setAiMatchingEnabled(hasSkills || hasExperience || hasTestResults)
+      }
+    } catch (error) {
+      console.error('Error loading candidate profile:', error)
+    }
+  }
 
   const loadCountries = async () => {
     setCountriesLoading(true)
@@ -216,27 +251,19 @@ export default function JobSearch() {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 1) return '1 day ago'
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return `${Math.floor(diffDays / 30)} months ago`
-  }
-
-  const formatSalary = (min: number, max: number) => {
-    if (min === max) return `${min.toLocaleString()} ₽`
-    return `${min.toLocaleString()}–${max.toLocaleString()} ₽`
-  }
-
   return (
     <JobSeekerLayout>
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-[#0A2540]">Job Search</h1>
+          
+          {aiMatchingEnabled && candidateProfile && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <Brain className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">AI Matching Enabled</span>
+            </div>
+          )}
+        </div>
 
         {message && (
           <Alert className={`mb-4 ${
@@ -393,7 +420,7 @@ export default function JobSearch() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="match">Best Match</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="date">Newest First</SelectItem>
                   <SelectItem value="salary">Highest Salary</SelectItem>
                 </SelectContent>
               </Select>
@@ -427,105 +454,36 @@ export default function JobSearch() {
                   ))
                 ) : jobs.length > 0 ? (
                   jobs.map((job) => (
-                    <Card key={job.id} className="hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-xl font-semibold text-[#0A2540]">{job.title}</h3>
-                              {job.match_score && (
-                                <Badge className="bg-[#00C49A] text-white">
-                                  {job.match_score}% match
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center space-x-4 text-sm text-[#333333] mb-3">
-                              <div className="flex items-center">
-                                <Building2 className="w-4 h-4 mr-1" />
-                                {job.company}
-                              </div>
-                              <div className="flex items-center">
-                                <MapPin className="w-4 h-4 mr-1" />
-                                {job.location}
-                              </div>
-                              <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-1" />
-                                {formatDate(job.posted_at)}
-                              </div>
-                            </div>
-
-                            <p className="text-[#333333] mb-4 line-clamp-2">{job.description}</p>
-
-                            <div className="flex items-center justify-between">
-                              <div className="flex flex-wrap gap-2">
-                                {job.skills?.slice(0, 3).map((skill) => (
-                                  <Badge key={skill} variant="secondary" className="text-xs">
-                                    {skill}
-                                  </Badge>
-                                ))}
-                                {job.skills?.length > 3 && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    +{job.skills.length - 3} more
-                                  </Badge>
-                                )}
-                                {job.remote && (
-                                  <Badge className="bg-[#00C49A] text-white text-xs">Remote</Badge>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold text-[#0A2540]">
-                                  {formatSalary(job.salary_min, job.salary_max)}
-                                </p>
-                                <p className="text-sm text-[#333333]">{job.employment_type}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="ml-6 flex flex-col gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => saveJob(job.id)}
-                              disabled={savingJob === job.id}
-                            >
-                              {savingJob === job.id ? (
-                                <LoadingSpinner className="w-4 h-4" />
-                              ) : (
-                                'Save'
-                              )}
-                            </Button>
-                            <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white" size="sm">
-                              Apply
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <JobMatchCard
+                      key={job.id}
+                      job={job}
+                      onSave={saveJob}
+                      savingJob={savingJob}
+                      aiMatchingEnabled={aiMatchingEnabled}
+                      candidateProfile={candidateProfile}
+                    />
                   ))
                 ) : (
                   <Card>
-                    <CardContent className="p-12 text-center">
-                      <h3 className="text-lg font-semibold text-[#0A2540] mb-2">No Jobs Found</h3>
-                      <p className="text-[#333333] mb-4">
-                        Try adjusting your filters or search terms to find more opportunities.
-                      </p>
-                      <Button
-                        onClick={() => {
-                          setFilters({
-                            search: '',
-                            location: '',
-                            salary_min: '',
-                            salary_max: '',
-                            employment_types: [],
-                            remote_only: false,
-                            experience_level: ''
-                          })
-                          setSelectedCountry('')
-                        }}
-                        variant="outline"
-                      >
-                        Clear All Filters
+                    <CardContent className="text-center py-12">
+                      <div className="text-gray-500 mb-4">
+                        <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <h3 className="text-lg font-semibold mb-2">No jobs found</h3>
+                        <p>Try adjusting your search filters or keywords</p>
+                      </div>
+                      <Button variant="outline" onClick={() => {
+                        setFilters({
+                          search: '',
+                          location: '',
+                          salary_min: '',
+                          salary_max: '',
+                          employment_types: [],
+                          remote_only: false,
+                          experience_level: ''
+                        })
+                        setSelectedCountry('')
+                      }}>
+                        Clear Filters
                       </Button>
                     </CardContent>
                   </Card>
