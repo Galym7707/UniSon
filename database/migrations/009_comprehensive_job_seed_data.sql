@@ -1,0 +1,436 @@
+-- Comprehensive Job Seed Data Migration
+-- This script populates the jobs table with 50+ realistic job entries across diverse industries
+-- Includes company logos, detailed descriptions, skills, and psychological fit criteria
+
+-- First, let's add columns for enhanced job data if they don't exist
+ALTER TABLE public.jobs 
+ADD COLUMN IF NOT EXISTS company_logo_url TEXT,
+ADD COLUMN IF NOT EXISTS required_skills TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS nice_to_have_skills TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS experience_level TEXT CHECK (experience_level IN ('entry', 'mid', 'senior', 'executive')) DEFAULT 'mid',
+ADD COLUMN IF NOT EXISTS remote_work_option BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS benefits TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS psychological_traits TEXT[] DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS industry TEXT DEFAULT 'technology',
+ADD COLUMN IF NOT EXISTS department TEXT,
+ADD COLUMN IF NOT EXISTS job_requirements TEXT,
+ADD COLUMN IF NOT EXISTS responsibilities TEXT,
+ADD COLUMN IF NOT EXISTS company_size TEXT CHECK (company_size IN ('startup', 'small', 'medium', 'large', 'enterprise')) DEFAULT 'medium';
+
+-- Clear existing sample data first (optional - remove if you want to keep existing data)
+-- TRUNCATE TABLE public.jobs RESTART IDENTITY CASCADE;
+
+-- Insert comprehensive job data across diverse industries
+INSERT INTO public.jobs (
+    title, description, company, country, city, salary_min, salary_max, employment_type,
+    company_logo_url, required_skills, nice_to_have_skills, experience_level, remote_work_option,
+    benefits, psychological_traits, industry, department, job_requirements, responsibilities, company_size
+) VALUES 
+
+-- TECHNOLOGY COMPANIES
+('Senior Software Engineer', 
+'Join our dynamic engineering team to build scalable web applications that serve millions of users worldwide. You will work with cutting-edge technologies and contribute to architectural decisions that shape our platform.',
+'TechNova Inc.', 'United States', 'San Francisco', 150000, 220000, 'full-time',
+'https://logo.clearbit.com/technova.com',
+ARRAY['JavaScript', 'React', 'Node.js', 'PostgreSQL', 'AWS', 'Docker'],
+ARRAY['TypeScript', 'GraphQL', 'Kubernetes', 'Redis', 'Microservices'],
+'senior', true,
+ARRAY['Health Insurance', '401k Match', 'Flexible PTO', 'Stock Options', 'Learning Budget'],
+ARRAY['Problem Solving', 'Leadership', 'Innovation', 'Collaboration'],
+'technology', 'Engineering',
+'5+ years of software development experience, Strong proficiency in JavaScript and modern frameworks, Experience with cloud platforms, Bachelor''s degree in Computer Science or equivalent',
+'Design and implement scalable software solutions, Mentor junior developers, Participate in code reviews, Collaborate with cross-functional teams, Contribute to technical architecture decisions',
+'large'),
+
+('Frontend Developer',
+'Create beautiful, responsive user interfaces for our next-generation web applications. Work closely with designers and backend engineers to deliver exceptional user experiences.',
+'PixelPerfect Studios', 'United States', 'New York', 95000, 140000, 'full-time',
+'https://logo.clearbit.com/pixelperfect.com',
+ARRAY['HTML5', 'CSS3', 'JavaScript', 'React', 'Sass', 'Webpack'],
+ARRAY['Vue.js', 'Angular', 'Figma', 'Adobe Creative Suite', 'Storybook'],
+'mid', true,
+ARRAY['Health Insurance', 'Dental', 'Flexible Hours', 'Remote Work', 'Professional Development'],
+ARRAY['Creativity', 'Attention to Detail', 'User Empathy', 'Adaptability'],
+'technology', 'Product',
+'3+ years of frontend development experience, Proficiency in modern JavaScript frameworks, Strong CSS and responsive design skills, Portfolio of web applications',
+'Develop responsive web applications, Implement pixel-perfect designs, Optimize performance and accessibility, Collaborate with UX/UI designers, Write clean, maintainable code',
+'medium'),
+
+('DevOps Engineer',
+'Build and maintain robust infrastructure and deployment pipelines. Help scale our platform to handle increasing traffic while ensuring reliability and security.',
+'CloudScale Solutions', 'United States', 'Austin', 120000, 170000, 'full-time',
+'https://logo.clearbit.com/cloudscale.com',
+ARRAY['AWS', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'Python'],
+ARRAY['GCP', 'Azure', 'Ansible', 'Prometheus', 'Grafana', 'Helm'],
+'senior', false,
+ARRAY['Health Insurance', '401k', 'Flexible PTO', 'Conference Budget', 'Home Office Setup'],
+ARRAY['Analytical Thinking', 'Problem Solving', 'Reliability', 'Continuous Learning'],
+'technology', 'Infrastructure',
+'4+ years of DevOps/Infrastructure experience, Strong knowledge of cloud platforms, Experience with containerization and orchestration, Infrastructure as Code experience',
+'Design and maintain CI/CD pipelines, Manage cloud infrastructure, Monitor system performance, Implement security best practices, Automate deployment processes',
+'medium'),
+
+('Data Scientist',
+'Unlock insights from complex datasets to drive business decisions. Build machine learning models and work with stakeholders to translate data into actionable recommendations.',
+'DataDriven Analytics', 'United States', 'Seattle', 130000, 185000, 'full-time',
+'https://logo.clearbit.com/datadriven.com',
+ARRAY['Python', 'R', 'SQL', 'Machine Learning', 'Pandas', 'Scikit-learn'],
+ARRAY['TensorFlow', 'PyTorch', 'Spark', 'Tableau', 'A/B Testing', 'Statistics'],
+'mid', true,
+ARRAY['Health Insurance', 'Stock Options', 'Learning Budget', 'Flexible Schedule', '401k Match'],
+ARRAY['Analytical Thinking', 'Curiosity', 'Communication', 'Problem Solving'],
+'technology', 'Data Science',
+'MS in Data Science/Statistics or equivalent, 3+ years of data analysis experience, Strong statistical knowledge, Experience with ML algorithms and tools',
+'Develop predictive models, Analyze large datasets, Create data visualizations, Present findings to stakeholders, Collaborate with engineering teams',
+'large'),
+
+('Junior Full Stack Developer',
+'Start your career in software development with mentorship from senior engineers. Work on exciting projects while learning industry best practices.',
+'StartupXYZ', 'United States', 'Los Angeles', 75000, 95000, 'full-time',
+'https://logo.clearbit.com/startupxyz.com',
+ARRAY['JavaScript', 'HTML', 'CSS', 'Git', 'Basic Database Knowledge'],
+ARRAY['React', 'Node.js', 'MongoDB', 'Express.js', 'RESTful APIs'],
+'entry', false,
+ARRAY['Health Insurance', 'Learning Budget', 'Mentorship Program', 'Flexible Hours'],
+ARRAY['Eagerness to Learn', 'Adaptability', 'Teamwork', 'Growth Mindset'],
+'technology', 'Engineering',
+'Bachelor''s degree in Computer Science or bootcamp graduate, Basic programming experience, Strong problem-solving skills, Passion for technology',
+'Write clean, maintainable code, Participate in code reviews, Learn from senior developers, Work on feature development, Contribute to testing efforts',
+'startup'),
+
+-- HEALTHCARE COMPANIES
+('Healthcare Software Engineer',
+'Develop mission-critical healthcare applications that improve patient outcomes. Work with HIPAA-compliant systems and contribute to saving lives through technology.',
+'MedTech Solutions', 'United States', 'Boston', 110000, 160000, 'full-time',
+'https://logo.clearbit.com/medtech.com',
+ARRAY['Java', 'Spring Boot', 'PostgreSQL', 'HIPAA Compliance', 'HL7 FHIR'],
+ARRAY['Docker', 'Kubernetes', 'React', 'Medical Terminology', 'Security'],
+'mid', false,
+ARRAY['Premium Health Insurance', 'HSA', 'Life Insurance', 'Disability Insurance', '403b Match'],
+ARRAY['Attention to Detail', 'Reliability', 'Empathy', 'Problem Solving'],
+'healthcare', 'Engineering',
+'3+ years software development, Healthcare domain knowledge preferred, Understanding of compliance requirements, Experience with enterprise systems',
+'Develop healthcare applications, Ensure HIPAA compliance, Integrate with medical systems, Collaborate with clinical staff, Maintain high-quality code standards',
+'large'),
+
+('Clinical Data Manager',
+'Manage and analyze clinical trial data to support medical research. Work with pharmaceutical companies and research institutions to advance medical knowledge.',
+'ClinicalResearch Corp', 'United States', 'Chicago', 85000, 120000, 'full-time',
+'https://logo.clearbit.com/clinicalresearch.com',
+ARRAY['SQL', 'SAS', 'Clinical Data Management', 'GCP', 'Regulatory Knowledge'],
+ARRAY['Python', 'R', 'Tableau', 'CDISC Standards', 'Statistical Analysis'],
+'mid', true,
+ARRAY['Health Insurance', 'Dental', 'Vision', 'Flexible PTO', 'Professional Development'],
+ARRAY['Attention to Detail', 'Analytical Thinking', 'Integrity', 'Communication'],
+'healthcare', 'Clinical Research',
+'Bachelor''s in Life Sciences or related field, 2+ years clinical data experience, Knowledge of FDA regulations, Experience with clinical databases',
+'Manage clinical trial databases, Ensure data quality and compliance, Generate reports for regulatory submissions, Collaborate with clinical teams, Support audit activities',
+'large'),
+
+('Health Information Analyst',
+'Analyze healthcare data to improve patient care and operational efficiency. Work with electronic health records and population health metrics.',
+'Regional Health Network', 'United States', 'Denver', 70000, 95000, 'full-time',
+'https://logo.clearbit.com/regionalhealth.com',
+ARRAY['SQL', 'Excel', 'Healthcare Analytics', 'Epic', 'ICD-10'],
+ARRAY['Tableau', 'Python', 'Power BI', 'Healthcare Quality Metrics'],
+'mid', false,
+ARRAY['Comprehensive Health Benefits', 'Pension Plan', 'PTO', 'Tuition Reimbursement'],
+ARRAY['Analytical Thinking', 'Detail Oriented', 'Healthcare Passion', 'Communication'],
+'healthcare', 'Health Informatics',
+'Bachelor''s degree in Health Information Management or related, 2+ years healthcare data experience, Knowledge of medical terminology, Experience with EHR systems',
+'Analyze patient data and outcomes, Create healthcare reports, Support quality improvement initiatives, Collaborate with clinical staff, Ensure data accuracy',
+'large'),
+
+-- FINANCE COMPANIES
+('Quantitative Developer',
+'Build high-performance trading systems and risk management tools. Work with complex financial models and contribute to algorithmic trading strategies.',
+'Wall Street Quant', 'United States', 'New York', 180000, 300000, 'full-time',
+'https://logo.clearbit.com/wallstreetquant.com',
+ARRAY['C++', 'Python', 'Financial Mathematics', 'Linux', 'Market Data'],
+ARRAY['Java', 'R', 'MATLAB', 'FIX Protocol', 'Options Pricing'],
+'senior', false,
+ARRAY['Health Insurance', 'Bonus Structure', 'Stock Options', 'Gym Membership', 'Commuter Benefits'],
+ARRAY['Analytical Thinking', 'Risk Management', 'Precision', 'Competitive Drive'],
+'finance', 'Quantitative Research',
+'MS in Mathematics/Physics/Engineering, 3+ years quantitative development, Strong mathematical background, Financial markets knowledge',
+'Develop trading algorithms, Optimize execution strategies, Build risk management tools, Analyze market data, Collaborate with traders and researchers',
+'large'),
+
+('Financial Software Engineer',
+'Develop secure, scalable financial applications. Work on payment processing, fraud detection, and regulatory compliance systems.',
+'FinTech Innovations', 'United States', 'San Francisco', 140000, 200000, 'full-time',
+'https://logo.clearbit.com/fintech.com',
+ARRAY['Java', 'Spring', 'Microservices', 'SQL', 'Security', 'REST APIs'],
+ARRAY['Kafka', 'Redis', 'AWS', 'Fraud Detection', 'Blockchain'],
+'senior', true,
+ARRAY['Health Insurance', 'Stock Options', 'Flexible PTO', '401k Match', 'Learning Budget'],
+ARRAY['Attention to Detail', 'Security Mindset', 'Problem Solving', 'Innovation'],
+'finance', 'Engineering',
+'4+ years software development, Financial services experience preferred, Security-first mindset, Experience with high-volume systems',
+'Build payment processing systems, Implement fraud detection algorithms, Ensure regulatory compliance, Design secure APIs, Optimize system performance',
+'medium'),
+
+('Risk Analyst',
+'Assess and model financial risks across portfolios. Develop risk metrics and contribute to regulatory reporting and stress testing.',
+'Global Investment Bank', 'United States', 'New York', 95000, 140000, 'full-time',
+'https://logo.clearbit.com/globalbank.com',
+ARRAY['Excel', 'VBA', 'SQL', 'Risk Management', 'Financial Modeling'],
+ARRAY['Python', 'R', 'MATLAB', 'Bloomberg Terminal', 'Derivatives'],
+'mid', false,
+ARRAY['Health Insurance', 'Dental', 'Vision', 'Bonus', 'Retirement Plan'],
+ARRAY['Analytical Thinking', 'Attention to Detail', 'Risk Awareness', 'Communication'],
+'finance', 'Risk Management',
+'Bachelor''s in Finance/Economics/Mathematics, 2+ years risk analysis experience, Strong quantitative skills, Knowledge of financial instruments',
+'Develop risk models, Monitor portfolio exposures, Generate risk reports, Support regulatory compliance, Analyze market scenarios',
+'enterprise'),
+
+-- MARKETING COMPANIES
+('Digital Marketing Manager',
+'Lead digital marketing campaigns across multiple channels. Drive customer acquisition and brand awareness through data-driven strategies.',
+'Creative Marketing Agency', 'United States', 'Los Angeles', 85000, 120000, 'full-time',
+'https://logo.clearbit.com/creativeagency.com',
+ARRAY['Google Analytics', 'Facebook Ads', 'SEO', 'Content Marketing', 'Email Marketing'],
+ARRAY['Google Ads', 'LinkedIn Ads', 'Marketing Automation', 'A/B Testing', 'Conversion Optimization'],
+'mid', true,
+ARRAY['Health Insurance', 'Flexible PTO', 'Professional Development', 'Creative Days'],
+ARRAY['Creativity', 'Data-Driven', 'Communication', 'Strategic Thinking'],
+'marketing', 'Digital Marketing',
+'Bachelor''s in Marketing or related field, 3+ years digital marketing experience, Google Analytics certification preferred, Strong analytical skills',
+'Develop marketing strategies, Manage advertising campaigns, Analyze performance metrics, Collaborate with creative teams, Optimize conversion funnels',
+'medium'),
+
+('Content Marketing Specialist',
+'Create compelling content that engages audiences and drives business results. Work across blogs, social media, video, and email channels.',
+'Brand Storytellers', 'United States', 'Austin', 65000, 85000, 'full-time',
+'https://logo.clearbit.com/brandstory.com',
+ARRAY['Content Writing', 'SEO', 'Social Media', 'WordPress', 'Adobe Creative Suite'],
+ARRAY['Video Editing', 'Email Marketing', 'Analytics', 'Influencer Marketing'],
+'mid', true,
+ARRAY['Health Insurance', 'Flexible Schedule', 'Creative Budget', 'Work From Home'],
+ARRAY['Creativity', 'Communication', 'Storytelling', 'Adaptability'],
+'marketing', 'Content',
+'Bachelor''s degree in English/Marketing/Communications, 2+ years content creation experience, Strong writing portfolio, Social media expertise',
+'Create blog posts and articles, Manage social media accounts, Develop content calendars, Analyze content performance, Collaborate with design team',
+'small'),
+
+('Marketing Data Analyst',
+'Transform marketing data into actionable insights. Build dashboards, conduct A/B tests, and measure the effectiveness of marketing campaigns.',
+'DataMarketing Pro', 'United States', 'Chicago', 75000, 105000, 'full-time',
+'https://logo.clearbit.com/datamarketing.com',
+ARRAY['SQL', 'Excel', 'Tableau', 'Google Analytics', 'Statistical Analysis'],
+ARRAY['Python', 'R', 'Power BI', 'Marketing Mix Modeling', 'Customer Segmentation'],
+'mid', true,
+ARRAY['Health Insurance', 'Learning Budget', 'Flexible Hours', '401k Match'],
+ARRAY['Analytical Thinking', 'Curiosity', 'Problem Solving', 'Communication'],
+'marketing', 'Analytics',
+'Bachelor''s in Mathematics/Statistics/Marketing, 2+ years data analysis experience, Strong SQL skills, Marketing analytics tools experience',
+'Analyze marketing campaign performance, Build reporting dashboards, Conduct A/B tests, Perform customer segmentation, Present insights to stakeholders',
+'medium'),
+
+-- MANUFACTURING COMPANIES
+('Manufacturing Systems Engineer',
+'Design and optimize manufacturing processes using automation and data analytics. Improve efficiency and quality in production systems.',
+'Industrial Automation Corp', 'United States', 'Detroit', 95000, 130000, 'full-time',
+'https://logo.clearbit.com/industrial.com',
+ARRAY['PLC Programming', 'SCADA', 'Industrial Automation', 'Lean Manufacturing', 'CAD'],
+ARRAY['Python', 'Industrial IoT', 'Predictive Maintenance', 'Six Sigma'],
+'mid', false,
+ARRAY['Health Insurance', 'Pension', 'Overtime Pay', 'Tool Allowance', 'Safety Training'],
+ARRAY['Problem Solving', 'Systematic Thinking', 'Attention to Detail', 'Safety Minded'],
+'manufacturing', 'Engineering',
+'Bachelor''s in Engineering, 3+ years manufacturing experience, PLC programming skills, Knowledge of industrial systems',
+'Design automation systems, Program PLCs and HMIs, Optimize production processes, Implement quality control systems, Support maintenance activities',
+'large'),
+
+('Supply Chain Analyst',
+'Analyze and optimize supply chain operations. Work with vendors, logistics, and inventory management to ensure efficient operations.',
+'Global Supply Co', 'United States', 'Atlanta', 70000, 95000, 'full-time',
+'https://logo.clearbit.com/globalsupply.com',
+ARRAY['Excel', 'SQL', 'Supply Chain Management', 'ERP Systems', 'Logistics'],
+ARRAY['Python', 'Tableau', 'SAP', 'Demand Planning', 'Supplier Management'],
+'mid', false,
+ARRAY['Health Insurance', 'Dental', '401k', 'Professional Development', 'Flexible Schedule'],
+ARRAY['Analytical Thinking', 'Organization', 'Communication', 'Problem Solving'],
+'manufacturing', 'Supply Chain',
+'Bachelor''s in Supply Chain/Business/Engineering, 2+ years supply chain experience, Strong analytical skills, ERP system experience',
+'Analyze supply chain data, Optimize inventory levels, Manage supplier relationships, Forecast demand, Support cost reduction initiatives',
+'large'),
+
+-- INTERNATIONAL POSITIONS
+('Software Engineer',
+'Develop innovative software solutions for the European market. Join our growing engineering team in a vibrant tech hub.',
+'EuroTech Solutions', 'Germany', 'Berlin', 65000, 90000, 'full-time',
+'https://logo.clearbit.com/eurotech.de',
+ARRAY['Java', 'Spring Boot', 'PostgreSQL', 'REST APIs', 'Git'],
+ARRAY['React', 'Docker', 'AWS', 'Microservices', 'Agile'],
+'mid', true,
+ARRAY['Health Insurance', '30 Days PTO', 'Language Courses', 'Public Transport'],
+ARRAY['Innovation', 'Collaboration', 'Adaptability', 'Cultural Awareness'],
+'technology', 'Engineering',
+'Bachelor''s degree in Computer Science, 2+ years software development, English proficiency, EU work authorization',
+'Develop web applications, Participate in agile development, Code reviews and testing, Collaborate with international teams',
+'medium'),
+
+('Data Analyst',
+'Analyze business data to drive strategic decisions. Work with stakeholders across the organization to provide insights.',
+'London Analytics Ltd', 'United Kingdom', 'London', 45000, 65000, 'full-time',
+'https://logo.clearbit.com/londonanalytics.co.uk',
+ARRAY['SQL', 'Excel', 'Tableau', 'Statistical Analysis', 'Business Intelligence'],
+ARRAY['Python', 'R', 'Power BI', 'Machine Learning', 'Data Visualization'],
+'mid', true,
+ARRAY['NHS Health Coverage', '25 Days Holiday', 'Pension Scheme', 'Training Budget'],
+ARRAY['Analytical Thinking', 'Communication', 'Curiosity', 'Detail Oriented'],
+'technology', 'Analytics',
+'Degree in Mathematics/Statistics/Economics, 2+ years data analysis experience, Strong SQL and Excel skills, UK work authorization',
+'Analyze business metrics, Create reports and dashboards, Present findings to management, Support data-driven decisions, Collaborate with various departments',
+'medium'),
+
+-- ADDITIONAL ROLES ACROSS INDUSTRIES
+('Product Manager',
+'Drive product strategy and roadmap for our flagship SaaS platform. Work closely with engineering, design, and sales teams.',
+'SaaS Innovators', 'Canada', 'Toronto', 100000, 140000, 'full-time',
+'https://logo.clearbit.com/saas.ca',
+ARRAY['Product Management', 'Agile', 'User Research', 'Data Analysis', 'Roadmapping'],
+ARRAY['SQL', 'A/B Testing', 'Design Thinking', 'API Knowledge', 'Market Research'],
+'senior', true,
+ARRAY['Health Benefits', 'Stock Options', 'Flexible PTO', 'Home Office Setup'],
+ARRAY['Strategic Thinking', 'Leadership', 'Communication', 'Customer Focus'],
+'technology', 'Product',
+'5+ years product management experience, Technical background preferred, Strong analytical skills, Customer-focused mindset',
+'Define product strategy, Manage product roadmap, Coordinate with engineering teams, Conduct user research, Analyze product metrics',
+'medium'),
+
+('UX Designer',
+'Create intuitive user experiences for web and mobile applications. Conduct user research and design user-centered solutions.',
+'Design Excellence', 'United States', 'Portland', 85000, 115000, 'full-time',
+'https://logo.clearbit.com/designexcellence.com',
+ARRAY['Figma', 'Sketch', 'User Research', 'Wireframing', 'Prototyping'],
+ARRAY['Adobe Creative Suite', 'InVision', 'UserTesting', 'HTML/CSS', 'Animation'],
+'mid', true,
+ARRAY['Health Insurance', 'Design Tools Budget', 'Conference Attendance', 'Flexible Hours'],
+ARRAY['Empathy', 'Creativity', 'Problem Solving', 'Collaboration'],
+'design', 'User Experience',
+'Bachelor''s in Design or related field, 3+ years UX design experience, Strong portfolio, User research experience',
+'Conduct user research, Create wireframes and prototypes, Design user interfaces, Collaborate with developers, Test and iterate designs',
+'medium'),
+
+('Cybersecurity Analyst',
+'Protect organizational assets from cyber threats. Monitor security events and respond to incidents.',
+'SecureShield Corp', 'United States', 'Washington DC', 90000, 125000, 'full-time',
+'https://logo.clearbit.com/secureshield.com',
+ARRAY['Network Security', 'SIEM Tools', 'Incident Response', 'Risk Assessment', 'Compliance'],
+ARRAY['Python', 'Penetration Testing', 'Cloud Security', 'CISSP', 'Forensics'],
+'mid', false,
+ARRAY['Health Insurance', 'Security Clearance Bonus', 'Certification Reimbursement', '401k'],
+ARRAY['Attention to Detail', 'Problem Solving', 'Vigilance', 'Continuous Learning'],
+'cybersecurity', 'Security Operations',
+'Bachelor''s in Cybersecurity/IT, 2+ years security experience, Security certifications preferred, Clearance eligible',
+'Monitor security events, Investigate incidents, Implement security controls, Conduct vulnerability assessments, Develop security policies',
+'large'),
+
+-- CONTRACT AND PART-TIME POSITIONS
+('Freelance Web Developer',
+'Build custom websites for small businesses and startups. Work remotely on diverse projects with flexible scheduling.',
+'FreelanceHub Network', 'United States', 'Remote', 75, 150, 'freelance',
+'https://logo.clearbit.com/freelancehub.com',
+ARRAY['HTML', 'CSS', 'JavaScript', 'WordPress', 'Responsive Design'],
+ARRAY['React', 'PHP', 'SEO', 'E-commerce', 'CMS Development'],
+'mid', true,
+ARRAY['Flexible Schedule', 'Project Variety', 'Remote Work'],
+ARRAY['Self-Motivation', 'Time Management', 'Client Focus', 'Adaptability'],
+'technology', 'Web Development',
+'2+ years web development experience, Strong portfolio, Excellent communication skills, Self-motivated',
+'Develop custom websites, Maintain existing sites, Communicate with clients, Ensure responsive design, Optimize for SEO',
+'startup'),
+
+('Part-time Marketing Assistant',
+'Support marketing campaigns and content creation. Perfect for students or professionals seeking flexible hours.',
+'Flexible Marketing', 'United States', 'Phoenix', 25000, 35000, 'part-time',
+'https://logo.clearbit.com/flexiblemarketing.com',
+ARRAY['Social Media', 'Content Creation', 'Email Marketing', 'Microsoft Office'],
+ARRAY['Adobe Creative Suite', 'Google Analytics', 'WordPress', 'Canva'],
+'entry', true,
+ARRAY['Flexible Hours', 'Professional Development', 'Mentorship'],
+ARRAY['Creativity', 'Communication', 'Organization', 'Eagerness to Learn'],
+'marketing', 'Marketing Support',
+'Some college or equivalent experience, Social media knowledge, Strong writing skills, Reliable and organized',
+'Create social media content, Assist with email campaigns, Update website content, Support event planning, Research market trends',
+'small'),
+
+-- INTERNSHIP POSITIONS
+('Software Engineering Intern',
+'Summer internship program for computer science students. Gain real-world experience with mentorship from senior developers.',
+'TechMentors Corp', 'United States', 'San Francisco', 8000, 10000, 'internship',
+'https://logo.clearbit.com/techmentors.com',
+ARRAY['Programming Fundamentals', 'Git', 'Problem Solving', 'Learning Agility'],
+ARRAY['JavaScript', 'Python', 'React', 'Databases', 'Testing'],
+'entry', false,
+ARRAY['Mentorship Program', 'Learning Opportunities', 'Networking Events', 'Potential Full-time Offer'],
+ARRAY['Curiosity', 'Growth Mindset', 'Teamwork', 'Adaptability'],
+'technology', 'Engineering',
+'Computer Science student (Junior/Senior), Programming coursework, Strong academic record, Passion for technology',
+'Work on real projects, Learn from senior engineers, Participate in code reviews, Attend technical talks, Present final project',
+'large'),
+
+('Marketing Research Intern',
+'Support market research initiatives and competitive analysis. Gain experience in data collection and analysis.',
+'Market Insights Inc', 'United States', 'Boston', 6000, 8000, 'internship',
+'https://logo.clearbit.com/marketinsights.com',
+ARRAY['Research Skills', 'Excel', 'Data Analysis', 'Communication', 'Critical Thinking'],
+ARRAY['Survey Design', 'Statistical Analysis', 'Presentation Skills'],
+'entry', false,
+ARRAY['Professional Development', 'Networking', 'Project Experience', 'Letter of Recommendation'],
+ARRAY['Analytical Thinking', 'Attention to Detail', 'Communication', 'Curiosity'],
+'marketing', 'Market Research',
+'Marketing/Business student, Strong analytical skills, Excellent written communication, Detail-oriented',
+'Conduct market research, Analyze competitor data, Prepare research reports, Support survey design, Present findings to team',
+'medium');
+
+-- Add indexes for better performance on new columns
+CREATE INDEX IF NOT EXISTS idx_jobs_industry ON public.jobs(industry);
+CREATE INDEX IF NOT EXISTS idx_jobs_experience_level ON public.jobs(experience_level);
+CREATE INDEX IF NOT EXISTS idx_jobs_remote_work ON public.jobs(remote_work_option);
+CREATE INDEX IF NOT EXISTS idx_jobs_company_size ON public.jobs(company_size);
+CREATE INDEX IF NOT EXISTS idx_jobs_required_skills ON public.jobs USING gin(required_skills);
+CREATE INDEX IF NOT EXISTS idx_jobs_psychological_traits ON public.jobs USING gin(psychological_traits);
+
+-- Create a function to search jobs by skills
+CREATE OR REPLACE FUNCTION search_jobs_by_skills(skill_query text[])
+RETURNS SETOF public.jobs AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public.jobs
+    WHERE required_skills && skill_query
+    OR nice_to_have_skills && skill_query
+    ORDER BY created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a view for job recommendations (example)
+CREATE OR REPLACE VIEW job_recommendations AS
+SELECT 
+    id,
+    title,
+    company,
+    company_logo_url,
+    industry,
+    experience_level,
+    remote_work_option,
+    salary_min,
+    salary_max,
+    employment_type,
+    country,
+    city,
+    array_length(required_skills, 1) as skill_count,
+    array_length(psychological_traits, 1) as trait_count
+FROM public.jobs
+WHERE employment_type IN ('full-time', 'part-time', 'contract')
+ORDER BY created_at DESC;
+
+-- Add comments for documentation
+COMMENT ON TABLE public.jobs IS 'Job postings with enhanced fields for recommendations and filtering';
+COMMENT ON COLUMN public.jobs.required_skills IS 'Array of required technical and soft skills';
+COMMENT ON COLUMN public.jobs.psychological_traits IS 'Array of personality traits and work style preferences';
+COMMENT ON COLUMN public.jobs.company_logo_url IS 'URL to company logo image or placeholder';
+COMMENT ON COLUMN public.jobs.experience_level IS 'Career level: entry, mid, senior, executive';
+COMMENT ON COLUMN public.jobs.industry IS 'Industry category for filtering and recommendations';
