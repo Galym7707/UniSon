@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import Navbar from './Navbar'
+import JobSeekerSidebar from './JobSeekerSidebar'
 
 interface JobSeekerLayoutProps {
   children: ReactNode
@@ -25,9 +26,16 @@ export default function JobSeekerLayout({
         userName={userName}
         isAuthenticated={isAuthenticated}
       />
-      <main className="pt-4">
-        {children}
-      </main>
+      
+      <div className="flex">
+        <JobSeekerSidebar />
+        
+        <div className="flex-1 lg:pl-64">
+          <main className="px-4 py-6 sm:px-6 lg:px-8">
+            {children}
+          </main>
+        </div>
+      </div>
     </div>
   )
 }
