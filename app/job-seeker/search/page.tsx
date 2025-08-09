@@ -21,13 +21,14 @@ type Job = {
   id: string
   title: string
   company: string
-  location: string
+  city: string
+  country: string
   salary_min: number
   salary_max: number
   employment_type: string
-  remote: boolean
+  remote_work_option: boolean
   posted_at: string
-  skills: string[]
+  required_skills: string[]
   description: string
   match_score?: number
 }
@@ -148,15 +149,15 @@ export default function JobSearch() {
     setJobsError(null)
     
     try {
-      // Build query parameters
+      // Build query parameters with updated field names
       const params = new URLSearchParams()
       
       if (filters.search) params.append('search', filters.search)
-      if (filters.location) params.append('location', filters.location)
+      if (filters.location) params.append('city', filters.location) // Updated to use city parameter
       if (filters.salary_min) params.append('salary_min', filters.salary_min)
       if (filters.salary_max) params.append('salary_max', filters.salary_max)
       if (filters.employment_types.length > 0) params.append('employment_types', filters.employment_types.join(','))
-      if (filters.remote_only) params.append('remote_only', 'true')
+      if (filters.remote_only) params.append('remote_work_option', 'true') // Updated field name
       if (filters.experience_level) params.append('experience_level', filters.experience_level)
       if (sortBy) params.append('sort_by', sortBy)
 
@@ -233,6 +234,89 @@ export default function JobSearch() {
     if (min === max) return `${min.toLocaleString()} ₽`
     return `${min.toLocaleString()}–${max.toLocaleString()} ₽`
   }
+
+  const JobCard = ({ job }: { job: Job }) => (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold text-[#0A2540]">{job.title}</h3>
+              {job.match_score && (
+                <Badge variant="outline" className="text-sm">
+                  {job.match_score}% match
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-4 text-gray-600 mb-3">
+              <div className="flex items-center gap-1">
+                <Building2 className="w-4 h-4" />
+                <span>{job.company}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{job.city}, {job.country}</span>
+                {job.remote_work_option && <Badge variant="secondary" className="ml-1">Remote</Badge>}
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>{formatDate(job.posted_at)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">{formatSalary(job.salary_min, job.salary_max)}</span>
+              </div>
+              <Badge variant="outline">{job.employment_type}</Badge>
+            </div>
+
+            <p className="text-gray-700 mb-4 line-clamp-2">{job.description}</p>
+
+            {job.required_skills && job.required_skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {job.required_skills.slice(0, 5).map((skill, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {skill}
+                  </Badge>
+                ))}
+                {job.required_skills.length > 5 && (
+                  <Badge variant="secondary" className="text-xs">
+                    +{job.required_skills.length - 5} more
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 ml-6">
+            <Button
+              onClick={() => saveJob(job.id)}
+              disabled={savingJob === job.id}
+              variant="outline"
+              size="sm"
+              className="min-w-[100px]"
+            >
+              {savingJob === job.id ? (
+                <LoadingSpinner className="w-4 h-4" />
+              ) : (
+                <>
+                  <Heart className="w-4 h-4 mr-2" />
+                  Save
+                </>
+              )}
+            </Button>
+            <Link href={`/job-seeker/results?job=${job.id}`}>
+              <Button size="sm" className="w-full">
+                View Details
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <>
@@ -311,8 +395,243 @@ export default function JobSearch() {
               )}
 
               <div className="grid lg:grid-cols-4 gap-8">
-                {/* Filter content omitted for brevity - keeping original filter logic */}
-                {/* ... (rest of the component remains the same) ... */}
+                {/* Filters Sidebar */}
+                <div className="lg:col-span-1">
+                  <Card className="sticky top-4">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Filter className="w-5 h-5" />
+                        Filters
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Search Input */}
+                      <div>
+                        <Label htmlFor="search" className="text-sm font-medium">
+                          Keywords
+                        </Label>
+                        <Input
+                          id="search"
+                          placeholder="Job title, company, or skills"
+                          value={filters.search}
+                          onChange={(e) => updateFilters('search', e.target.value)}
+                          className="mt-2"
+                        />
+                      </div>
+
+                      {/* Location Filter */}
+                      <div>
+                        <Label className="text-sm font-medium mb-3 block">
+                          Location
+                        </Label>
+                        <div className="space-y-3">
+                          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countriesLoading ? (
+                                <div className="p-2 text-center">
+                                  <LoadingSpinner className="w-4 h-4 mx-auto" />
+                                </div>
+                              ) : countries.length > 0 ? (
+                                countries.map((country) => (
+                                  <SelectItem key={country.id} value={country.id}>
+                                    {country.name}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-2 text-center text-gray-500">
+                                  No countries available
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+
+                          {selectedCountry && (
+                            <Select 
+                              value={filters.location} 
+                              onValueChange={(value) => updateFilters('location', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select city" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {citiesLoading ? (
+                                  <div className="p-2 text-center">
+                                    <LoadingSpinner className="w-4 h-4 mx-auto" />
+                                  </div>
+                                ) : cities.length > 0 ? (
+                                  cities.map((city) => (
+                                    <SelectItem key={city.id} value={city.name}>
+                                      {city.name}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="p-2 text-center text-gray-500">
+                                    No cities available
+                                  </div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Remote Work */}
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="remote"
+                          checked={filters.remote_only}
+                          onCheckedChange={(checked) => updateFilters('remote_only', checked)}
+                        />
+                        <Label htmlFor="remote" className="text-sm font-medium">
+                          Remote work only
+                        </Label>
+                      </div>
+
+                      {/* Salary Range */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">
+                          Salary Range (₽)
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            placeholder="Min"
+                            value={filters.salary_min}
+                            onChange={(e) => updateFilters('salary_min', e.target.value)}
+                          />
+                          <Input
+                            placeholder="Max"
+                            value={filters.salary_max}
+                            onChange={(e) => updateFilters('salary_max', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Employment Type */}
+                      <div>
+                        <Label className="text-sm font-medium mb-3 block">
+                          Employment Type
+                        </Label>
+                        <div className="space-y-2">
+                          {['full-time', 'part-time', 'contract', 'freelance', 'internship'].map((type) => (
+                            <div key={type} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={type}
+                                checked={filters.employment_types.includes(type)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    updateFilters('employment_types', [...filters.employment_types, type])
+                                  } else {
+                                    updateFilters('employment_types', filters.employment_types.filter(t => t !== type))
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={type} className="text-sm capitalize">
+                                {type.replace('-', ' ')}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Experience Level */}
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">
+                          Experience Level
+                        </Label>
+                        <Select 
+                          value={filters.experience_level} 
+                          onValueChange={(value) => updateFilters('experience_level', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Any level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Any level</SelectItem>
+                            <SelectItem value="entry">Entry Level</SelectItem>
+                            <SelectItem value="mid">Mid Level</SelectItem>
+                            <SelectItem value="senior">Senior Level</SelectItem>
+                            <SelectItem value="lead">Lead</SelectItem>
+                            <SelectItem value="executive">Executive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Results */}
+                <div className="lg:col-span-3">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold text-[#0A2540]">
+                        {jobsLoading ? 'Searching...' : `${jobs.length} Jobs Found`}
+                      </h2>
+                      <p className="text-gray-600 text-sm">
+                        Based on your search criteria
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-gray-600">Sort by:</Label>
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="match">Best Match</SelectItem>
+                          <SelectItem value="date">Newest First</SelectItem>
+                          <SelectItem value="salary_high">Salary High to Low</SelectItem>
+                          <SelectItem value="salary_low">Salary Low to High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {jobsLoading ? (
+                    <div className="space-y-4">
+                      {[...Array(5)].map((_, i) => (
+                        <CardSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : jobsError ? (
+                    <Card className="border-red-200 bg-red-50">
+                      <CardContent className="p-6 text-center">
+                        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-red-700 mb-2">
+                          Failed to Load Jobs
+                        </h3>
+                        <p className="text-red-600 mb-4">{jobsError}</p>
+                        <Button
+                          onClick={loadJobs}
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-100"
+                        >
+                          Try Again
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : jobs.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-12 text-center">
+                        <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          No Jobs Found
+                        </h3>
+                        <p className="text-gray-500">
+                          Try adjusting your search criteria to find more opportunities.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {jobs.map((job) => (
+                        <JobCard key={job.id} job={job} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
