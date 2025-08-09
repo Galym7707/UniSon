@@ -2,18 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  User,
-  Brain,
-  Search,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Heart
-} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { getSupabaseBrowser } from '@/lib/supabase/browser'
@@ -25,45 +15,6 @@ interface NavbarProps {
   isAuthenticated?: boolean
   className?: string
 }
-
-const navigationItems = [
-  {
-    href: '/job-seeker/dashboard',
-    icon: LayoutDashboard,
-    text: 'Dashboard',
-    key: 'dashboard'
-  },
-  {
-    href: '/job-seeker/profile',
-    icon: User,
-    text: 'Profile',
-    key: 'profile'
-  },
-  {
-    href: '/job-seeker/search',
-    icon: Search,
-    text: 'Browse & Search Jobs',
-    key: 'search'
-  },
-  {
-    href: '/job-seeker/saved',
-    icon: Heart,
-    text: 'Saved Jobs',
-    key: 'saved'
-  },
-  {
-    href: '/job-seeker/results',
-    icon: Brain,
-    text: 'Test Results',
-    key: 'results'
-  },
-  {
-    href: '/job-seeker/settings',
-    icon: Settings,
-    text: 'Settings',
-    key: 'settings'
-  }
-]
 
 export default function Navbar({
   userEmail,
@@ -77,7 +28,6 @@ export default function Navbar({
   } | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
-  const pathname = usePathname()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -144,21 +94,6 @@ export default function Navbar({
     }
   }
 
-  const isActive = (href: string) => {
-    // Handle special case for /job-seeker/jobs route when on /job-seeker/search
-    if (href === '/job-seeker/search') {
-      return pathname === href || pathname === '/job-seeker/jobs'
-    }
-    
-    // Handle exact matches
-    if (pathname === href) return true
-    
-    // Handle nested routes
-    if (pathname.startsWith(href + '/')) return true
-    
-    return false
-  }
-
   // If user is not authenticated, don't render the navbar
   if (!user) {
     return null
@@ -170,34 +105,11 @@ export default function Navbar({
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/job-seeker/dashboard" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <span className="font-bold text-xl text-[#0A2540]">
                 Unison AI
               </span>
             </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-[#00C49A]/10 text-[#00C49A] font-semibold'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {item.text}
-                </Link>
-              )
-            })}
           </div>
 
           {/* Desktop User Menu */}
@@ -249,32 +161,8 @@ export default function Navbar({
                     </div>
                   </div>
 
-                  {/* Mobile Navigation */}
-                  <div className="flex-1 py-4">
-                    {navigationItems.map((item) => {
-                      const Icon = item.icon
-                      const active = isActive(item.href)
-                      
-                      return (
-                        <Link
-                          key={item.key}
-                          href={item.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
-                            active
-                              ? 'bg-[#00C49A]/10 text-[#00C49A] border-r-2 border-[#00C49A] font-semibold'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                          }`}
-                        >
-                          <Icon className="h-5 w-5 mr-3" />
-                          {item.text}
-                        </Link>
-                      )
-                    })}
-                  </div>
-
                   {/* Mobile Logout */}
-                  <div className="p-4 border-t">
+                  <div className="p-4 border-t mt-auto">
                     <Button
                       variant="outline"
                       onClick={handleLogout}
