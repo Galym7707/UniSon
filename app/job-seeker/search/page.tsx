@@ -80,7 +80,7 @@ export default function JobSearch() {
     remote_only: false,
     experience_level: ''
   })
-  const [sortBy, setSortBy] = useState('match')
+  const [sortBy, setSortBy] = useState<'date' | 'salary'>('date')
   const supabase = createBrowserClient()
 
   useEffect(() => {
