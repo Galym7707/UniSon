@@ -1,5 +1,6 @@
 //app/employer/dashboard/page.tsx
 
+import { requireAuth } from '@/lib/auth-helpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,7 +9,12 @@ import Link from "next/link"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
 
-export default function EmployerDashboard() {
+export const dynamic = 'force-dynamic'
+
+export default async function EmployerDashboard() {
+  // Require authentication and employer role
+  const { user, profile } = await requireAuth({ role: 'employer' })
+
   const activeJobs = [
     {
       id: 1,
@@ -44,6 +50,33 @@ export default function EmployerDashboard() {
     },
   ]
 
+  const stats = [
+    {
+      title: "Active Jobs",
+      value: "4",
+      change: "+2 this week",
+      icon: Briefcase,
+    },
+    {
+      title: "New Candidates",
+      value: "38",
+      change: "+15 today",
+      icon: Users,
+    },
+    {
+      title: "Interviews",
+      value: "12",
+      change: "This week",
+      icon: Calendar,
+    },
+    {
+      title: "Profile Views",
+      value: "1,234",
+      change: "+23% this month",
+      icon: TrendingUp,
+    },
+  ]
+
   return (
     <>
       <Header />
@@ -55,7 +88,13 @@ export default function EmployerDashboard() {
               <Link href="/" className="text-xl font-bold text-[#0A2540]">
                 Unison AI
               </Link>
-              <p className="text-sm text-[#333333] mt-1">TechCorp Inc.</p>
+              <p className="text-sm text-[#333333] mt-1">Employer Dashboard</p>
+              <div className="mt-2 text-xs text-gray-500">
+                Welcome, {profile.name || profile.email}
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {profile.role}
+                </Badge>
+              </div>
             </div>
             <nav className="px-4 space-y-2">
               <Link
@@ -91,7 +130,8 @@ export default function EmployerDashboard() {
 
           {/* Main Content */}
           <div className="flex-1 p-8">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-7xl mx-auto">
+              {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h1 className="text-3xl font-bold text-[#0A2540]">Employer Dashboard</h1>
@@ -105,53 +145,20 @@ export default function EmployerDashboard() {
 
               {/* Stats Cards */}
               <div className="grid md:grid-cols-4 gap-6 mb-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-[#333333]">Active Jobs</p>
-                        <p className="text-2xl font-bold text-[#0A2540]">4</p>
+                {stats.map((stat, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-[#333333]">{stat.title}</p>
+                          <p className="text-2xl font-bold text-[#0A2540]">{stat.value}</p>
+                          <p className="text-sm text-gray-500 mt-1">{stat.change}</p>
+                        </div>
+                        <stat.icon className="w-8 h-8 text-[#FF7A00]" />
                       </div>
-                      <Briefcase className="w-8 h-8 text-[#FF7A00]" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-[#333333]">New Candidates</p>
-                        <p className="text-2xl font-bold text-[#00C49A]">38</p>
-                      </div>
-                      <Users className="w-8 h-8 text-[#00C49A]" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-[#333333]">Interviews This Week</p>
-                        <p className="text-2xl font-bold text-[#0A2540]">12</p>
-                      </div>
-                      <Calendar className="w-8 h-8 text-[#0A2540]" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-[#333333]">Average Match Score</p>
-                        <p className="text-2xl font-bold text-[#FF7A00]">76%</p>
-                      </div>
-                      <TrendingUp className="w-8 h-8 text-[#FF7A00]" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
               {/* Active Jobs */}
@@ -203,6 +210,82 @@ export default function EmployerDashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Link href="/employer/jobs/create">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Job
+                      </Button>
+                    </Link>
+                    <Link href="/employer/company">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Building2 className="w-4 h-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    </Link>
+                    <Link href="/employer/candidates">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Users className="w-4 h-4 mr-2" />
+                        View Candidates
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="text-sm">
+                        <p className="font-medium">New Application</p>
+                        <p className="text-gray-600">Senior Frontend Developer</p>
+                        <p className="text-xs text-gray-500">2 hours ago</p>
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium">Profile Updated</p>
+                        <p className="text-gray-600">ABC Tech Company</p>
+                        <p className="text-xs text-gray-500">1 day ago</p>
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium">New Job Posted</p>
+                        <p className="text-gray-600">React Native Developer</p>
+                        <p className="text-xs text-gray-500">3 days ago</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">Analytics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Profile Views</span>
+                        <span className="font-semibold">234</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Applications</span>
+                        <span className="font-semibold">89</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Conversion Rate</span>
+                        <span className="font-semibold">12%</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>

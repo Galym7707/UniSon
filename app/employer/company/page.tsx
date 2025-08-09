@@ -1,37 +1,21 @@
 //app/employer/company/page.tsx
 
-import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { requireAuth } from '@/lib/auth-helpers'
 import ClientCompanyProfile from './ClientCompanyProfile'
-import { logError } from '@/lib/error-handling'
 import { Header } from '@/components/header-landing'
 import { Footer } from '@/components/footer'
 
-export default async function CompanyProfilePage() {
-  try {
-    const supabase = createServerComponentClient({ cookies })
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    if (sessionError) {
-      logError('company-profile-page-session', sessionError)
-      redirect('/auth/login')
-    }
-    
-    if (!session) {
-      redirect('/auth/login')
-    }
+export const dynamic = 'force-dynamic'
 
-    // Let the client component handle company profile fallback logic
-    return (
-      <>
-        <Header />
-        <ClientCompanyProfile />
-        <Footer />
-      </>
-    )
-  } catch (error) {
-    logError('company-profile-page', error)
-    redirect('/auth/login')
-  }
+export default async function CompanyProfilePage() {
+  // Require authentication and employer role
+  const { user, profile } = await requireAuth({ role: 'employer' })
+
+  return (
+    <>
+      <Header />
+      <ClientCompanyProfile userProfile={profile} />
+      <Footer />
+    </>
+  )
 }

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,7 @@ import { ErrorDisplay } from '@/components/ui/error-display'
 import { LayoutDashboard, Briefcase, Building2, Upload, MapPin, Plus, X } from "lucide-react"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
+import { UserProfile, clientAuth } from '@/lib/auth-helpers-client'
 import ProfileAvatar from '@/components/ui/profile-avatar'
 
 interface CompanyProfile {
@@ -39,7 +41,12 @@ interface CompanyProfile {
   logo_url: string | null
 }
 
-export default function ClientCompanyProfile() {
+interface ClientCompanyProfileProps {
+  userProfile: UserProfile
+}
+
+export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfileProps) {
+  const router = useRouter()
   const supabase = createBrowserClient()
 
   const [profile, setProfile] = useState<CompanyProfile | null>(null)
@@ -51,80 +58,97 @@ export default function ClientCompanyProfile() {
   const [newBenefit, setNewBenefit] = useState('')
   const [newTechnology, setNewTechnology] = useState('')
 
-  // Load or create company profile
+  // Verify employer access on component mount
   useEffect(() => {
-    const loadCompanyProfile = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError) throw authError
-        if (!user) throw new Error('User not authenticated')
-
-        // Try to fetch existing company profile
-        const { data: existingProfile, error: profileError } = await supabase
-          .from('company_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
-
-        if (existingProfile && !profileError) {
-          setProfile(existingProfile)
-          return
-        }
-
-        // If error is not "no rows returned", it's a real error
-        if (profileError && profileError.code !== 'PGRST116') {
-          throw new Error(`Profile fetch error: ${profileError.message}`)
-        }
-
-        // Create new profile with default values
-        const newProfile: Partial<CompanyProfile> = {
-          user_id: user.id,
-          company_name: '',
-          industry: '',
-          company_size: '',
-          description: '',
-          founded_year: '',
-          employee_count: '',
-          website: '',
-          country: '',
-          city: '',
-          address: '',
-          benefits: [],
-          technologies: [],
-          culture: '',
-          hr_email: user.email || '',
-          phone: '',
-          contact_person: '',
-          logo_url: null
-        }
-
-        const { data: createdProfile, error: createError } = await supabase
-          .from('company_profiles')
-          .insert([newProfile])
-          .select()
-          .single()
-
-        if (createError) {
-          throw new Error(`Profile creation error: ${createError.message}`)
-        }
-
-        setProfile(createdProfile)
-        setIsFirstTimeSetup(true)
-
-      } catch (err) {
-        const errorMessage = getUserFriendlyErrorMessage(err)
-        logError('company-profile-load', err)
-        setError(errorMessage)
-      } finally {
-        setLoading(false)
+    const verifyAccess = async () => {
+      const { profile: currentProfile, error: accessError } = await clientAuth.requireEmployerAccess()
+      
+      if (accessError || !currentProfile) {
+        showErrorToast(
+          new Error(accessError || 'Access denied'), 
+          'employer-access-check'
+        )
+        router.push('/unauthorized?reason=insufficient_permissions')
+        return
       }
+
+      // Profile is verified, proceed with loading company profile
+      loadCompanyProfile()
     }
 
-    loadCompanyProfile()
-  }, [])
+    verifyAccess()
+  }, [router])
+
+  // Load or create company profile
+  const loadCompanyProfile = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      if (!user) throw new Error('User not authenticated')
+
+      // Try to fetch existing company profile
+      const { data: existingProfile, error: profileError } = await supabase
+        .from('company_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (existingProfile && !profileError) {
+        setProfile(existingProfile)
+        return
+      }
+
+      // If error is not "no rows returned", it's a real error
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw new Error(`Profile fetch error: ${profileError.message}`)
+      }
+
+      // Create new profile with default values
+      const newProfile: Partial<CompanyProfile> = {
+        user_id: user.id,
+        company_name: '',
+        industry: '',
+        company_size: '',
+        description: '',
+        founded_year: '',
+        employee_count: '',
+        website: '',
+        country: '',
+        city: '',
+        address: '',
+        benefits: [],
+        technologies: [],
+        culture: '',
+        hr_email: user.email || '',
+        phone: '',
+        contact_person: '',
+        logo_url: null
+      }
+
+      const { data: createdProfile, error: createError } = await supabase
+        .from('company_profiles')
+        .insert([newProfile])
+        .select()
+        .single()
+
+      if (createError) {
+        throw new Error(`Profile creation error: ${createError.message}`)
+      }
+
+      setProfile(createdProfile)
+      setIsFirstTimeSetup(true)
+
+    } catch (err) {
+      const errorMessage = getUserFriendlyErrorMessage(err)
+      logError('company-profile-load', err)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const updateProfile = (field: keyof CompanyProfile, value: any) => {
     if (!profile) return
@@ -197,6 +221,12 @@ export default function ClientCompanyProfile() {
     try {
       setSaving(true)
       setError(null)
+
+      // Double-check employer access before saving
+      const { error: accessError } = await clientAuth.requireEmployerAccess()
+      if (accessError) {
+        throw new Error('You must have employer privileges to save company profiles')
+      }
 
       const { error: updateError } = await supabase
         .from('company_profiles')
@@ -329,6 +359,12 @@ export default function ClientCompanyProfile() {
             <p className="text-sm text-[#333333] mt-1">
               {profile.company_name || 'Company Profile'}
             </p>
+            <div className="mt-2 text-xs text-gray-500">
+              Logged in as: {userProfile.name || userProfile.email}
+              <Badge variant="secondary" className="ml-2 text-xs">
+                {userProfile.role}
+              </Badge>
+            </div>
           </div>
           <nav className="px-4 space-y-2">
             <Link
@@ -527,6 +563,7 @@ export default function ClientCompanyProfile() {
                       <MapPin className="w-5 h-5 mr-2" />
                       Location
                     </CardTitle>
+                    <CardDescription>Where is your company located?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -546,18 +583,19 @@ export default function ClientCompanyProfile() {
                           id="city" 
                           value={profile.city || ''} 
                           onChange={(e) => updateProfile('city', e.target.value)}
-                          placeholder="e.g., San Francisco"
+                          placeholder="e.g., New York"
                           disabled={saving || uploading}
                         />
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="address">Office Address</Label>
+                      <Label htmlFor="address">Full Address</Label>
                       <Input 
                         id="address" 
                         value={profile.address || ''} 
                         onChange={(e) => updateProfile('address', e.target.value)}
-                        placeholder="Full office address"
+                        placeholder="Enter your company address"
                         disabled={saving || uploading}
                       />
                     </div>
@@ -567,40 +605,42 @@ export default function ClientCompanyProfile() {
                 {/* Benefits */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-[#0A2540]">Benefits & Perks</CardTitle>
-                    <CardDescription>What do you offer your employees?</CardDescription>
+                    <CardTitle className="text-[#0A2540]">Employee Benefits</CardTitle>
+                    <CardDescription>What benefits do you offer to employees?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {(profile.benefits || []).map((benefit, index) => (
-                        <Badge key={index} variant="secondary" className="px-3 py-1">
-                          {benefit}
-                          <X 
-                            className="w-3 h-3 ml-2 cursor-pointer" 
-                            onClick={() => removeBenefit(index)}
-                          />
-                        </Badge>
-                      ))}
-                      {(!profile.benefits || profile.benefits.length === 0) && (
-                        <p className="text-gray-500 text-sm">No benefits added yet. Add some below!</p>
-                      )}
-                    </div>
                     <div className="flex space-x-2">
-                      <Input 
-                        placeholder="Add a benefit..." 
+                      <Input
+                        placeholder="Add a benefit..."
                         value={newBenefit}
                         onChange={(e) => setNewBenefit(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
                         disabled={saving || uploading}
                       />
                       <Button 
-                        type="button"
-                        onClick={addBenefit}
-                        className="bg-[#00C49A] hover:bg-[#00A085]"
-                        disabled={!newBenefit.trim() || saving || uploading}
+                        type="button" 
+                        onClick={addBenefit} 
+                        size="sm"
+                        disabled={saving || uploading || !newBenefit.trim()}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {profile.benefits.map((benefit, index) => (
+                        <Badge key={index} variant="secondary" className="pr-1">
+                          {benefit}
+                          <button
+                            type="button"
+                            onClick={() => removeBenefit(index)}
+                            className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                            disabled={saving || uploading}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -608,40 +648,42 @@ export default function ClientCompanyProfile() {
                 {/* Technologies */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-[#0A2540]">Technologies & Tools</CardTitle>
-                    <CardDescription>Your company's technology stack</CardDescription>
+                    <CardTitle className="text-[#0A2540]">Technologies Used</CardTitle>
+                    <CardDescription>What technologies does your company use?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {(profile.technologies || []).map((tech, index) => (
-                        <Badge key={index} variant="outline" className="px-3 py-1">
-                          {tech}
-                          <X 
-                            className="w-3 h-3 ml-2 cursor-pointer" 
-                            onClick={() => removeTechnology(index)}
-                          />
-                        </Badge>
-                      ))}
-                      {(!profile.technologies || profile.technologies.length === 0) && (
-                        <p className="text-gray-500 text-sm">No technologies added yet. Add some below!</p>
-                      )}
-                    </div>
                     <div className="flex space-x-2">
-                      <Input 
-                        placeholder="Add a technology..." 
+                      <Input
+                        placeholder="Add a technology..."
                         value={newTechnology}
                         onChange={(e) => setNewTechnology(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTechnology())}
                         disabled={saving || uploading}
                       />
                       <Button 
-                        type="button"
-                        onClick={addTechnology}
-                        className="bg-[#00C49A] hover:bg-[#00A085]"
-                        disabled={!newTechnology.trim() || saving || uploading}
+                        type="button" 
+                        onClick={addTechnology} 
+                        size="sm"
+                        disabled={saving || uploading || !newTechnology.trim()}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {profile.technologies.map((tech, index) => (
+                        <Badge key={index} variant="secondary" className="pr-1">
+                          {tech}
+                          <button
+                            type="button"
+                            onClick={() => removeTechnology(index)}
+                            className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                            disabled={saving || uploading}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -650,20 +692,16 @@ export default function ClientCompanyProfile() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[#0A2540]">Company Culture</CardTitle>
-                    <CardDescription>Describe your work environment and values</CardDescription>
+                    <CardDescription>Describe your company culture and work environment</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="culture">Culture Description</Label>
-                      <Textarea
-                        id="culture"
-                        placeholder="Describe your work atmosphere, team values, and approach to work..."
-                        className="min-h-[100px]"
-                        value={profile.culture || ''}
-                        onChange={(e) => updateProfile('culture', e.target.value)}
-                        disabled={saving || uploading}
-                      />
-                    </div>
+                  <CardContent>
+                    <Textarea
+                      placeholder="Tell us about your company culture, work environment, team dynamics..."
+                      className="min-h-[120px]"
+                      value={profile.culture || ''}
+                      onChange={(e) => updateProfile('culture', e.target.value)}
+                      disabled={saving || uploading}
+                    />
                   </CardContent>
                 </Card>
 
@@ -671,14 +709,26 @@ export default function ClientCompanyProfile() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[#0A2540]">Contact Information</CardTitle>
+                    <CardDescription>How can candidates reach out?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contact_person">Contact Person</Label>
+                      <Input 
+                        id="contact_person" 
+                        value={profile.contact_person || ''} 
+                        onChange={(e) => updateProfile('contact_person', e.target.value)}
+                        placeholder="Name of primary contact"
+                        disabled={saving || uploading}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="hrEmail">HR Department Email</Label>
+                        <Label htmlFor="hr_email">HR Email</Label>
                         <Input 
-                          id="hrEmail" 
-                          type="email" 
+                          id="hr_email" 
+                          type="email"
                           value={profile.hr_email || ''} 
                           onChange={(e) => updateProfile('hr_email', e.target.value)}
                           placeholder="hr@company.com"
@@ -695,16 +745,6 @@ export default function ClientCompanyProfile() {
                           disabled={saving || uploading}
                         />
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="hrName">Contact Person</Label>
-                      <Input 
-                        id="hrName" 
-                        value={profile.contact_person || ''} 
-                        onChange={(e) => updateProfile('contact_person', e.target.value)}
-                        placeholder="Jane Smith, HR Manager"
-                        disabled={saving || uploading}
-                      />
                     </div>
                   </CardContent>
                 </Card>
