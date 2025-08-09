@@ -135,8 +135,8 @@ export async function signupAction(_prev: unknown, formData: FormData): Promise<
 
     // For employers, set first_name and last_name to empty strings if not provided
     if (parsedData.role === "employer") {
-      parsedData.first_name = parsedData.first_name || ""
-      parsedData.last_name = parsedData.last_name || ""
+      parsedData.first_name = ""
+      parsedData.last_name = ""
     }
 
     // Additional validation for required fields (job seekers only)

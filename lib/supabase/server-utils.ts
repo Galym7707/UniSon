@@ -69,7 +69,7 @@ export async function createUserAccount(data: SignupData) {
       // For employers, only include company_name, leave names as null
       profileData.first_name = null
       profileData.last_name = null
-      profileData.company_name = data.companyName ?? null
+      profileData.company_name = data.companyName?.trim() || null
     }
 
     const { error: profErr } = await supabaseAdmin.from("profiles").insert(profileData)
@@ -218,7 +218,7 @@ export async function createUserAccount(data: SignupData) {
     try {
       const { error: companyErr } = await supabaseAdmin.from("company_profiles").insert({
         user_id: userId,
-        company_name: data.companyName,
+        company_name: data.companyName?.trim() || "",
         website: "",
         industry: "",
         company_size: "",
