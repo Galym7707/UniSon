@@ -7,12 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LayoutDashboard, User, Search, Settings, Heart, MapPin, Clock, Building2, Brain, AlertCircle, Sparkles, Filter } from "lucide-react"
+import { MapPin, Clock, Building2, AlertCircle, Sparkles, Filter, Heart, Search } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Header } from '@/components/header-landing'
-import { Footer } from '@/components/footer'
-import { usePathname } from 'next/navigation'
+import JobSeekerLayout from '@/components/JobSeekerLayout'
 
 type Job = {
   id: string
@@ -30,31 +28,7 @@ type Job = {
   reasoning?: string
 }
 
-const SidebarLink = ({ href, icon, children, pathname }: {
-  href: string
-  icon: React.ReactNode
-  children: React.ReactNode
-  pathname: string
-}) => {
-  const isActive = pathname === href
-  
-  return (
-    <Link
-      href={href}
-      className={`flex items-center px-4 py-3 rounded-lg ${
-        isActive 
-          ? 'text-[#00C49A] bg-[#00C49A]/10' 
-          : 'text-[#333333] hover:bg-gray-100'
-      }`}
-    >
-      <div className="w-5 h-5 mr-3">{icon}</div>
-      {children}
-    </Link>
-  )
-}
-
 export default function JobsPage() {
-  const pathname = usePathname()
   const [jobs, setJobs] = useState<Job[]>([])
   const [recommendations, setRecommendations] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
@@ -288,174 +262,127 @@ export default function JobsPage() {
   )
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* Sidebar */}
-          <div className="w-64 bg-white shadow-sm border-r">
-            <div className="p-6">
-              <Link href="/" className="text-xl font-bold text-[#0A2540]">
-                Unison AI
-              </Link>
-            </div>
-            <nav className="px-4 space-y-2">
-              <SidebarLink href="/job-seeker/dashboard" icon={<LayoutDashboard />} pathname={pathname}>
-                Dashboard
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/profile" icon={<User />} pathname={pathname}>
-                Profile
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/test" icon={<Brain />} pathname={pathname}>
-                Test
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/jobs" icon={<Search />} pathname={pathname}>
-                Browse Jobs
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/search" icon={<Search />} pathname={pathname}>
-                Job Search
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/saved" icon={<Heart />} pathname={pathname}>
-                Saved
-              </SidebarLink>
-              
-              <SidebarLink href="/job-seeker/settings" icon={<Settings />} pathname={pathname}>
-                Settings
-              </SidebarLink>
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 p-8">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-[#0A2540] mb-2">Browse Jobs</h1>
-                  <p className="text-gray-600">
-                    {jobs.length > 0 ? `${jobs.length} job opportunities available` : 'Discover your next opportunity'}
-                  </p>
-                </div>
-              </div>
-
-              {message && (
-                <Alert className={`mb-6 ${
-                  message.type === 'success' 
-                    ? 'border-green-200 bg-green-50' 
-                    : 'border-red-200 bg-red-50'
-                }`}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
-                    {message.text}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Recommended for You Section */}
-              {recommendations.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="w-6 h-6 text-[#00C49A]" />
-                    <h2 className="text-2xl font-bold text-[#0A2540]">Recommended for You</h2>
-                  </div>
-                  <p className="text-gray-600 mb-6">AI-curated job matches based on your profile and preferences</p>
-                  
-                  {recommendationsLoading ? (
-                    <div className="text-center py-8">
-                      <LoadingSpinner className="w-6 h-6 mx-auto" />
-                      <p className="text-gray-600 mt-2">Loading recommendations...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 mb-8">
-                      {recommendations.slice(0, 3).map((job) => (
-                        <JobCard key={job.id} job={job} isRecommendation={true} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Filter Controls */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">Filter by AI Match Score:</span>
-                </div>
-                <Select value={matchScoreFilter} onValueChange={setMatchScoreFilter}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All matches" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All matches</SelectItem>
-                    <SelectItem value="80+">80%+ (Excellent match)</SelectItem>
-                    <SelectItem value="60-79">60-79% (Good match)</SelectItem>
-                    <SelectItem value="40-59">40-59% (Fair match)</SelectItem>
-                    <SelectItem value="<40">Below 40%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Jobs List */}
-              <div>
-                <h2 className="text-xl font-bold text-[#0A2540] mb-4">All Job Listings</h2>
-                {loading ? (
-                  <div className="text-center py-12">
-                    <LoadingSpinner className="w-8 h-8 mx-auto" />
-                    <p className="text-gray-600 mt-4">Loading jobs...</p>
-                  </div>
-                ) : error ? (
-                  <Card className="border-red-200 bg-red-50">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-center text-center">
-                        <div>
-                          <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold text-red-700 mb-2">Failed to Load Jobs</h3>
-                          <p className="text-red-600 mb-4">{error}</p>
-                          <Button
-                            onClick={loadJobs}
-                            variant="outline"
-                            className="border-red-300 text-red-700 hover:bg-red-100"
-                          >
-                            Try Again
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : filteredJobs.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-12">
-                      <div className="text-center">
-                        <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                          {matchScoreFilter === 'all' ? 'No Jobs Available' : 'No Jobs Match Your Filter'}
-                        </h3>
-                        <p className="text-gray-500">
-                          {matchScoreFilter === 'all' 
-                            ? 'Check back later for new opportunities.' 
-                            : 'Try adjusting your match score filter to see more results.'
-                          }
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredJobs.map((job) => (
-                      <JobCard key={job.id} job={job} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+    <JobSeekerLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-[#0A2540] mb-2">Browse Jobs</h1>
+            <p className="text-gray-600">
+              {jobs.length > 0 ? `${jobs.length} job opportunities available` : 'Discover your next opportunity'}
+            </p>
           </div>
         </div>
+
+        {message && (
+          <Alert className={`mb-6 ${
+            message.type === 'success' 
+              ? 'border-green-200 bg-green-50' 
+              : 'border-red-200 bg-red-50'
+          }`}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Recommended for You Section */}
+        {recommendations.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-6 h-6 text-[#00C49A]" />
+              <h2 className="text-2xl font-bold text-[#0A2540]">Recommended for You</h2>
+            </div>
+            <p className="text-gray-600 mb-6">AI-curated job matches based on your profile and preferences</p>
+            
+            {recommendationsLoading ? (
+              <div className="text-center py-8">
+                <LoadingSpinner className="w-6 h-6 mx-auto" />
+                <p className="text-gray-600 mt-2">Loading recommendations...</p>
+              </div>
+            ) : (
+              <div className="space-y-4 mb-8">
+                {recommendations.slice(0, 3).map((job) => (
+                  <JobCard key={job.id} job={job} isRecommendation={true} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Filter Controls */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Filter by AI Match Score:</span>
+          </div>
+          <Select value={matchScoreFilter} onValueChange={setMatchScoreFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All matches" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All matches</SelectItem>
+              <SelectItem value="80+">80%+ (Excellent match)</SelectItem>
+              <SelectItem value="60-79">60-79% (Good match)</SelectItem>
+              <SelectItem value="40-59">40-59% (Fair match)</SelectItem>
+              <SelectItem value="<40">Below 40%</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Jobs List */}
+        <div>
+          <h2 className="text-xl font-bold text-[#0A2540] mb-4">All Job Listings</h2>
+          {loading ? (
+            <div className="text-center py-12">
+              <LoadingSpinner className="w-8 h-8 mx-auto" />
+              <p className="text-gray-600 mt-4">Loading jobs...</p>
+            </div>
+          ) : error ? (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-center text-center">
+                  <div>
+                    <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-red-700 mb-2">Failed to Load Jobs</h3>
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <Button
+                      onClick={loadJobs}
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-100"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : filteredJobs.length === 0 ? (
+            <Card>
+              <CardContent className="p-12">
+                <div className="text-center">
+                  <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    {matchScoreFilter === 'all' ? 'No Jobs Available' : 'No Jobs Match Your Filter'}
+                  </h3>
+                  <p className="text-gray-500">
+                    {matchScoreFilter === 'all' 
+                      ? 'Check back later for new opportunities.' 
+                      : 'Try adjusting your match score filter to see more results.'
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <Footer />
-    </>
+    </JobSeekerLayout>
   )
 }

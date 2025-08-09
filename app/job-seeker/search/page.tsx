@@ -11,11 +11,10 @@ import { Label } from "@/components/ui/label"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { LayoutDashboard, User, Search, Settings, Heart, MapPin, Clock, Building2, Filter, Brain, AlertCircle } from "lucide-react"
+import { MapPin, Clock, Building2, Filter, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Header } from '@/components/header-landing'
-import { Footer } from '@/components/footer'
+import JobSeekerLayout from '@/components/JobSeekerLayout'
 
 type Job = {
   id: string
@@ -235,90 +234,293 @@ export default function JobSearch() {
   }
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* Sidebar */}
-          <div className="w-64 bg-white shadow-sm border-r">
-            <div className="p-6">
-              <Link href="/" className="text-xl font-bold text-[#0A2540]">
-                Unison AI
-              </Link>
-            </div>
-            <nav className="px-4 space-y-2">
-              <Link
-                href="/job-seeker/dashboard"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <LayoutDashboard className="w-5 h-5 mr-3" />
-                Dashboard
-              </Link>
-              <Link
-                href="/job-seeker/profile"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <User className="w-5 h-5 mr-3" />
-                Profile
-              </Link>
-              <Link
-                href="/job-seeker/test"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Brain className="w-5 h-5 mr-3" />
-                Test
-              </Link>
-              <Link
-                href="/job-seeker/search"
-                className="flex items-center px-4 py-3 text-[#00C49A] bg-[#00C49A]/10 rounded-lg"
-              >
-                <Search className="w-5 h-5 mr-3" />
-                Job Search
-              </Link>
-              <Link
-                href="/job-seeker/saved"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Heart className="w-5 h-5 mr-3" />
-                Saved
-              </Link>
-              <Link
-                href="/job-seeker/settings"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Settings className="w-5 h-5 mr-3" />
-                Settings
-              </Link>
-            </nav>
+    <JobSeekerLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
+
+        {message && (
+          <Alert className={`mb-4 ${
+            message.type === 'success' 
+              ? 'border-green-200 bg-green-50' 
+              : 'border-red-200 bg-red-50'
+          }`}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+              {message.text}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Filters Sidebar */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Search */}
+                <div className="space-y-2">
+                  <Label htmlFor="search">Search Keywords</Label>
+                  <Input
+                    id="search"
+                    placeholder="Job title, skills, company..."
+                    value={filters.search}
+                    onChange={(e) => updateFilters('search', e.target.value)}
+                  />
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label>Location</Label>
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country.id} value={country.id}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedCountry && (
+                    <Select value={filters.location} onValueChange={(value) => updateFilters('location', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select city" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={city.name}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Salary Range */}
+                <div className="space-y-2">
+                  <Label>Salary Range (₽)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Min"
+                      value={filters.salary_min}
+                      onChange={(e) => updateFilters('salary_min', e.target.value)}
+                    />
+                    <Input
+                      placeholder="Max"
+                      value={filters.salary_max}
+                      onChange={(e) => updateFilters('salary_max', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Employment Types */}
+                <div className="space-y-2">
+                  <Label>Employment Type</Label>
+                  <div className="space-y-2">
+                    {['full-time', 'part-time', 'contract', 'internship'].map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={type}
+                          checked={filters.employment_types.includes(type)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              updateFilters('employment_types', [...filters.employment_types, type])
+                            } else {
+                              updateFilters('employment_types', filters.employment_types.filter(t => t !== type))
+                            }
+                          }}
+                        />
+                        <Label htmlFor={type} className="text-sm capitalize">
+                          {type.replace('-', ' ')}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Remote Only */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remote"
+                    checked={filters.remote_only}
+                    onCheckedChange={(checked) => updateFilters('remote_only', checked)}
+                  />
+                  <Label htmlFor="remote" className="text-sm">Remote only</Label>
+                </div>
+
+                {/* Experience Level */}
+                <div className="space-y-2">
+                  <Label>Experience Level</Label>
+                  <Select value={filters.experience_level} onValueChange={(value) => updateFilters('experience_level', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entry">Entry Level</SelectItem>
+                      <SelectItem value="junior">Junior</SelectItem>
+                      <SelectItem value="mid">Mid Level</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                      <SelectItem value="lead">Lead</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 p-8">
-            <div className="max-w-6xl mx-auto">
-              <h1 className="text-3xl font-bold text-[#0A2540] mb-8">Job Search</h1>
-
-              {message && (
-                <Alert className={`mb-4 ${
-                  message.type === 'success' 
-                    ? 'border-green-200 bg-green-50' 
-                    : 'border-red-200 bg-red-50'
-                }`}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>
-                    {message.text}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid lg:grid-cols-4 gap-8">
-                {/* Filter content omitted for brevity - keeping original filter logic */}
-                {/* ... (rest of the component remains the same) ... */}
+          {/* Results */}
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-[#0A2540]">
+                  {jobsLoading ? 'Searching...' : `${jobs.length} jobs found`}
+                </h2>
+                <p className="text-sm text-gray-600">Find your perfect match</p>
               </div>
+              
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="match">Best Match</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="salary">Highest Salary</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {jobsError ? (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-red-700">
+                  {jobsError}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                {jobsLoading ? (
+                  // Loading skeletons
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-6">
+                        <div className="animate-pulse">
+                          <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                          <div className="flex gap-2 mb-4">
+                            <div className="h-6 bg-gray-200 rounded w-16"></div>
+                            <div className="h-6 bg-gray-200 rounded w-20"></div>
+                          </div>
+                          <div className="h-4 bg-gray-200 rounded"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : jobs.length > 0 ? (
+                  jobs.map((job) => (
+                    <Card key={job.id} className="hover:shadow-lg transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-xl font-semibold text-[#0A2540]">{job.title}</h3>
+                              {job.match_score && (
+                                <Badge className="bg-[#00C49A] text-white">
+                                  {job.match_score}% match
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-4 text-sm text-[#333333] mb-3">
+                              <div className="flex items-center">
+                                <Building2 className="w-4 h-4 mr-1" />
+                                {job.company}
+                              </div>
+                              <div className="flex items-center">
+                                <MapPin className="w-4 h-4 mr-1" />
+                                {job.location}
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1" />
+                                {formatDate(job.posted_at)}
+                              </div>
+                            </div>
+
+                            <p className="text-[#333333] mb-4 line-clamp-2">{job.description}</p>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-wrap gap-2">
+                                {job.skills?.slice(0, 3).map((skill) => (
+                                  <Badge key={skill} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                                {job.skills?.length > 3 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{job.skills.length - 3} more
+                                  </Badge>
+                                )}
+                                {job.remote && (
+                                  <Badge className="bg-[#00C49A] text-white text-xs">Remote</Badge>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-[#0A2540]">
+                                  {formatSalary(job.salary_min, job.salary_max)}
+                                </p>
+                                <p className="text-sm text-[#333333]">{job.employment_type}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="ml-6 flex flex-col gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => saveJob(job.id)}
+                              disabled={savingJob === job.id}
+                            >
+                              {savingJob === job.id ? (
+                                <LoadingSpinner className="w-4 h-4" />
+                              ) : (
+                                'Save'
+                              )}
+                            </Button>
+                            <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white" size="sm">
+                              Apply
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <div className="text-gray-400 mb-4">
+                        <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-[#0A2540] mb-2">No jobs found</h3>
+                      <p className="text-[#333333]">Try adjusting your search criteria</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </JobSeekerLayout>
   )
 }
