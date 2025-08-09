@@ -44,6 +44,66 @@ const SidebarLink = ({ href, icon, children, pathname }: {
   )
 }
 
+interface JobRecommendation {
+  id: string
+  title: string
+  company: string
+  location: string
+  match_score: number
+  reasoning: string
+}
+
+const RecommendedJobs = ({ recommendations, loading }: { recommendations: JobRecommendation[], loading: boolean }) => {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="border-l-2 border-gray-200 pl-3 animate-pulse">
+            <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+            <div className="h-3 bg-gray-100 rounded mb-1 w-1/2"></div>
+            <div className="h-3 bg-gray-100 rounded w-2/3"></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (recommendations.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <div className="text-gray-400 mb-2">
+          <Star className="h-8 w-8 mx-auto" />
+        </div>
+        <p className="text-sm text-gray-600">
+          Complete your profile to get personalized job recommendations
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {recommendations.map((job) => (
+        <div key={job.id} className="border-l-2 border-purple-200 pl-3 pb-3 border-b border-gray-100 last:border-b-0">
+          <div className="flex items-start justify-between mb-2">
+            <h4 className="font-medium text-gray-900 flex-1">{job.title}</h4>
+            <span className="text-xs font-semibold px-2 py-1 bg-green-100 text-green-800 rounded-full ml-2">
+              {job.match_score}% match
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+            <Building2 className="h-3 w-3" />
+            {job.company}
+            <MapPin className="h-3 w-3 ml-2" />
+            {job.location}
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">{job.reasoning}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const supabase = createBrowserClient()
   const pathname = usePathname()
@@ -53,20 +113,49 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [recommendations, setRecommendations] = useState<JobRecommendation[]>([])
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   
   /* ─────── activity logs ─────── */
   const { activities, loading: activitiesLoading } = useActivityLogs()
 
   /* ─────── effects ─────── */
   useEffect(() => {
-    const calculateProfileCompleteness = () => {
-      // Mock calculation for now
-      setProfilePct(35)
-      setLoading(false)
+    const initializeDashboard = async () => {
+      try {
+        // Calculate profile completeness
+        setProfilePct(35)
+        
+        // Fetch job recommendations
+        await fetchRecommendations()
+        
+        setLoading(false)
+      } catch (err) {
+        console.error('Dashboard initialization error:', err)
+        setError(getUserFriendlyErrorMessage(err))
+        setLoading(false)
+      }
     }
 
-    calculateProfileCompleteness()
+    initializeDashboard()
   }, [])
+
+  const fetchRecommendations = async () => {
+    setRecommendationsLoading(true)
+    try {
+      const response = await fetch('/api/recommendations')
+      if (response.ok) {
+        const data = await response.json()
+        setRecommendations(data.recommendations || [])
+      } else {
+        console.error('Failed to fetch recommendations:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error)
+    } finally {
+      setRecommendationsLoading(false)
+    }
+  }
 
   /* ─────── loading/error states ─────── */
   if (loading) {
@@ -234,35 +323,10 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="border-l-2 border-purple-200 pl-3">
-                      <h4 className="font-medium">Software Engineer</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Building2 className="h-3 w-3" />
-                        Tech Corp
-                        <MapPin className="h-3 w-3 ml-2" />
-                        San Francisco
-                      </div>
-                    </div>
-                    <div className="border-l-2 border-purple-200 pl-3">
-                      <h4 className="font-medium">Product Designer</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Building2 className="h-3 w-3" />
-                        Design Studio
-                        <MapPin className="h-3 w-3 ml-2" />
-                        Remote
-                      </div>
-                    </div>
-                    <div className="border-l-2 border-purple-200 pl-3">
-                      <h4 className="font-medium">Data Analyst</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Building2 className="h-3 w-3" />
-                        Analytics Inc
-                        <MapPin className="h-3 w-3 ml-2" />
-                        New York
-                      </div>
-                    </div>
-                  </div>
+                  <RecommendedJobs 
+                    recommendations={recommendations} 
+                    loading={recommendationsLoading} 
+                  />
                 </CardContent>
               </Card>
 
