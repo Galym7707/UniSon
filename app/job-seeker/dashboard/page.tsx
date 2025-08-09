@@ -27,15 +27,15 @@ const SidebarLink = ({ href, icon, children, pathname }: {
   children: React.ReactNode
   pathname: string
 }) => {
-  const isActive = pathname === href
+  const isActive = pathname === href || pathname.startsWith(href + '/')
   
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md ${
+      className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
         isActive 
-          ? 'font-medium text-purple-600 bg-purple-50' 
-          : 'text-gray-700 hover:bg-gray-100'
+          ? 'font-medium text-[#00C49A] bg-[#00C49A]/10' 
+          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
       }`}
     >
       <div className="h-4 w-4">{icon}</div>
