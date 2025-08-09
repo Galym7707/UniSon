@@ -23,19 +23,15 @@ export async function GET(request: Request) {
 
       // Apply filters
       if (search) {
-        // Update skills reference to required_skills
-        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,required_skills.ilike.%${search}%`)
+        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,required_skills::text.ilike.%${search}%`)
       }
 
       if (location && location !== 'remote') {
-        // Parse location to check if it's a specific city or country
-        // For now, try to match both city and country columns
-        query = query.or(`city.ilike.%${location}%,country.ilike.%${location}%`)
+        query = query.or(`country.ilike.%${location}%,city.ilike.%${location}%`)
       }
 
       if (remoteOnly) {
-        // Update remote reference to remote_work_option (assuming true means remote is available)
-        query = query.eq('remote_work_option', true)
+        query = query.in('remote_work_option', ['yes', 'hybrid'])
       }
 
       if (salaryMin) {
