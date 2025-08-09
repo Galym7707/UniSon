@@ -2,6 +2,70 @@ import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { logError, logInfo, getUserFriendlyErrorMessage, ErrorType } from '@/lib/error-handling'
 
+// Function to calculate match score between job and candidate profile
+async function calculateJobMatchScore(job: any, candidateProfile: any): Promise<number> {
+  let skillsMatch = 0
+  let experienceMatch = 0
+
+  // Calculate skills match
+  const jobSkills = Array.isArray(job.required_skills) ? job.required_skills : []
+  const candidateSkills = candidateProfile.extracted_skills || []
+  
+  if (jobSkills.length > 0 && candidateSkills.length > 0) {
+    let matchedSkills = 0
+    let totalWeight = 0
+    
+    jobSkills.forEach((requiredSkill: string) => {
+      const skillLower = requiredSkill.toLowerCase()
+      const candidateSkill = candidateSkills.find((cs: any) => {
+        const csName = typeof cs === 'object' ? cs.skill.toLowerCase() : cs.toLowerCase()
+        return csName === skillLower || csName.includes(skillLower) || skillLower.includes(csName)
+      })
+      
+      if (candidateSkill) {
+        const confidence = typeof candidateSkill === 'object' ? candidateSkill.confidence || 0.8 : 0.8
+        matchedSkills += confidence
+      }
+      totalWeight += 1
+    })
+    
+    skillsMatch = totalWeight > 0 ? (matchedSkills / totalWeight) * 100 : 0
+  } else {
+    skillsMatch = candidateSkills.length > 0 ? 50 : 0
+  }
+
+  // Calculate experience match
+  const jobExpLevel = job.experience_level
+  const candidateExpLevel = candidateProfile.experience_level
+
+  if (jobExpLevel && candidateExpLevel) {
+    const expLevels = ['entry', 'mid', 'senior', 'lead', 'executive']
+    const jobExpIndex = expLevels.indexOf(jobExpLevel)
+    const candidateExpIndex = expLevels.indexOf(candidateExpLevel)
+    
+    if (jobExpIndex >= 0 && candidateExpIndex >= 0) {
+      const levelDiff = Math.abs(jobExpIndex - candidateExpIndex)
+      if (levelDiff === 0) {
+        experienceMatch = 100
+      } else if (levelDiff === 1) {
+        experienceMatch = 80
+      } else if (levelDiff === 2) {
+        experienceMatch = 60
+      } else {
+        experienceMatch = 40
+      }
+    } else {
+      experienceMatch = 50
+    }
+  } else {
+    experienceMatch = 50
+  }
+
+  // Calculate overall score (weighted average: 70% skills, 30% experience)
+  const overallScore = Math.round((skillsMatch * 0.7) + (experienceMatch * 0.3))
+  return Math.max(0, Math.min(100, overallScore))
+}
+
 interface QueryParams {
   search?: string | null
   location?: string | null
@@ -298,10 +362,45 @@ export async function GET(request: Request) {
       }) || []
 
       // Calculate match scores (simplified placeholder)
-      const jobsWithScores = transformedJobs.map((job: any) => ({
+      let jobsWithScores = transformedJobs.map((job: any) => ({
         ...job,
         match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
       }))
+
+      // Calculate match scores if user is authenticated
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          // Get candidate profile for match scoring
+          const { data: candidateProfile } = await supabase
+            .from('candidate_profiles')
+            .select('*')
+            .eq('candidate_id', user.id)
+            .single()
+          
+          if (candidateProfile) {
+            // Calculate match scores for each job
+            jobsWithScores = await Promise.all(
+              jobsWithScores.map(async (job: any) => {
+                try {
+                  const matchScore = await calculateJobMatchScore(job, candidateProfile)
+                  return {
+                    ...job,
+                    match_score: matchScore
+                  }
+                } catch (error) {
+                  console.error('Error calculating match score for job:', job.id, error)
+                  return job // Keep original score
+                }
+              })
+            )
+          }
+        }
+      } catch (authError) {
+        // User not authenticated or other auth error, continue without match scores
+        console.log('No authenticated user for match scoring')
+      }
 
       // Log successful query metrics
       logInfo('jobs-api-query-success', {
