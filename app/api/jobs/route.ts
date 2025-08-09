@@ -1,21 +1,157 @@
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
+import { logError, logInfo, getUserFriendlyErrorMessage, ErrorType } from '@/lib/error-handling'
+
+interface QueryParams {
+  search?: string | null
+  location?: string | null
+  salaryMin?: number | null
+  salaryMax?: number | null
+  employmentTypes?: string[]
+  remoteOnly?: boolean
+  experienceLevel?: string | null
+  sortBy?: string
+}
+
+interface QueryMetrics {
+  queryStartTime: number
+  queryEndTime?: number
+  resultCount?: number
+  filters: QueryParams
+  queryDurationMs?: number
+}
 
 export async function GET(request: Request) {
+  const queryStartTime = performance.now()
+  let queryParams: QueryParams = {}
+  let queryMetrics: QueryMetrics = {
+    queryStartTime,
+    filters: queryParams
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     
-    // Get search parameters
+    // Parse and validate search parameters
     const search = searchParams.get('search')
     const location = searchParams.get('location')
-    const salaryMin = searchParams.get('salary_min')
-    const salaryMax = searchParams.get('salary_max')
-    const employmentTypes = searchParams.get('employment_types')?.split(',')
+    const salaryMinStr = searchParams.get('salary_min')
+    const salaryMaxStr = searchParams.get('salary_max')
+    const employmentTypesStr = searchParams.get('employment_types')
     const remoteOnly = searchParams.get('remote_only') === 'true'
     const experienceLevel = searchParams.get('experience_level')
     const sortBy = searchParams.get('sort_by') || 'date'
 
-    const supabase = await createRouteHandlerClient()
+    // Validate and parse numeric parameters
+    let salaryMin: number | null = null
+    let salaryMax: number | null = null
+
+    if (salaryMinStr) {
+      const parsed = parseInt(salaryMinStr)
+      if (isNaN(parsed) || parsed < 0) {
+        const validationError = new Error(`Invalid salary_min parameter: ${salaryMinStr}`)
+        logError('jobs-api-validation', validationError, {
+          parameter: 'salary_min',
+          providedValue: salaryMinStr,
+          url: request.url
+        })
+        return NextResponse.json(
+          { error: 'Invalid salary_min parameter. Must be a positive number.' },
+          { status: 400 }
+        )
+      }
+      salaryMin = parsed
+    }
+
+    if (salaryMaxStr) {
+      const parsed = parseInt(salaryMaxStr)
+      if (isNaN(parsed) || parsed < 0) {
+        const validationError = new Error(`Invalid salary_max parameter: ${salaryMaxStr}`)
+        logError('jobs-api-validation', validationError, {
+          parameter: 'salary_max',
+          providedValue: salaryMaxStr,
+          url: request.url
+        })
+        return NextResponse.json(
+          { error: 'Invalid salary_max parameter. Must be a positive number.' },
+          { status: 400 }
+        )
+      }
+      salaryMax = parsed
+    }
+
+    // Validate salary range
+    if (salaryMin !== null && salaryMax !== null && salaryMin > salaryMax) {
+      const validationError = new Error(`Invalid salary range: min (${salaryMin}) > max (${salaryMax})`)
+      logError('jobs-api-validation', validationError, {
+        salaryMin,
+        salaryMax,
+        url: request.url
+      })
+      return NextResponse.json(
+        { error: 'Invalid salary range. Minimum salary cannot be greater than maximum salary.' },
+        { status: 400 }
+      )
+    }
+
+    // Parse employment types
+    let employmentTypes: string[] | undefined
+    if (employmentTypesStr) {
+      employmentTypes = employmentTypesStr.split(',').map(type => type.trim()).filter(Boolean)
+      if (employmentTypes.length === 0) {
+        employmentTypes = undefined
+      }
+    }
+
+    // Validate sort parameter
+    const validSortOptions = ['date', 'salary']
+    if (!validSortOptions.includes(sortBy)) {
+      const validationError = new Error(`Invalid sort_by parameter: ${sortBy}`)
+      logError('jobs-api-validation', validationError, {
+        parameter: 'sort_by',
+        providedValue: sortBy,
+        validOptions: validSortOptions,
+        url: request.url
+      })
+      return NextResponse.json(
+        { error: `Invalid sort_by parameter. Valid options are: ${validSortOptions.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    // Store query parameters for logging
+    queryParams = {
+      search,
+      location,
+      salaryMin,
+      salaryMax,
+      employmentTypes,
+      remoteOnly,
+      experienceLevel,
+      sortBy
+    }
+    queryMetrics.filters = queryParams
+
+    // Log query attempt
+    logInfo('jobs-api-query-start', {
+      queryId: crypto.randomUUID(),
+      filters: queryParams,
+      timestamp: new Date().toISOString()
+    })
+
+    let supabase
+    try {
+      supabase = await createRouteHandlerClient()
+    } catch (supabaseInitError) {
+      logError('jobs-api-supabase-init', supabaseInitError, {
+        context: 'Failed to initialize Supabase client',
+        url: request.url
+      })
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 503 }
+      )
+    }
 
     try {
       // Build query - select all columns to handle column mapping
@@ -34,12 +170,12 @@ export async function GET(request: Request) {
         query = query.in('remote_work_option', ['yes', 'hybrid'])
       }
 
-      if (salaryMin) {
-        query = query.gte('salary_min', parseInt(salaryMin))
+      if (salaryMin !== null) {
+        query = query.gte('salary_min', salaryMin)
       }
 
-      if (salaryMax) {
-        query = query.lte('salary_max', parseInt(salaryMax))
+      if (salaryMax !== null) {
+        query = query.lte('salary_max', salaryMax)
       }
 
       if (employmentTypes && employmentTypes.length > 0) {
@@ -62,10 +198,48 @@ export async function GET(request: Request) {
 
       const { data, error } = await query
 
+      queryMetrics.queryEndTime = performance.now()
+      queryMetrics.queryDurationMs = queryMetrics.queryEndTime - queryMetrics.queryStartTime
+      queryMetrics.resultCount = data?.length || 0
+
       if (error) {
-        console.error('Database query error:', error)
+        logError('jobs-api-database-error', error, {
+          queryParams,
+          supabaseError: {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          },
+          queryDurationMs: queryMetrics.queryDurationMs,
+          url: request.url
+        })
+
+        // Return appropriate error based on Supabase error code
+        if (error.code === 'PGRST116') {
+          return NextResponse.json(
+            { error: 'Invalid query parameters' },
+            { status: 400 }
+          )
+        }
+        if (error.code?.startsWith('08')) { // Connection errors
+          return NextResponse.json(
+            { error: 'Database connection error' },
+            { status: 503 }
+          )
+        }
+        if (error.code?.startsWith('42')) { // Schema/column errors
+          return NextResponse.json(
+            { error: 'Database schema error' },
+            { status: 500 }
+          )
+        }
+
         return NextResponse.json(
-          { error: 'Failed to fetch jobs from database' },
+          { error: process.env.NODE_ENV === 'production' 
+            ? 'Database error occurred' 
+            : `Database error: ${error.message}` 
+          },
           { status: 500 }
         )
       }
@@ -110,20 +284,52 @@ export async function GET(request: Request) {
         match_score: Math.floor(Math.random() * 30) + 70 // Placeholder match score
       }))
 
+      // Log successful query metrics
+      logInfo('jobs-api-query-success', {
+        queryParams,
+        resultCount: jobsWithScores.length,
+        queryDurationMs: queryMetrics.queryDurationMs,
+        timestamp: new Date().toISOString(),
+        performance: {
+          fast: queryMetrics.queryDurationMs! < 100,
+          acceptable: queryMetrics.queryDurationMs! < 1000,
+          slow: queryMetrics.queryDurationMs! >= 1000
+        }
+      })
+
       return NextResponse.json({ jobs: jobsWithScores }, { status: 200 })
 
     } catch (queryError) {
-      console.error('Database query execution error:', queryError)
+      logError('jobs-api-query-execution', queryError, {
+        queryParams,
+        context: 'Database query execution failed',
+        url: request.url,
+        queryDurationMs: performance.now() - queryStartTime
+      })
       return NextResponse.json(
         { error: 'Database query failed during execution' },
         { status: 500 }
       )
     }
 
-  } catch (error) {
-    console.error('Unexpected error in jobs API:', error)
+  } catch (unexpectedError) {
+    // Catch-all error handler
+    const queryDurationMs = performance.now() - queryStartTime
+    logError('jobs-api-unexpected-error', unexpectedError, {
+      queryParams,
+      context: 'Unexpected error in jobs API',
+      url: request.url,
+      queryDurationMs,
+      stack: unexpectedError instanceof Error ? unexpectedError.stack : undefined
+    })
+
+    // Return generic error message in production, detailed in development
+    const errorMessage = process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred' 
+      : getUserFriendlyErrorMessage(unexpectedError)
+
     return NextResponse.json(
-      { error: 'An unexpected error occurred while fetching jobs' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
