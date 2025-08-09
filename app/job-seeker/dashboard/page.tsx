@@ -18,6 +18,8 @@ import { ErrorDisplay } from "@/components/ui/error-display"
 import { getUserFriendlyErrorMessage } from "@/lib/error-handling"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
+import { useActivityLogs } from "@/hooks/use-activity-logs"
+import { ActivityFeed } from "@/components/activity-feed"
 
 const SidebarLink = ({ href, icon, children, pathname }: {
   href: string
@@ -51,6 +53,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  /* ─────── activity logs ─────── */
+  const { activities, loading: activitiesLoading } = useActivityLogs()
 
   /* ─────── effects ─────── */
   useEffect(() => {
@@ -270,35 +275,7 @@ export default function DashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-1 bg-green-50 rounded-full">
-                        <Calendar className="h-3 w-3 text-green-600" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">Profile updated</p>
-                        <p className="text-gray-600">2 days ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-1 bg-blue-50 rounded-full">
-                        <Users className="h-3 w-3 text-blue-600" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">Job application sent</p>
-                        <p className="text-gray-600">5 days ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-1 bg-purple-50 rounded-full">
-                        <Star className="h-3 w-3 text-purple-600" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">Assessment completed</p>
-                        <p className="text-gray-600">1 week ago</p>
-                      </div>
-                    </div>
-                  </div>
+                  <ActivityFeed activities={activities} loading={activitiesLoading} />
                 </CardContent>
               </Card>
             </div>
