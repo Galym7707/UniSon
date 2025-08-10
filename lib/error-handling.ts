@@ -1,4 +1,4 @@
-import React from "react"
+﻿import React from "react"
 import { toast } from "@/hooks/use-toast"
 
 export interface ApiError {
@@ -226,7 +226,7 @@ const getUserContext = (): ErrorContext => {
 }
 
 export const logInfo = (ctx: string, payload: any) => {
-  console.info(`ℹ️ [${ctx}]`, payload)
+  console.info(`в„№пёЏ [${ctx}]`, payload)
   /* optionally insert into Supabase edge_logs */
 }
 
@@ -271,7 +271,7 @@ export const logError = (context: string, error: any, userContext?: ErrorContext
                    severity === ErrorSeverity.MEDIUM ? 'warn' : 'error'
   
   if (errorType === ErrorType.HYDRATION) {
-    console.groupCollapsed(`🔄 [HYDRATION ERROR] ${context}`)
+    console.groupCollapsed(`рџ”„ [HYDRATION ERROR] ${context}`)
     console.error('Error ID:', structuredError.id)
     console.error('Message:', structuredError.message)
     console.error('Browser Extensions:', (combinedContext as any).hydrationContext?.browserExtensions || [])
@@ -281,7 +281,7 @@ export const logError = (context: string, error: any, userContext?: ErrorContext
     console.error('Stack Trace:', error?.stack)
     console.groupEnd()
   } else {
-    console[logLevel](`🚨 [${severity.toUpperCase()}] ${context}`, {
+    console[logLevel](`рџљЁ [${severity.toUpperCase()}] ${context}`, {
       errorId: structuredError.id,
       type: errorType,
       message: structuredError.message,
@@ -320,7 +320,7 @@ export const getUserFriendlyErrorMessage = (error: any): string => {
   // Common Supabase auth errors
   if (message.includes('User already registered')) return 'E-mail already registered'
 
-  if (message.includes('Email rate limit')) return 'Too many signup attempts – try later'
+  if (message.includes('Email rate limit')) return 'Too many signup attempts вЂ“ try later'
 
   if (message.includes('Invalid login credentials')) {
     return 'Invalid email or password. Please check your credentials and try again.'
@@ -500,14 +500,14 @@ export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ err
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
       const hydrationContext: HydrationErrorContext = {
         isHydrationError: isHydrationError(error),
-        componentStack: errorInfo.componentStack,
+        componentStack: errorInfo.componentStack || undefined,
         browserExtensions: detectBrowserExtensions(),
         retryCount: this.state.retryCount,
         renderPhase: 'client'
       }
 
       logError('react-error-boundary', error, {
-        componentStack: errorInfo.componentStack,
+        componentStack: errorInfo.componentStack || undefined,
         errorBoundary: true,
         ...(hydrationContext.isHydrationError ? { hydrationContext } : {})
       })
