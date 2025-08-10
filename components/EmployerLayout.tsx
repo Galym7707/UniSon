@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { LayoutDashboard, Briefcase, Building2, Users } from 'lucide-react'
 import { UserProfile } from '@/lib/auth-helpers-client'
+import EmployerHeader from '@/components/EmployerHeader'
 
 interface EmployerLayoutProps {
   children: ReactNode
@@ -42,8 +43,17 @@ export default function EmployerLayout({ children, userProfile, companyName }: E
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Employer Header */}
+      <EmployerHeader
+        userEmail={userProfile?.email}
+        userName={userProfile?.name || userProfile?.email}
+        userRole={userProfile?.role}
+        companyName={companyName}
+        isAuthenticated={!!userProfile}
+      />
+      
+      <div className="flex flex-1">
         {/* Sidebar */}
         <div className="w-64 bg-white shadow-sm border-r">
           <div className="p-6">
