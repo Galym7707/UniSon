@@ -42,6 +42,7 @@ export enum ErrorType {
   DATABASE = 'database',
   API = 'api',
   CLIENT = 'client',
+  HYDRATION = 'hydration',
   UNKNOWN = 'unknown'
 }
 
@@ -67,10 +68,72 @@ const generateErrorId = (): string => {
   return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
+// Hydration error detection utilities
+export const isHydrationError = (error: any): boolean => {
+  const message = error?.message?.toLowerCase() || ''
+  const stack = error?.stack?.toLowerCase() || ''
+  
+  return (
+    message.includes('hydration') ||
+    message.includes('hydrating') ||
+    message.includes('text content does not match') ||
+    message.includes('text content did not match') ||
+    message.includes('expected server html to contain') ||
+    message.includes('did not expect server html to contain') ||
+    message.includes('hydratingelement') ||
+    message.includes('hydration failed because the initial ui does not match') ||
+    stack.includes('hydrat') ||
+    stack.includes('hydrateroot') ||
+    (message.includes('error') && message.includes('server') && message.includes('client'))
+  )
+}
+
+// Detect browser extension interference
+const detectBrowserExtensions = (): string[] => {
+  const extensions: string[] = []
+  
+  if (typeof window !== 'undefined') {
+    // Common extension-injected elements/properties
+    if ((window as any).chrome?.runtime) extensions.push('chrome-extension')
+    if ((window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__) extensions.push('react-devtools')
+    if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) extensions.push('redux-devtools')
+    if (document.querySelector('[data-lastpass-icon-root]')) extensions.push('lastpass')
+    if (document.querySelector('[data-dashlane-rid]')) extensions.push('dashlane')
+    if (document.querySelector('[data-onepassword-extension]')) extensions.push('1password')
+    if (document.querySelector('grammarly-extension')) extensions.push('grammarly')
+    if (document.querySelector('[data-adblock]') || document.querySelector('.adsbygoogle')) extensions.push('adblocker')
+    
+    // Check for modified DOM that might indicate extensions
+    const bodyClasses = document.body.className
+    if (bodyClasses.includes('ext-') || bodyClasses.includes('extension-')) {
+      extensions.push('unknown-extension')
+    }
+  }
+  
+  return extensions
+}
+
+// Enhanced hydration error context
+export interface HydrationErrorContext extends ErrorContext {
+  isHydrationError: boolean
+  expectedContent?: string
+  actualContent?: string
+  browserExtensions: string[]
+  retryCount: number
+  componentStack?: string
+  elementType?: string
+  renderPhase: 'server' | 'client' | 'unknown'
+}
+
 // Classify error type based on error message/code
 const classifyError = (error: any): ErrorType => {
   const message = error?.message?.toLowerCase() || ''
   const code = error?.code?.toLowerCase() || ''
+  
+  // Check for hydration errors first
+  if (isHydrationError(error)) {
+    return ErrorType.HYDRATION
+  }
   
   if (message.includes('login') || message.includes('credentials') || 
       message.includes('unauthorized') || code.includes('auth')) {
@@ -120,7 +183,7 @@ const determineSeverity = (errorType: ErrorType, error: any): ErrorSeverity => {
   
   // Medium severity
   if (errorType === ErrorType.AUTHENTICATION || errorType === ErrorType.AUTHORIZATION ||
-      errorType === ErrorType.NETWORK) {
+      errorType === ErrorType.NETWORK || errorType === ErrorType.HYDRATION) {
     return ErrorSeverity.MEDIUM
   }
   
@@ -167,12 +230,27 @@ export const logInfo = (ctx: string, payload: any) => {
   /* optionally insert into Supabase edge_logs */
 }
 
-
-// Enhanced centralized error logging
+// Enhanced centralized error logging with hydration-specific handling
 export const logError = (context: string, error: any, userContext?: ErrorContext): StructuredError => {
   const errorType = classifyError(error)
   const severity = determineSeverity(errorType, error)
   const combinedContext = { ...getUserContext(), ...userContext }
+  
+  // Enhanced context for hydration errors
+  if (errorType === ErrorType.HYDRATION) {
+    const hydrationContext: HydrationErrorContext = {
+      ...combinedContext,
+      isHydrationError: true,
+      browserExtensions: detectBrowserExtensions(),
+      retryCount: (userContext as HydrationErrorContext)?.retryCount || 0,
+      renderPhase: 'client' as const, // Most hydration errors occur during client hydration
+      componentStack: (userContext as HydrationErrorContext)?.componentStack,
+      elementType: (userContext as HydrationErrorContext)?.elementType,
+      expectedContent: (userContext as HydrationErrorContext)?.expectedContent,
+      actualContent: (userContext as HydrationErrorContext)?.actualContent
+    }
+    combinedContext.hydrationContext = hydrationContext
+  }
   
   const structuredError: StructuredError = {
     id: generateErrorId(),
@@ -192,16 +270,28 @@ export const logError = (context: string, error: any, userContext?: ErrorContext
                    severity === ErrorSeverity.HIGH ? 'error' : 
                    severity === ErrorSeverity.MEDIUM ? 'warn' : 'error'
   
-  console[logLevel](`🚨 [${severity.toUpperCase()}] ${context}`, {
-    errorId: structuredError.id,
-    type: errorType,
-    message: structuredError.message,
-    code: structuredError.code,
-    timestamp: structuredError.timestamp,
-    userContext: combinedContext,
-    details: structuredError.details,
-    stack: error?.stack
-  })
+  if (errorType === ErrorType.HYDRATION) {
+    console.groupCollapsed(`🔄 [HYDRATION ERROR] ${context}`)
+    console.error('Error ID:', structuredError.id)
+    console.error('Message:', structuredError.message)
+    console.error('Browser Extensions:', (combinedContext as any).hydrationContext?.browserExtensions || [])
+    console.error('Retry Count:', (combinedContext as any).hydrationContext?.retryCount || 0)
+    console.error('Component Stack:', (combinedContext as any).hydrationContext?.componentStack || 'Not available')
+    console.error('Full Error Details:', error)
+    console.error('Stack Trace:', error?.stack)
+    console.groupEnd()
+  } else {
+    console[logLevel](`🚨 [${severity.toUpperCase()}] ${context}`, {
+      errorId: structuredError.id,
+      type: errorType,
+      message: structuredError.message,
+      code: structuredError.code,
+      timestamp: structuredError.timestamp,
+      userContext: combinedContext,
+      details: structuredError.details,
+      stack: error?.stack
+    })
+  }
   
   // In a real application, you would also send this to your logging service
   // Example: sendToLoggingService(structuredError)
@@ -218,9 +308,14 @@ export const getErrorMessage = (error: any): string => {
   return 'An unexpected error occurred'
 }
 
-// User-friendly error messages for common Supabase errors
+// User-friendly error messages for common Supabase errors and hydration errors
 export const getUserFriendlyErrorMessage = (error: any): string => {
   const message = getErrorMessage(error)
+  
+  // Hydration error messages
+  if (isHydrationError(error)) {
+    return 'The page is experiencing display issues. This is usually temporary and will resolve automatically.'
+  }
   
   // Common Supabase auth errors
   if (message.includes('User already registered')) return 'E-mail already registered'
@@ -275,6 +370,11 @@ export const getUserFriendlyErrorMessage = (error: any): string => {
 export const showErrorToast = (error: any, context?: string, userContext?: ErrorContext) => {
   const structuredError = context ? logError(context, error, userContext) : null
   const message = getUserFriendlyErrorMessage(error)
+  
+  // Don't show toast for hydration errors to avoid user confusion
+  if (isHydrationError(error)) {
+    return structuredError
+  }
   
   toast({
     variant: "destructive",
@@ -374,26 +474,64 @@ export const useAsyncOperation = () => {
   }
 }
 
-// Error boundary helper for React components
-export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ error: Error; reset: () => void }>) => {
+// Enhanced error boundary helper for React components with hydration support
+export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ error: Error; reset: () => void; isHydrationError?: boolean }>) => {
   return class extends React.Component<
     { children: React.ReactNode },
-    { hasError: boolean; error: Error | null }
+    { hasError: boolean; error: Error | null; retryCount: number; isHydrationError: boolean }
   > {
+    private retryTimeoutId: NodeJS.Timeout | null = null
+    private maxRetries = 3
+    private retryDelay = 1000 // 1 second
+
     constructor(props: { children: React.ReactNode }) {
       super(props)
-      this.state = { hasError: false, error: null }
+      this.state = { hasError: false, error: null, retryCount: 0, isHydrationError: false }
     }
 
     static getDerivedStateFromError(error: Error) {
-      return { hasError: true, error }
+      return { 
+        hasError: true, 
+        error,
+        isHydrationError: isHydrationError(error)
+      }
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+      const hydrationContext: HydrationErrorContext = {
+        isHydrationError: isHydrationError(error),
+        componentStack: errorInfo.componentStack,
+        browserExtensions: detectBrowserExtensions(),
+        retryCount: this.state.retryCount,
+        renderPhase: 'client'
+      }
+
       logError('react-error-boundary', error, {
         componentStack: errorInfo.componentStack,
-        errorBoundary: true
+        errorBoundary: true,
+        ...(hydrationContext.isHydrationError ? { hydrationContext } : {})
       })
+
+      // Auto-retry for hydration errors
+      if (hydrationContext.isHydrationError && this.state.retryCount < this.maxRetries) {
+        this.scheduleRetry()
+      }
+    }
+
+    scheduleRetry = () => {
+      this.retryTimeoutId = setTimeout(() => {
+        this.setState(prevState => ({
+          hasError: false,
+          error: null,
+          retryCount: prevState.retryCount + 1
+        }))
+      }, this.retryDelay * (this.state.retryCount + 1)) // Exponential backoff
+    }
+
+    componentWillUnmount() {
+      if (this.retryTimeoutId) {
+        clearTimeout(this.retryTimeoutId)
+      }
     }
 
     render() {
@@ -401,7 +539,8 @@ export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ err
         const FallbackComponent = fallbackComponent
         return React.createElement(FallbackComponent, {
           error: this.state.error,
-          reset: () => this.setState({ hasError: false, error: null })
+          isHydrationError: this.state.isHydrationError,
+          reset: () => this.setState({ hasError: false, error: null, retryCount: 0 })
         })
       }
 
