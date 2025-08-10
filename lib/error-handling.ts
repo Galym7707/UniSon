@@ -243,8 +243,8 @@ export const logError = (
     details: structuredError.details
   })
 
-  // Show user notification for appropriate severities
-  if (notify && structuredError.severity !== ErrorSeverity.LOW) {
+  // Show user notification for appropriate severities - only on client
+  if (notify && structuredError.severity !== ErrorSeverity.LOW && typeof window !== 'undefined') {
     const userMessage = getUserFriendlyMessage(structuredError)
     toast({
       title: "Error",
@@ -277,6 +277,108 @@ const getUserFriendlyMessage = (error: StructuredError): string => {
       return "The page is reloading to fix a display issue."
     default:
       return "An unexpected error occurred. Please try again."
+  }
+}
+
+// Export user-friendly error message getter
+export const getUserFriendlyErrorMessage = (error: any): string => {
+  const structuredError = createStructuredError('error-message', error)
+  return getUserFriendlyMessage(structuredError)
+}
+
+// Toast helper functions
+export const showErrorToast = (messageOrError: string | Error | any, context?: string) => {
+  let message: string;
+  
+  if (typeof messageOrError === 'string') {
+    message = messageOrError;
+  } else {
+    message = getUserFriendlyErrorMessage(messageOrError);
+    if (context) {
+      logError(context, messageOrError);
+    }
+  }
+  
+  // Only call toast if running in client environment
+  if (typeof window !== 'undefined') {
+    toast({
+      title: "Error",
+      description: message,
+      variant: "destructive",
+    })
+  } else {
+    // Log error on server side
+    console.error(`[showErrorToast] ${message}`)
+  }
+}
+
+export const showSuccessToast = (title: string, description?: string) => {
+  // Only call toast if running in client environment
+  if (typeof window !== 'undefined') {
+    toast({
+      title: title,
+      description: description || title,
+    })
+  } else {
+    // Log success on server side
+    console.log(`[showSuccessToast] ${title}: ${description || title}`)
+  }
+}
+
+// Log info function for API logging
+export const logInfo = (context: string, messageOrDetails: string | any, details?: any) => {
+  if (typeof messageOrDetails === 'string') {
+    console.info(`[${context}] ${messageOrDetails}`, details)
+  } else {
+    console.info(`[${context}]`, messageOrDetails)
+  }
+}
+
+// Async operation hook for better error handling
+export const useAsyncOperation = () => {
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [lastError, setLastError] = React.useState<StructuredError | null>(null)
+
+  const execute = async <T>(
+    operation: () => Promise<T>,
+    context: string,
+    options?: {
+      onError?: (message: string, error: StructuredError) => void
+    }
+  ): Promise<T | null> => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const result = await operation()
+      return result
+    } catch (err) {
+      const structuredError = createStructuredError(context, err)
+      const errorMessage = getUserFriendlyMessage(structuredError)
+      
+      setError(errorMessage)
+      setLastError(structuredError)
+      logError(context, err)
+      
+      options?.onError?.(errorMessage, structuredError)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  const clearError = () => {
+    setError(null)
+    setLastError(null)
+  }
+  
+  return {
+    isLoading,
+    error,
+    lastError,
+    execute,
+    clearError,
   }
 }
 
@@ -372,16 +474,16 @@ export class ErrorBoundary extends React.Component<
     if (this.state.hasError && this.state.error) {
       if (this.props.fallback) {
         const FallbackComponent = this.props.fallback
-        return <FallbackComponent error={this.state.error} retry={this.retry} />
+        return React.createElement(FallbackComponent, { error: this.state.error, retry: this.retry })
       }
 
       // Default fallback UI
-      return (
-        <div className="error-boundary">
-          <h2>Something went wrong</h2>
-          <p>{getUserFriendlyMessage(createStructuredError('error-boundary', this.state.error))}</p>
-          <button onClick={this.retry}>Try Again</button>
-        </div>
+      return React.createElement(
+        'div',
+        { className: 'error-boundary' },
+        React.createElement('h2', null, 'Something went wrong'),
+        React.createElement('p', null, getUserFriendlyMessage(createStructuredError('error-boundary', this.state.error))),
+        React.createElement('button', { onClick: this.retry }, 'Try Again')
       )
     }
 
@@ -429,28 +531,8 @@ export const withErrorRecovery = <T extends any[], R>(
       if (fallback !== undefined) {
         return fallback
       }
-<<<<<<< HEAD
       throw error
-=======
-      
-      options?.onError?.(errorMessage, structuredError)
-      return null
-    } finally {
-      setIsLoading(false)
     }
-  }
-  
-  const clearError = () => {
-    setError(null)
-    setLastError(null)
-  }
-  
-  return {
-    isLoading,
-    error,
-    lastError,
-    execute,
-    clearError,
   }
 }
 
@@ -525,7 +607,6 @@ export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ err
       }
 
       return this.props.children
->>>>>>> 8322518 (Test employer page navigation, settings functionality, and complete job creation workflow)
     }
   }
 }

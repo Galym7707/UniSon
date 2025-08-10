@@ -10,14 +10,19 @@ export const useUser = () => {
   useEffect(() => {
     const loadUser = async () => {
       const supabase = getSupabaseBrowser()
-      return supabase.auth.getUser()
+      const result = await supabase.auth.getUser()
+      if (result.data?.user) {
+        setUser(result.data.user)
+      }
+      return result
     }
 
     execute(loadUser, 'get-user', {
-      showToast: false,
-      onSuccess: ({ data }) => setUser(data.user),
+      onError: () => {
+        // Silent error handling for user loading
+      },
     })
-  }, [])
+  }, [execute])
 
   return { user, isLoading, error }
 }
@@ -60,8 +65,10 @@ export const useSupabaseQuery = <T>(
 
   const refetch = () => {
     const supabase = getSupabaseBrowser()
-    execute(() => queryFn(supabase), 'supabase-query', {
-      onSuccess: (result) => setData(result.data),
+    execute(() => queryFn(supabase), 'supabase-query').then((result) => {
+      if (result?.data) {
+        setData(result.data)
+      }
     })
   }
 
@@ -78,7 +85,6 @@ export const useSupabaseMutation = <T, P = any>(
   options?: {
     onSuccess?: (data: T) => void
     onError?: (error: string) => void
-    showToast?: boolean
   }
 ) => {
   const { isLoading, error, execute } = useAsyncOperation()
@@ -93,11 +99,14 @@ export const useSupabaseMutation = <T, P = any>(
       },
       'supabase-mutation',
       {
-        showToast: options?.showToast,
-        onSuccess: options?.onSuccess,
-        onError: options?.onError,
+        onError: options?.onError ? (msg, err) => options.onError!(msg) : undefined,
       }
-    )
+    ).then((result) => {
+      if (result && options?.onSuccess) {
+        options.onSuccess(result)
+      }
+      return result
+    })
   }
 
   return { mutate, isLoading, error }
