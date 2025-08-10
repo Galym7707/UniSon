@@ -215,3 +215,34 @@ a:focus-visible,
   transform: scale(1.1);
   transition: transform 0.3s ease-in-out;
 }
+
+/* Browser extension detection and hydration safety */
+.extension-safe {
+  position: relative;
+}
+
+/* Hide Grammarly overlay elements that can cause hydration conflicts */
+input.extension-safe::after,
+input.extension-safe::before,
+textarea.extension-safe::after,
+textarea.extension-safe::before {
+  content: none !important;
+}
+
+/* Ensure consistent rendering when extensions are detected */
+input.extension-safe,
+textarea.extension-safe {
+  background-image: none !important;
+  background-attachment: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+}
+
+/* Hide any Grammarly-specific elements that might appear */
+.gr_-_ {
+  display: none !important;
+}
+
+grammarly-extension {
+  display: none !important;
+}

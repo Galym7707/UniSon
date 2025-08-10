@@ -11,6 +11,7 @@ import {
   FormProvider,
   useFormContext,
 } from "react-hook-form"
+import { useBrowserExtensionDetection } from "@/hooks/useBrowserExtensionDetection"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -108,6 +109,7 @@ const FormControl = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
+  const { hasProblematicExtensions } = useBrowserExtensionDetection()
 
   return (
     <Slot
@@ -119,6 +121,7 @@ const FormControl = React.forwardRef<
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
+      suppressHydrationWarning={hasProblematicExtensions}
       {...props}
     />
   )
