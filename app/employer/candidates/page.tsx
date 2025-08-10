@@ -8,20 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Search,
-  Filter,
-  Eye,
-  Mail,
-  MapPin,
-  Briefcase,
-  Users,
-  Brain,
-  TrendingUp
-} from "lucide-react"
+import { Search, Eye, Mail, Users } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
-import EmployerLayout from '../EmployerLayout'
+import { Header } from '@/components/header-landing'
+import { Footer } from '@/components/footer'
+import EmployerLayout from '@/components/EmployerLayout'
 
 type Candidate = {
   id: string
@@ -104,20 +96,25 @@ export default function CandidatesPage() {
 
   if (loading) {
     return (
-      <EmployerLayout>
-        <div className="p-8 flex items-center justify-center min-h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
-            <p className="text-[#333333]">Loading candidates...</p>
+      <>
+        <Header />
+        <EmployerLayout companyName="TechCorp Inc.">
+          <div className="min-h-96 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+              <p className="text-[#333333]">Loading candidates...</p>
+            </div>
           </div>
-        </div>
-      </EmployerLayout>
+        </EmployerLayout>
+        <Footer />
+      </>
     )
   }
 
   return (
-    <EmployerLayout>
-      <div className="p-8">
+    <>
+      <Header />
+      <EmployerLayout companyName="TechCorp Inc.">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-[#0A2540]">Candidates</h1>
@@ -240,7 +237,8 @@ export default function CandidatesPage() {
             </Card>
           )}
         </div>
-      </div>
-    </EmployerLayout>
+      </EmployerLayout>
+      <Footer />
+    </>
   )
 }
