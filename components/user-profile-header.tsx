@@ -2,13 +2,90 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User, LogOut, Settings, FileText } from 'lucide-react'
 import { useAuthState } from '@/lib/supabase/hooks'
+import { createBrowserClient } from '@/lib/supabase/browser'
+
+interface Profile {
+  id: string
+  role?: string
+}
 
 export function UserProfileHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
   const { user } = useAuthState()
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!user) {
+        setProfile(null)
+        return
+      }
+
+      setProfileLoading(true)
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('id, role')
+          .eq('id', user.id)
+          .single()
+
+        if (error) {
+          console.error('Error fetching profile:', error)
+          return
+        }
+
+        setProfile(profileData)
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [user, supabase])
+
+  // Determine profile path based on role
+  const getProfilePath = () => {
+    if (!profile || profileLoading) {
+      // Default to job-seeker during loading or if no profile
+      return '/job-seeker/profile'
+    }
+    
+    if (profile.role === 'employer') {
+      return '/employer/company'  // Use /employer/company for employers to match upstream changes
+    }
+    return '/job-seeker/profile'
+  }
+
+  // Determine dashboard path based on role  
+  const getDashboardPath = () => {
+    if (!profile || profileLoading) {
+      return '/job-seeker/dashboard'
+    }
+    
+    if (profile.role === 'employer') {
+      return '/employer/dashboard'
+    }
+    return '/job-seeker/dashboard'
+  }
+
+  // Determine settings path based on role
+  const getSettingsPath = () => {
+    if (!profile || profileLoading) {
+      return '/job-seeker/settings'
+    }
+    
+    if (profile.role === 'employer') {
+      return '/employer/settings'
+    }
+    return '/job-seeker/settings'
+  }
 
   if (!user) return null
 
@@ -93,7 +170,7 @@ export function UserProfileHeader() {
 
           <nav className="py-1">
             <Link
-              href={user.user_metadata?.role === 'employer' ? '/employer/company' : '/job-seeker/profile'}
+              href={getProfilePath()}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
@@ -102,7 +179,7 @@ export function UserProfileHeader() {
             </Link>
 
             <Link
-              href={user.user_metadata?.role === 'employer' ? '/employer/dashboard' : '/job-seeker/dashboard'}
+              href={getDashboardPath()}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
@@ -111,7 +188,7 @@ export function UserProfileHeader() {
             </Link>
 
             <Link
-              href={user.user_metadata?.role === 'employer' ? '/employer/settings' : '/job-seeker/settings'}
+              href={getSettingsPath()}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
