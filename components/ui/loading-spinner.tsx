@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "./button"
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg"
@@ -26,16 +27,31 @@ interface LoadingButtonProps {
   isLoading?: boolean
   children: React.ReactNode
   loadingText?: string
+  type?: "button" | "submit" | "reset"
+  onClick?: () => void
+  disabled?: boolean
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  size?: "default" | "sm" | "lg" | "icon"
+  className?: string
 }
 
-export function LoadingButton({ isLoading, children, loadingText = "Loading..." }: LoadingButtonProps) {
-  if (isLoading) {
-    return (
-      <span className="flex items-center gap-2">
-        <LoadingSpinner size="sm" />
-        {loadingText}
-      </span>
-    )
-  }
-  return <>{children}</>
+export function LoadingButton({ 
+  isLoading, 
+  children, 
+  loadingText = "Loading...", 
+  disabled,
+  ...props 
+}: LoadingButtonProps) {
+  return (
+    <Button {...props} disabled={isLoading || disabled}>
+      {isLoading ? (
+        <>
+          <LoadingSpinner size="sm" className="mr-2" />
+          {loadingText}
+        </>
+      ) : (
+        children
+      )}
+    </Button>
+  )
 }

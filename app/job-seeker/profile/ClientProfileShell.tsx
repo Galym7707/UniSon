@@ -252,7 +252,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
       
       showSuccessToast(
         'Resume uploaded successfully', 
-        `Your resume "${file.name}" has been uploaded and is now attached to your profile.`
+
       )
     } catch (err) {
       const errorMessage = getUserFriendlyErrorMessage(err)
@@ -264,7 +264,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         errorType: err instanceof Error ? err.constructor.name : 'Unknown'
       })
       setError(errorMessage)
-      showErrorToast(err, 'resume-upload')
+      showErrorToast(getUserFriendlyErrorMessage(err))
     } finally {
       setUploading(false)
       // Clear the file input so the same file can be uploaded again if needed
@@ -349,10 +349,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         throw new Error('Profile was not saved properly. Please try again.')
       }
       
-      showSuccessToast(
-        'Profile saved successfully',
-        profileCreated ? 'Your profile is now set up and ready!' : 'Your profile has been updated.'
-      )
+      showSuccessToast('Profile saved successfully')
       setProfileCreated(false) // Clear the first-time setup message
     } catch (err) {
       const errorMessage = getUserFriendlyErrorMessage(err)
@@ -366,7 +363,7 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
         }
       })
       setError(errorMessage)
-      showErrorToast(err, 'profile-save')
+      showErrorToast(getUserFriendlyErrorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -712,3 +709,5 @@ export default function ClientProfileShell({ profile: serverProfile }: ClientPro
     </JobSeekerLayout>
   )
 }
+
+

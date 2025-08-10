@@ -144,7 +144,7 @@ export default function ImageUpload({
         fileType: file.type
       })
       setError(errorMessage)
-      showErrorToast(err, 'image-upload')
+      showErrorToast(errorMessage)
     } finally {
       setUploading(false)
     }
@@ -205,7 +205,7 @@ export default function ImageUpload({
       const errorMessage = getUserFriendlyErrorMessage(err)
       logError('image-delete', err)
       setError(errorMessage)
-      showErrorToast(err, 'image-delete')
+      showErrorToast(errorMessage)
     } finally {
       setDeleting(false)
     }
