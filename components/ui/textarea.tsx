@@ -1,12 +1,13 @@
 import * as React from "react"
-import { useBrowserExtensionDetection } from "@/hooks/useBrowserExtensionDetection"
+// import { useBrowserExtensionDetection } from "@/hooks/useBrowserExtensionDetection"
 import { cn } from "@/lib/utils"
 
 const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.ComponentProps<"textarea">
 >(({ className, ...props }, ref) => {
-  const { hasProblematicExtensions } = useBrowserExtensionDetection()
+  // const { hasProblematicExtensions } = useBrowserExtensionDetection()
+  const hasProblematicExtensions = false
   
   return (
     <textarea

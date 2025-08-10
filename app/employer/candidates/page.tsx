@@ -19,7 +19,8 @@ import {
   Brain,
   TrendingUp,
   LayoutDashboard,
-  Building2
+  Building2,
+  Settings
 } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -161,6 +162,13 @@ export default function CandidatesPage() {
               >
                 <Users className="w-5 h-5 mr-3" />
                 Candidates
+              </Link>
+              <Link
+                href="/employer/settings"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Settings className="w-5 h-5 mr-3" />
+                Settings
               </Link>
             </nav>
           </div>

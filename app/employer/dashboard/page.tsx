@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth-helpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { LayoutDashboard, Briefcase, Building2, Plus, Users, Calendar, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Briefcase, Building2, Plus, Users, Calendar, TrendingUp, Settings } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
@@ -125,6 +125,13 @@ export default async function EmployerDashboard() {
                 <Users className="w-5 h-5 mr-3" />
                 Candidates
               </Link>
+              <Link
+                href="/employer/settings"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Settings className="w-5 h-5 mr-3" />
+                Settings
+              </Link>
             </nav>
           </div>
 
@@ -137,10 +144,12 @@ export default async function EmployerDashboard() {
                   <h1 className="text-3xl font-bold text-[#0A2540]">Employer Dashboard</h1>
                   <p className="text-[#333333] mt-1">Manage your jobs and candidates</p>
                 </div>
-                <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Job
-                </Button>
+                <Link href="/employer/jobs/create">
+                  <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Job
+                  </Button>
+                </Link>
               </div>
 
               {/* Stats Cards */}

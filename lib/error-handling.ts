@@ -429,7 +429,103 @@ export const withErrorRecovery = <T extends any[], R>(
       if (fallback !== undefined) {
         return fallback
       }
+<<<<<<< HEAD
       throw error
+=======
+      
+      options?.onError?.(errorMessage, structuredError)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  const clearError = () => {
+    setError(null)
+    setLastError(null)
+  }
+  
+  return {
+    isLoading,
+    error,
+    lastError,
+    execute,
+    clearError,
+  }
+}
+
+// Enhanced error boundary helper for React components with hydration support
+export const createErrorBoundary = (fallbackComponent: React.ComponentType<{ error: Error; reset: () => void; isHydrationError?: boolean }>) => {
+  return class extends React.Component<
+    { children: React.ReactNode },
+    { hasError: boolean; error: Error | null; retryCount: number; isHydrationError: boolean }
+  > {
+    private retryTimeoutId: NodeJS.Timeout | null = null
+    private maxRetries = 3
+    private retryDelay = 1000 // 1 second
+
+    constructor(props: { children: React.ReactNode }) {
+      super(props)
+      this.state = { hasError: false, error: null, retryCount: 0, isHydrationError: false }
+    }
+
+    static getDerivedStateFromError(error: Error) {
+      return { 
+        hasError: true, 
+        error,
+        isHydrationError: isHydrationError(error)
+      }
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+      const hydrationContext: HydrationErrorContext = {
+        isHydrationError: isHydrationError(error),
+        componentStack: errorInfo.componentStack || undefined,
+        browserExtensions: detectBrowserExtensions(),
+        retryCount: this.state.retryCount,
+        renderPhase: 'client'
+      }
+
+      logError('react-error-boundary', error, {
+        componentStack: errorInfo.componentStack || undefined,
+        errorBoundary: true,
+        ...(hydrationContext.isHydrationError ? { hydrationContext } : {})
+      })
+
+      // Auto-retry for hydration errors
+      if (hydrationContext.isHydrationError && this.state.retryCount < this.maxRetries) {
+        this.scheduleRetry()
+      }
+    }
+
+    scheduleRetry = () => {
+      this.retryTimeoutId = setTimeout(() => {
+        this.setState(prevState => ({
+          hasError: false,
+          error: null,
+          retryCount: prevState.retryCount + 1
+        }))
+      }, this.retryDelay * (this.state.retryCount + 1)) // Exponential backoff
+    }
+
+    componentWillUnmount() {
+      if (this.retryTimeoutId) {
+        clearTimeout(this.retryTimeoutId)
+      }
+    }
+
+    render() {
+      if (this.state.hasError && this.state.error) {
+        const FallbackComponent = fallbackComponent
+        return React.createElement(FallbackComponent, {
+          error: this.state.error,
+          isHydrationError: this.state.isHydrationError,
+          reset: () => this.setState({ hasError: false, error: null, retryCount: 0 })
+        })
+      }
+
+      return this.props.children
+>>>>>>> 8322518 (Test employer page navigation, settings functionality, and complete job creation workflow)
     }
   }
 }

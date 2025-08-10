@@ -1,10 +1,11 @@
 import * as React from "react"
-import { useBrowserExtensionDetection } from "@/hooks/useBrowserExtensionDetection"
+// import { useBrowserExtensionDetection } from "@/hooks/useBrowserExtensionDetection"
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
-    const { hasProblematicExtensions } = useBrowserExtensionDetection()
+    // const { hasProblematicExtensions } = useBrowserExtensionDetection()
+    const hasProblematicExtensions = false
     
     return (
       <input

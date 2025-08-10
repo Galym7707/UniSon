@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LoadingSpinner, LoadingButton } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
-import { LayoutDashboard, Briefcase, Building2, Upload, MapPin, Plus, X } from "lucide-react"
+import { LayoutDashboard, Briefcase, Building2, Upload, MapPin, Plus, X, Users, Settings } from "lucide-react"
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logError, getUserFriendlyErrorMessage, showSuccessToast, showErrorToast } from '@/lib/error-handling'
 import { UserProfile, clientAuth } from '@/lib/auth-helpers-client'
@@ -317,6 +317,20 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 <Building2 className="w-5 h-5 mr-3" />
                 Company Profile
               </Link>
+              <Link
+                href="/employer/candidates"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Users className="w-5 h-5 mr-3" />
+                Candidates
+              </Link>
+              <Link
+                href="/employer/settings"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Settings className="w-5 h-5 mr-3" />
+                Settings
+              </Link>
             </nav>
           </div>
 
@@ -387,6 +401,20 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
             >
               <Building2 className="w-5 h-5 mr-3" />
               Company Profile
+            </Link>
+            <Link
+              href="/employer/candidates"
+              className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+            >
+              <Users className="w-5 h-5 mr-3" />
+              Candidates
+            </Link>
+            <Link
+              href="/employer/settings"
+              className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+            >
+              <Settings className="w-5 h-5 mr-3" />
+              Settings
             </Link>
           </nav>
         </div>
@@ -527,7 +555,7 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                           id="founded" 
                           value={profile.founded_year || ''} 
                           onChange={(e) => updateProfile('founded_year', e.target.value)}
-                          placeholder="e.g., 2018"
+                          placeholder="e.g., 2015"
                           disabled={saving || uploading}
                         />
                       </div>
@@ -537,7 +565,7 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                           id="employees" 
                           value={profile.employee_count || ''} 
                           onChange={(e) => updateProfile('employee_count', e.target.value)}
-                          placeholder="e.g., 75"
+                          placeholder="e.g., 150"
                           disabled={saving || uploading}
                         />
                       </div>
@@ -547,9 +575,10 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                       <Label htmlFor="website">Website</Label>
                       <Input 
                         id="website" 
+                        type="url"
                         value={profile.website || ''} 
                         onChange={(e) => updateProfile('website', e.target.value)}
-                        placeholder="https://your-company.com"
+                        placeholder="https://www.yourcompany.com"
                         disabled={saving || uploading}
                       />
                     </div>
@@ -559,11 +588,7 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 {/* Location */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-[#0A2540] flex items-center">
-                      <MapPin className="w-5 h-5 mr-2" />
-                      Location
-                    </CardTitle>
-                    <CardDescription>Where is your company located?</CardDescription>
+                    <CardTitle className="text-[#0A2540]">Location</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -573,7 +598,7 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                           id="country" 
                           value={profile.country || ''} 
                           onChange={(e) => updateProfile('country', e.target.value)}
-                          placeholder="e.g., United States"
+                          placeholder="e.g., Russia"
                           disabled={saving || uploading}
                         />
                       </div>
@@ -583,19 +608,18 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                           id="city" 
                           value={profile.city || ''} 
                           onChange={(e) => updateProfile('city', e.target.value)}
-                          placeholder="e.g., New York"
+                          placeholder="e.g., Moscow"
                           disabled={saving || uploading}
                         />
                       </div>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="address">Full Address</Label>
+                      <Label htmlFor="address">Full Address (Optional)</Label>
                       <Input 
                         id="address" 
                         value={profile.address || ''} 
                         onChange={(e) => updateProfile('address', e.target.value)}
-                        placeholder="Enter your company address"
+                        placeholder="Full office address"
                         disabled={saving || uploading}
                       />
                     </div>
@@ -605,42 +629,48 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 {/* Benefits */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-[#0A2540]">Employee Benefits</CardTitle>
+                    <CardTitle className="text-[#0A2540]">Benefits & Perks</CardTitle>
                     <CardDescription>What benefits do you offer to employees?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {profile.benefits.map((benefit, index) => (
+                        <Badge key={index} variant="secondary" className="px-3 py-1">
+                          {benefit}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-auto p-0 hover:bg-transparent"
+                            onClick={() => removeBenefit(index)}
+                            disabled={saving || uploading}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
                     <div className="flex space-x-2">
-                      <Input
-                        placeholder="Add a benefit..."
+                      <Input 
+                        placeholder="Add a benefit..." 
                         value={newBenefit}
                         onChange={(e) => setNewBenefit(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addBenefit()
+                          }
+                        }}
                         disabled={saving || uploading}
                       />
                       <Button 
                         type="button" 
-                        onClick={addBenefit} 
-                        size="sm"
+                        onClick={addBenefit}
+                        className="bg-[#00C49A] hover:bg-[#00A085]"
                         disabled={saving || uploading || !newBenefit.trim()}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {profile.benefits.map((benefit, index) => (
-                        <Badge key={index} variant="secondary" className="pr-1">
-                          {benefit}
-                          <button
-                            type="button"
-                            onClick={() => removeBenefit(index)}
-                            className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                            disabled={saving || uploading}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -648,42 +678,48 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 {/* Technologies */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-[#0A2540]">Technologies Used</CardTitle>
-                    <CardDescription>What technologies does your company use?</CardDescription>
+                    <CardTitle className="text-[#0A2540]">Technologies & Tools</CardTitle>
+                    <CardDescription>What technologies does your team work with?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {profile.technologies.map((tech, index) => (
+                        <Badge key={index} variant="outline" className="px-3 py-1">
+                          {tech}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-auto p-0 hover:bg-transparent"
+                            onClick={() => removeTechnology(index)}
+                            disabled={saving || uploading}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
                     <div className="flex space-x-2">
-                      <Input
-                        placeholder="Add a technology..."
+                      <Input 
+                        placeholder="Add a technology..." 
                         value={newTechnology}
                         onChange={(e) => setNewTechnology(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTechnology())}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            addTechnology()
+                          }
+                        }}
                         disabled={saving || uploading}
                       />
                       <Button 
                         type="button" 
-                        onClick={addTechnology} 
-                        size="sm"
+                        onClick={addTechnology}
+                        className="bg-[#00C49A] hover:bg-[#00A085]"
                         disabled={saving || uploading || !newTechnology.trim()}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {profile.technologies.map((tech, index) => (
-                        <Badge key={index} variant="secondary" className="pr-1">
-                          {tech}
-                          <button
-                            type="button"
-                            onClick={() => removeTechnology(index)}
-                            className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                            disabled={saving || uploading}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -692,11 +728,11 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[#0A2540]">Company Culture</CardTitle>
-                    <CardDescription>Describe your company culture and work environment</CardDescription>
+                    <CardDescription>Describe your work environment and values</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Textarea
-                      placeholder="Tell us about your company culture, work environment, team dynamics..."
+                      placeholder="Tell candidates about your company culture, work-life balance, values, and what makes your workplace special..."
                       className="min-h-[120px]"
                       value={profile.culture || ''}
                       onChange={(e) => updateProfile('culture', e.target.value)}
@@ -709,29 +745,18 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[#0A2540]">Contact Information</CardTitle>
-                    <CardDescription>How can candidates reach out?</CardDescription>
+                    <CardDescription>How can candidates reach you?</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="contact_person">Contact Person</Label>
-                      <Input 
-                        id="contact_person" 
-                        value={profile.contact_person || ''} 
-                        onChange={(e) => updateProfile('contact_person', e.target.value)}
-                        placeholder="Name of primary contact"
-                        disabled={saving || uploading}
-                      />
-                    </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="hr_email">HR Email</Label>
+                        <Label htmlFor="hrEmail">HR Email</Label>
                         <Input 
-                          id="hr_email" 
+                          id="hrEmail" 
                           type="email"
                           value={profile.hr_email || ''} 
                           onChange={(e) => updateProfile('hr_email', e.target.value)}
-                          placeholder="hr@company.com"
+                          placeholder="hr@yourcompany.com"
                           disabled={saving || uploading}
                         />
                       </div>
@@ -739,12 +764,23 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input 
                           id="phone" 
+                          type="tel"
                           value={profile.phone || ''} 
                           onChange={(e) => updateProfile('phone', e.target.value)}
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="+7 (xxx) xxx-xx-xx"
                           disabled={saving || uploading}
                         />
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contact">Contact Person</Label>
+                      <Input 
+                        id="contact" 
+                        value={profile.contact_person || ''} 
+                        onChange={(e) => updateProfile('contact_person', e.target.value)}
+                        placeholder="Name of HR person or hiring manager"
+                        disabled={saving || uploading}
+                      />
                     </div>
                   </CardContent>
                 </Card>

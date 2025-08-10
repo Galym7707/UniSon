@@ -1,151 +1,22 @@
-'use client'
+//app/employer/settings/page.tsx
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { requireAuth } from '@/lib/auth-helpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Building2, 
-  Settings, 
-  Users, 
-  Mail, 
-  Lock, 
-  Bell, 
-  CreditCard, 
-  ExternalLink 
-} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { LayoutDashboard, Briefcase, Building2, Users, Settings, Trash2, Shield, Bell } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
-import { useToast } from "@/hooks/use-toast"
 
-// Validation schemas
-const emailSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  currentPassword: z.string().min(1, "Current password is required"),
-})
+export const dynamic = 'force-dynamic'
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
-
-type EmailFormData = z.infer<typeof emailSchema>
-type PasswordFormData = z.infer<typeof passwordSchema>
-
-export default function EmployerSettings() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [notifications, setNotifications] = useState({
-    jobApplications: true,
-    candidateMatches: true,
-    weeklyReports: false,
-    marketingEmails: false,
-  })
-  
-  const { toast } = useToast()
-
-  // Email form
-  const emailForm = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      email: 'john.doe@techcorp.com', // This would come from user context/API
-      currentPassword: '',
-    },
-  })
-
-  // Password form
-  const passwordForm = useForm<PasswordFormData>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    },
-  })
-
-  const onEmailSubmit = async (data: EmailFormData) => {
-    setIsLoading(true)
-    try {
-      // TODO: Implement API call to update email
-      // await updateEmail(data)
-      console.log('Email update:', data)
-      
-      toast({
-        title: "Email updated successfully",
-        description: "Your email address has been updated.",
-      })
-      
-      emailForm.setValue('currentPassword', '')
-    } catch (error) {
-      toast({
-        title: "Error updating email",
-        description: "There was a problem updating your email. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const onPasswordSubmit = async (data: PasswordFormData) => {
-    setIsLoading(true)
-    try {
-      // TODO: Implement API call to update password
-      // await updatePassword(data)
-      console.log('Password update:', data)
-      
-      toast({
-        title: "Password updated successfully",
-        description: "Your password has been changed.",
-      })
-      
-      passwordForm.reset()
-    } catch (error) {
-      toast({
-        title: "Error updating password",
-        description: "There was a problem updating your password. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleNotificationChange = async (key: string, value: boolean) => {
-    try {
-      // TODO: Implement API call to update notification preferences
-      // await updateNotificationPreference(key, value)
-      console.log('Notification update:', key, value)
-      
-      setNotifications(prev => ({
-        ...prev,
-        [key]: value
-      }))
-      
-      toast({
-        title: "Notification preferences updated",
-        description: "Your notification settings have been saved.",
-      })
-    } catch (error) {
-      toast({
-        title: "Error updating preferences",
-        description: "There was a problem saving your notification settings.",
-        variant: "destructive",
-      })
-    }
-  }
+export default async function EmployerSettings() {
+  // Require authentication and employer role
+  const { user, profile } = await requireAuth({ role: 'employer' })
 
   return (
     <>
@@ -158,7 +29,13 @@ export default function EmployerSettings() {
               <Link href="/" className="text-xl font-bold text-[#0A2540]">
                 Unison AI
               </Link>
-              <p className="text-sm text-[#333333] mt-1">TechCorp Inc.</p>
+              <p className="text-sm text-[#333333] mt-1">Employer Settings</p>
+              <div className="mt-2 text-xs text-gray-500">
+                Welcome, {profile.name || profile.email}
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {profile.role}
+                </Badge>
+              </div>
             </div>
             <nav className="px-4 space-y-2">
               <Link
@@ -202,286 +79,193 @@ export default function EmployerSettings() {
           {/* Main Content */}
           <div className="flex-1 p-8">
             <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold text-[#0A2540]">Settings</h1>
-                <p className="text-[#333333] mt-1">Manage your account preferences and company settings</p>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-[#0A2540]">Account Settings</h1>
+                  <p className="text-[#333333] mt-1">Manage your account preferences and notifications</p>
+                </div>
               </div>
 
-              <div className="space-y-8">
-                {/* Account Preferences Section */}
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-[#0A2540] mb-2">Account Preferences</h2>
-                    <p className="text-[#333333]">Update your email address and password</p>
-                  </div>
+              <div className="space-y-6">
+                {/* Profile Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">Profile Settings</CardTitle>
+                    <CardDescription>Update your personal information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input id="name" defaultValue={profile.name || ''} placeholder="Enter your full name" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input id="email" type="email" defaultValue={profile.email || ''} placeholder="Enter your email" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input id="phone" type="tel" placeholder="Enter your phone number" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="timezone">Timezone</Label>
+                        <Input id="timezone" defaultValue="Europe/Moscow" placeholder="Select your timezone" />
+                      </div>
+                    </div>
+                    <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
+                      Save Profile Changes
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                  {/* Email Update Form */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-[#0A2540]">
-                        <Mail className="w-5 h-5 mr-2" />
-                        Email Address
-                      </CardTitle>
-                      <CardDescription>
-                        Change your account email address
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            {...emailForm.register('email')}
-                            className="max-w-md"
-                          />
-                          {emailForm.formState.errors.email && (
-                            <p className="text-sm text-red-600">
-                              {emailForm.formState.errors.email.message}
-                            </p>
-                          )}
+                {/* Notification Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">
+                      <Bell className="w-5 h-5 inline mr-2" />
+                      Notifications
+                    </CardTitle>
+                    <CardDescription>Configure how you want to be notified</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="newApplications">New Application Notifications</Label>
+                          <p className="text-sm text-gray-500">Get notified when candidates apply to your jobs</p>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="currentPasswordEmail">Current Password</Label>
-                          <Input
-                            id="currentPasswordEmail"
-                            type="password"
-                            {...emailForm.register('currentPassword')}
-                            className="max-w-md"
-                            placeholder="Enter your current password"
-                          />
-                          {emailForm.formState.errors.currentPassword && (
-                            <p className="text-sm text-red-600">
-                              {emailForm.formState.errors.currentPassword.message}
-                            </p>
-                          )}
+                        <Switch id="newApplications" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="weeklyReports">Weekly Reports</Label>
+                          <p className="text-sm text-gray-500">Receive weekly summaries of your job performance</p>
                         </div>
-                        <Button 
-                          type="submit" 
-                          disabled={isLoading}
-                          className="bg-[#00C49A] hover:bg-[#00A085] text-white"
-                        >
-                          {isLoading ? 'Updating...' : 'Update Email'}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
+                        <Switch id="weeklyReports" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="marketingEmails">Marketing Emails</Label>
+                          <p className="text-sm text-gray-500">Receive updates about new features and tips</p>
+                        </div>
+                        <Switch id="marketingEmails" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="candidateMatches">AI Candidate Matches</Label>
+                          <p className="text-sm text-gray-500">Get notified about AI-suggested candidate matches</p>
+                        </div>
+                        <Switch id="candidateMatches" defaultChecked />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                  {/* Password Update Form */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-[#0A2540]">
-                        <Lock className="w-5 h-5 mr-2" />
+                {/* Privacy & Security */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">
+                      <Shield className="w-5 h-5 inline mr-2" />
+                      Privacy & Security
+                    </CardTitle>
+                    <CardDescription>Manage your privacy and security settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="profileVisibility">Public Profile</Label>
+                          <p className="text-sm text-gray-500">Allow job seekers to view your company profile</p>
+                        </div>
+                        <Switch id="profileVisibility" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="contactInfo">Show Contact Information</Label>
+                          <p className="text-sm text-gray-500">Display your contact details on job postings</p>
+                        </div>
+                        <Switch id="contactInfo" defaultChecked />
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t">
+                      <Button variant="outline" className="w-full mb-3">
                         Change Password
-                      </CardTitle>
-                      <CardDescription>
-                        Update your account password for better security
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="currentPasswordChange">Current Password</Label>
-                          <Input
-                            id="currentPasswordChange"
-                            type="password"
-                            {...passwordForm.register('currentPassword')}
-                            className="max-w-md"
-                            placeholder="Enter your current password"
-                          />
-                          {passwordForm.formState.errors.currentPassword && (
-                            <p className="text-sm text-red-600">
-                              {passwordForm.formState.errors.currentPassword.message}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="newPassword">New Password</Label>
-                          <Input
-                            id="newPassword"
-                            type="password"
-                            {...passwordForm.register('newPassword')}
-                            className="max-w-md"
-                            placeholder="Enter your new password"
-                          />
-                          {passwordForm.formState.errors.newPassword && (
-                            <p className="text-sm text-red-600">
-                              {passwordForm.formState.errors.newPassword.message}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                          <Input
-                            id="confirmPassword"
-                            type="password"
-                            {...passwordForm.register('confirmPassword')}
-                            className="max-w-md"
-                            placeholder="Confirm your new password"
-                          />
-                          {passwordForm.formState.errors.confirmPassword && (
-                            <p className="text-sm text-red-600">
-                              {passwordForm.formState.errors.confirmPassword.message}
-                            </p>
-                          )}
-                        </div>
-                        <Button 
-                          type="submit" 
-                          disabled={isLoading}
-                          className="bg-[#00C49A] hover:bg-[#00A085] text-white"
-                        >
-                          {isLoading ? 'Updating...' : 'Change Password'}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </Button>
+                      <Button variant="outline" className="w-full">
+                        Download My Data
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Separator />
-
-                {/* Notification Settings Section */}
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-[#0A2540] mb-2">Notification Settings</h2>
-                    <p className="text-[#333333]">Configure how you receive notifications</p>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-[#0A2540]">
-                        <Bell className="w-5 h-5 mr-2" />
-                        Email Notifications
-                      </CardTitle>
-                      <CardDescription>
-                        Choose which notifications you'd like to receive via email
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                {/* Billing & Subscription */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-[#0A2540]">Billing & Subscription</CardTitle>
+                    <CardDescription>Manage your subscription and billing information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="p-4 border rounded-lg bg-green-50 border-green-200">
                       <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label>Job Application Alerts</Label>
-                          <p className="text-sm text-[#333333]">
-                            Get notified when candidates apply to your jobs
-                          </p>
+                        <div>
+                          <h3 className="font-semibold text-green-800">Professional Plan</h3>
+                          <p className="text-sm text-green-600">Active until March 15, 2024</p>
                         </div>
-                        <Switch
-                          checked={notifications.jobApplications}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange('jobApplications', checked)
-                          }
-                        />
+                        <Badge className="bg-green-500 text-white">Active</Badge>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label>Candidate Match Notifications</Label>
-                          <p className="text-sm text-[#333333]">
-                            Receive alerts for candidates that match your job criteria
-                          </p>
-                        </div>
-                        <Switch
-                          checked={notifications.candidateMatches}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange('candidateMatches', checked)
-                          }
-                        />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="p-3 border rounded-lg">
+                        <div className="text-2xl font-bold text-[#0A2540]">10</div>
+                        <div className="text-sm text-gray-500">Job Posts</div>
+                        <div className="text-xs text-green-600">5 remaining</div>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label>Weekly Reports</Label>
-                          <p className="text-sm text-[#333333]">
-                            Get weekly summaries of your job performance and analytics
-                          </p>
-                        </div>
-                        <Switch
-                          checked={notifications.weeklyReports}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange('weeklyReports', checked)
-                          }
-                        />
+                      <div className="p-3 border rounded-lg">
+                        <div className="text-2xl font-bold text-[#0A2540]">∞</div>
+                        <div className="text-sm text-gray-500">AI Matches</div>
+                        <div className="text-xs text-green-600">Unlimited</div>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label>Marketing & Product Updates</Label>
-                          <p className="text-sm text-[#333333]">
-                            Receive updates about new features and marketing content
-                          </p>
-                        </div>
-                        <Switch
-                          checked={notifications.marketingEmails}
-                          onCheckedChange={(checked) => 
-                            handleNotificationChange('marketingEmails', checked)
-                          }
-                        />
+                      <div className="p-3 border rounded-lg">
+                        <div className="text-2xl font-bold text-[#0A2540]">24/7</div>
+                        <div className="text-sm text-gray-500">Support</div>
+                        <div className="text-xs text-green-600">Priority</div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                    <div className="flex space-x-3">
+                      <Button variant="outline" className="flex-1">
+                        View Billing History
+                      </Button>
+                      <Button variant="outline" className="flex-1">
+                        Update Payment Method
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Separator />
-
-                {/* Company Management Section */}
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-[#0A2540] mb-2">Company Management</h2>
-                    <p className="text-[#333333]">Manage your company profile and billing information</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-[#0A2540]">
-                          <Building2 className="w-5 h-5 mr-2" />
-                          Company Profile
-                        </CardTitle>
-                        <CardDescription>
-                          Update your company information and branding
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3 text-sm text-[#333333]">
-                          <p>• Company name and description</p>
-                          <p>• Logo and brand colors</p>
-                          <p>• Contact information</p>
-                          <p>• Social media links</p>
-                        </div>
-                        <Link href="/employer/company">
-                          <Button className="w-full mt-4 bg-[#FF7A00] hover:bg-[#E66A00] text-white">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Edit Company Profile
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center text-[#0A2540]">
-                          <CreditCard className="w-5 h-5 mr-2" />
-                          Billing & Subscription
-                        </CardTitle>
-                        <CardDescription>
-                          Manage your billing information and subscription plan
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3 text-sm text-[#333333]">
-                          <p>• Current plan: Professional</p>
-                          <p>• Monthly billing: $99/month</p>
-                          <p>• Next billing: March 15, 2024</p>
-                          <p>• Payment method: •••• 4242</p>
-                        </div>
-                        <Button className="w-full mt-4" variant="outline">
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Manage Billing
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                {/* Danger Zone */}
+                <Card className="border-red-200">
+                  <CardHeader>
+                    <CardTitle className="text-red-600">
+                      <Trash2 className="w-5 h-5 inline mr-2" />
+                      Danger Zone
+                    </CardTitle>
+                    <CardDescription>Irreversible and destructive actions</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+                      <h3 className="font-semibold text-red-800 mb-2">Delete Account</h3>
+                      <p className="text-sm text-red-600 mb-4">
+                        Once you delete your account, there is no going back. This will permanently delete your 
+                        company profile, all job postings, and candidate data.
+                      </p>
+                      <Button variant="destructive" size="sm">
+                        Delete My Account
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
