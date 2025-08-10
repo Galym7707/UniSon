@@ -297,11 +297,15 @@ export function SignupForm({ signupAction }: SignupFormProps) {
           {/* server-side error */}
           {state?.error && <ErrorDisplay error={state.error} variant="card" />}
 
-          <Button type="submit" className="w-full" disabled={isPending || (isFormSubmitted && !isValid)}>
-            <LoadingButton isLoading={isPending} loadingText="Creating Account…">
-              Create account
-            </LoadingButton>
-          </Button>
+          <LoadingButton
+            type="submit"
+            className="w-full"
+            isLoading={isPending}
+            loadingText="Creating Account…"
+            disabled={isPending || (isFormSubmitted && !isValid)}
+          >
+            Create account
+          </LoadingButton>
         </form>
 
         <div className="mt-4 text-center text-sm">

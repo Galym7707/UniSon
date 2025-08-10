@@ -4,7 +4,6 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { GlobalErrorBoundary } from '@/components/error-boundary'
-import RoleBasedNavigation from '@/components/RoleBasedNavigation'
 
 // Validate environment variables at application startup
 import { getEnvironmentConfig } from '../lib/env'
@@ -59,7 +58,6 @@ export default function RootLayout({
           Skip to main content
         </a>
         <GlobalErrorBoundary>
-          <RoleBasedNavigation />
           <main id="main-content">
             {children}
           </main>
