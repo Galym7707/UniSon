@@ -5,7 +5,7 @@ import Link   from 'next/link'
 import Image  from 'next/image'
 import { useState } from 'react'
 import { useAuthState } from '@/lib/supabase/hooks'
-import { UserProfileHeader } from './user-profile-header'
+import { UserProfileHeader } from './UserProfileHeader'
 
 export function Header() {
   const [open, setOpen] = useState(false)

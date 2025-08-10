@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Briefcase, Plus, Users, Calendar, TrendingUp, Building2 } from "lucide-react"
 import Link from "next/link"
-import { Header } from "@/components/header-landing"
-import { Footer } from "@/components/footer"
-import EmployerLayout from "@/components/EmployerLayout"
+// Layout for employer section is provided by app/employer/layout.tsx
 
 export const dynamic = 'force-dynamic'
 
@@ -79,10 +77,7 @@ export default async function EmployerDashboard() {
   ]
 
   return (
-    <>
-      <Header />
-      <EmployerLayout userProfile={profile}>
-        <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -238,9 +233,6 @@ export default async function EmployerDashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </EmployerLayout>
-      <Footer />
-    </>
+    </div>
   )
 }

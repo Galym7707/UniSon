@@ -11,9 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Eye, Mail, Users } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Header } from '@/components/header-landing'
-import { Footer } from '@/components/footer'
-import EmployerLayout from '@/components/EmployerLayout'
+// Employer layout is handled by app/employer/layout.tsx
 
 type Candidate = {
   id: string
@@ -96,26 +94,17 @@ export default function CandidatesPage() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <EmployerLayout companyName="TechCorp Inc.">
-          <div className="min-h-96 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
-              <p className="text-[#333333]">Loading candidates...</p>
-            </div>
-          </div>
-        </EmployerLayout>
-        <Footer />
-      </>
+      <div className="min-h-96 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
+          <p className="text-[#333333]">Loading candidates...</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <>
-      <Header />
-      <EmployerLayout companyName="TechCorp Inc.">
-        <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-[#0A2540]">Candidates</h1>
             <div className="flex items-center space-x-4">
@@ -236,9 +225,6 @@ export default function CandidatesPage() {
               </CardContent>
             </Card>
           )}
-        </div>
-      </EmployerLayout>
-      <Footer />
-    </>
+    </div>
   )
 }

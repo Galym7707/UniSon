@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Building2,
-  Briefcase,
   Users,
   Settings
 } from 'lucide-react'
@@ -18,15 +17,9 @@ const navigationItems = [
     key: 'dashboard'
   },
   {
-    href: '/employer/jobs',
-    icon: Briefcase,
-    text: 'Jobs',
-    key: 'jobs'
-  },
-  {
     href: '/employer/company',
     icon: Building2,
-    text: 'Company Profile',
+    text: 'Company',
     key: 'company'
   },
   {
@@ -57,7 +50,7 @@ export default function EmployerSidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-30 h-screen w-64 bg-white border-r border-gray-200 pt-16">
+    <aside className="fixed left-0 top-0 z-30 h-screen w-64 bg-white border-r border-gray-200">
       <div className="flex flex-col h-full">
         <nav className="flex-1 px-4 py-6">
           <ul className="space-y-1">
@@ -71,13 +64,13 @@ export default function EmployerSidebar() {
                     href={item.href}
                     className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
                       active
-                        ? 'bg-[#00C49A]/10 text-[#00C49A] font-semibold border-l-3 border-[#00C49A]'
-                        : 'text-gray-700 hover:text-[#00C49A] hover:bg-gray-50'
+                        ? 'bg-[#FF7A00]/10 text-[#FF7A00] font-semibold border-l-4 border-[#FF7A00]'
+                        : 'text-gray-700 hover:text-[#FF7A00] hover:bg-orange-50'
                     }`}
                   >
                     <Icon 
                       className={`mr-3 h-5 w-5 transition-colors ${
-                        active ? 'text-[#00C49A]' : 'text-gray-500 group-hover:text-[#00C49A]'
+                        active ? 'text-[#FF7A00]' : 'text-gray-500 group-hover:text-[#FF7A00]'
                       }`} 
                     />
                     {item.text}

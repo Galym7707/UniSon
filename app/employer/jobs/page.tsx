@@ -17,9 +17,7 @@ import {
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-import { Header } from "@/components/header-landing"
-import { Footer } from "@/components/footer"
-import EmployerLayout from "@/components/EmployerLayout"
+// Employer layout is handled by app/employer/layout.tsx
 
 export default function EmployerJobs() {
   const jobs = [
@@ -116,10 +114,7 @@ export default function EmployerJobs() {
   }
 
   return (
-    <>
-      <Header />
-      <EmployerLayout companyName="TechCorp Inc.">
-        <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-[#0A2540]">Job Management</h1>
             <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
@@ -245,9 +240,6 @@ export default function EmployerJobs() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </EmployerLayout>
-      <Footer />
-    </>
+    </div>
   )
 }

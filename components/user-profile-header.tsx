@@ -93,7 +93,7 @@ export function UserProfileHeader() {
 
           <nav className="py-1">
             <Link
-              href="/job-seeker/profile"
+              href={user.user_metadata?.role === 'employer' ? '/employer/company' : '/job-seeker/profile'}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
@@ -102,7 +102,7 @@ export function UserProfileHeader() {
             </Link>
 
             <Link
-              href="/job-seeker/dashboard"
+              href={user.user_metadata?.role === 'employer' ? '/employer/dashboard' : '/job-seeker/dashboard'}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
@@ -111,7 +111,7 @@ export function UserProfileHeader() {
             </Link>
 
             <Link
-              href="/job-seeker/settings"
+              href={user.user_metadata?.role === 'employer' ? '/employer/settings' : '/job-seeker/settings'}
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >

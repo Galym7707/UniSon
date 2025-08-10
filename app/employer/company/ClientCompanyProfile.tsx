@@ -1,8 +1,9 @@
+//app/employer/company/ClientCompanyProfile.tsx
+
 'use client'
 
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import Link from 'next/link'
-import EmployerLayout from '@/components/EmployerLayout'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -223,17 +224,14 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
 
   if (loading) {
     return (
-      <EmployerLayout userProfile={userProfile}>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <LoadingSpinner size="lg" />
-        </div>
-      </EmployerLayout>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <LoadingSpinner size="lg" />
+      </div>
     )
   }
 
   return (
-    <EmployerLayout userProfile={userProfile}>
-      <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">
@@ -587,6 +585,5 @@ export default function ClientCompanyProfile({ userProfile }: ClientCompanyProfi
           </div>
         </form>
       </div>
-    </EmployerLayout>
   )
 }

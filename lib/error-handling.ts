@@ -1,5 +1,4 @@
 import React from "react"
-import { toast } from "@/hooks/use-toast"
 
 export interface ApiError {
   message: string
@@ -89,7 +88,7 @@ export const isHydrationError = (error: any): boolean => {
 }
 
 // Detect browser extension interference
-const detectBrowserExtensions = (): string[] => {
+export const detectBrowserExtensions = (): string[] => {
   const extensions: string[] = []
   
   if (typeof window !== 'undefined') {
@@ -213,6 +212,33 @@ export const createStructuredError = (
   }
 }
 
+// Get user-friendly error messages
+const getUserFriendlyMessage = (error: StructuredError): string => {
+  switch (error.type) {
+    case ErrorType.AUTHENTICATION:
+      return "Please log in to continue."
+    case ErrorType.AUTHORIZATION:
+      return "You don't have permission to perform this action."
+    case ErrorType.VALIDATION:
+      return "Please check your input and try again."
+    case ErrorType.NETWORK:
+      return "Network error. Please check your connection and try again."
+    case ErrorType.DATABASE:
+    case ErrorType.API:
+      return "Service temporarily unavailable. Please try again later."
+    case ErrorType.HYDRATION:
+      return "The page is reloading to fix a display issue."
+    default:
+      return "An unexpected error occurred. Please try again."
+  }
+}
+
+// Export user-friendly error message getter
+export const getUserFriendlyErrorMessage = (error: any): string => {
+  const structuredError = createStructuredError('error-message', error)
+  return getUserFriendlyMessage(structuredError)
+}
+
 // Enhanced error logging
 export const logError = (
   context: string, 
@@ -246,44 +272,21 @@ export const logError = (
   // Show user notification for appropriate severities - only on client
   if (notify && structuredError.severity !== ErrorSeverity.LOW && typeof window !== 'undefined') {
     const userMessage = getUserFriendlyMessage(structuredError)
-    toast({
-      title: "Error",
-      description: userMessage,
-      variant: structuredError.severity === ErrorSeverity.CRITICAL ? "destructive" : "default",
-    })
+    import('@/components/ui/use-toast')
+      .then(({ toast }) => {
+        toast({
+          title: 'Error',
+          description: userMessage,
+          variant: structuredError.severity === ErrorSeverity.CRITICAL ? 'destructive' : 'default',
+        })
+      })
+      .catch(() => { /* noop */ })
   }
 
   // Here you could send to external monitoring service
   // sendToMonitoring(structuredError)
 
   return structuredError
-}
-
-// Get user-friendly error messages
-const getUserFriendlyMessage = (error: StructuredError): string => {
-  switch (error.type) {
-    case ErrorType.AUTHENTICATION:
-      return "Please log in to continue."
-    case ErrorType.AUTHORIZATION:
-      return "You don't have permission to perform this action."
-    case ErrorType.VALIDATION:
-      return "Please check your input and try again."
-    case ErrorType.NETWORK:
-      return "Network error. Please check your connection and try again."
-    case ErrorType.DATABASE:
-    case ErrorType.API:
-      return "Service temporarily unavailable. Please try again later."
-    case ErrorType.HYDRATION:
-      return "The page is reloading to fix a display issue."
-    default:
-      return "An unexpected error occurred. Please try again."
-  }
-}
-
-// Export user-friendly error message getter
-export const getUserFriendlyErrorMessage = (error: any): string => {
-  const structuredError = createStructuredError('error-message', error)
-  return getUserFriendlyMessage(structuredError)
 }
 
 // Toast helper functions
@@ -301,11 +304,15 @@ export const showErrorToast = (messageOrError: string | Error | any, context?: s
   
   // Only call toast if running in client environment
   if (typeof window !== 'undefined') {
-    toast({
-      title: "Error",
-      description: message,
-      variant: "destructive",
-    })
+    import('@/components/ui/use-toast')
+      .then(({ toast }) => {
+        toast({
+          title: 'Error',
+          description: message,
+          variant: 'destructive',
+        })
+      })
+      .catch(() => { /* noop */ })
   } else {
     // Log error on server side
     console.error(`[showErrorToast] ${message}`)
@@ -315,10 +322,14 @@ export const showErrorToast = (messageOrError: string | Error | any, context?: s
 export const showSuccessToast = (title: string, description?: string) => {
   // Only call toast if running in client environment
   if (typeof window !== 'undefined') {
-    toast({
-      title: title,
-      description: description || title,
-    })
+    import('@/components/ui/use-toast')
+      .then(({ toast }) => {
+        toast({
+          title: title,
+          description: description || title,
+        })
+      })
+      .catch(() => { /* noop */ })
   } else {
     // Log success on server side
     console.log(`[showSuccessToast] ${title}: ${description || title}`)
@@ -382,114 +393,7 @@ export const useAsyncOperation = () => {
   }
 }
 
-// React Error Boundary Component
-interface ErrorBoundaryState {
-  hasError: boolean
-  error: Error | null
-  retryCount: number
-  isHydrationError: boolean
-}
-
-export class ErrorBoundary extends React.Component<
-  React.PropsWithChildren<{
-    fallback?: React.ComponentType<{ error: Error; retry: () => void }>
-    onError?: (error: Error, errorInfo: React.ErrorInfo) => void
-    maxRetries?: number
-  }>,
-  ErrorBoundaryState
-> {
-  private retryTimeoutId: number | null = null
-  private maxRetries: number
-
-  constructor(props: any) {
-    super(props)
-    this.state = {
-      hasError: false,
-      error: null,
-      retryCount: 0,
-      isHydrationError: false
-    }
-    this.maxRetries = props.maxRetries || 3
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { 
-      hasError: true, 
-      error,
-      isHydrationError: isHydrationError(error)
-    }
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const hydrationContext: HydrationErrorContext = {
-      isHydrationError: isHydrationError(error),
-      componentStack: errorInfo.componentStack || undefined,
-      browserExtensions: detectBrowserExtensions(),
-      retryCount: this.state.retryCount,
-      renderPhase: 'client'
-    }
-
-    logError('react-error-boundary', error, {
-      componentStack: errorInfo.componentStack || undefined,
-      errorBoundary: true,
-      ...(hydrationContext.isHydrationError ? { hydrationContext } : {})
-    })
-
-    // Auto-retry for hydration errors
-    if (hydrationContext.isHydrationError && this.state.retryCount < this.maxRetries) {
-      this.scheduleRetry()
-    }
-
-    this.props.onError?.(error, errorInfo)
-  }
-
-  private scheduleRetry = () => {
-    this.retryTimeoutId = window.setTimeout(() => {
-      this.setState(prevState => ({
-        hasError: false,
-        error: null,
-        retryCount: prevState.retryCount + 1
-      }))
-    }, 1000 + this.state.retryCount * 1000) // Exponential backoff
-  }
-
-  private retry = () => {
-    if (this.retryTimeoutId) {
-      clearTimeout(this.retryTimeoutId)
-    }
-    this.setState({
-      hasError: false,
-      error: null,
-      retryCount: 0
-    })
-  }
-
-  componentWillUnmount() {
-    if (this.retryTimeoutId) {
-      clearTimeout(this.retryTimeoutId)
-    }
-  }
-
-  render() {
-    if (this.state.hasError && this.state.error) {
-      if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback
-        return React.createElement(FallbackComponent, { error: this.state.error, retry: this.retry })
-      }
-
-      // Default fallback UI
-      return React.createElement(
-        'div',
-        { className: 'error-boundary' },
-        React.createElement('h2', null, 'Something went wrong'),
-        React.createElement('p', null, getUserFriendlyMessage(createStructuredError('error-boundary', this.state.error))),
-        React.createElement('button', { onClick: this.retry }, 'Try Again')
-      )
-    }
-
-    return this.props.children
-  }
-}
+// React Error Boundary Component moved to `components/ErrorBoundary.tsx`
 
 // Hook for error handling in components
 export const useErrorHandler = () => {
