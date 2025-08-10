@@ -3,28 +3,22 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, Menu, X } from 'lucide-react'
-import {
+import { 
   LayoutDashboard,
   Building2,
   Briefcase,
   Users,
-  Settings
+  Settings,
+  User,
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { getSupabaseBrowser } from '@/lib/supabase/browser'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
-
-interface EmployerNavbarProps {
-  userEmail?: string
-  userName?: string
-  companyName?: string
-  userRole?: string
-  isAuthenticated?: boolean
-  className?: string
-}
 
 const navigationItems = [
   {
@@ -42,7 +36,7 @@ const navigationItems = [
   {
     href: '/employer/company',
     icon: Building2,
-    text: 'Company Profile',
+    text: 'Company',
     key: 'company'
   },
   {
@@ -58,6 +52,15 @@ const navigationItems = [
     key: 'settings'
   }
 ]
+
+interface EmployerNavbarProps {
+  userEmail?: string
+  userName?: string
+  companyName?: string
+  userRole?: string
+  isAuthenticated?: boolean
+  className?: string
+}
 
 export default function EmployerNavbar({
   userEmail,
@@ -149,6 +152,11 @@ export default function EmployerNavbar({
     }
   }
 
+  const handleAccountRedirect = () => {
+    router.push('/employer/profile')
+    setMobileMenuOpen(false)
+  }
+
   const isActive = (href: string) => {
     if (pathname === href) return true
     if (pathname.startsWith(href + '/')) return true
@@ -169,6 +177,9 @@ export default function EmployerNavbar({
             <Link href="/employer/dashboard" className="flex items-center">
               <span className="font-bold text-xl text-[#0A2540]">
                 Unison AI
+              </span>
+              <span className="ml-2 text-sm text-gray-600 font-medium">
+                Employer
               </span>
             </Link>
           </div>
@@ -198,26 +209,36 @@ export default function EmployerNavbar({
 
           {/* Desktop User Menu */}
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            <div className="text-sm text-gray-600 text-right">
-              <div className="font-medium text-gray-900">{user.name}</div>
-              <div className="text-xs text-gray-500">
-                {user.companyName || 'Employer'}
-                {user.role && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {user.role}
-                  </Badge>
-                )}
-              </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAccountRedirect}
+                className="flex items-center text-gray-700 hover:text-[#00C49A]"
+              >
+                <User className="h-4 w-4 mr-2" />
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {user.companyName || 'Employer'}
+                    {user.role && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {user.role}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="flex items-center"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -240,6 +261,9 @@ export default function EmployerNavbar({
                     <SheetTitle className="text-left">
                       <span className="font-bold text-lg text-[#0A2540]">
                         Unison AI
+                      </span>
+                      <span className="block text-sm text-gray-600 font-medium">
+                        Employer Portal
                       </span>
                     </SheetTitle>
                   </SheetHeader>
@@ -288,12 +312,20 @@ export default function EmployerNavbar({
                     </div>
                   </nav>
 
-                  {/* Mobile Logout */}
-                  <div className="p-4 border-t">
+                  {/* Mobile Account & Logout */}
+                  <div className="p-4 border-t space-y-2">
+                    <Button
+                      variant="ghost"
+                      onClick={handleAccountRedirect}
+                      className="w-full flex items-center justify-start"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Account Profile
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={handleLogout}
-                      className="w-full flex items-center justify-center"
+                      className="w-full flex items-center justify-start"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Sign out
