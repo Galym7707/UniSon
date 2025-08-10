@@ -17,15 +17,11 @@ import {
   Briefcase,
   Users,
   Brain,
-  TrendingUp,
-  LayoutDashboard,
-  Building2,
-  Settings
+  TrendingUp
 } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Header } from '@/components/header-landing'
-import { Footer } from '@/components/footer'
+import EmployerLayout from '../EmployerLayout'
 
 type Candidate = {
   id: string
@@ -108,199 +104,143 @@ export default function CandidatesPage() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <EmployerLayout>
+        <div className="p-8 flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00C49A] mx-auto mb-4"></div>
             <p className="text-[#333333]">Loading candidates...</p>
           </div>
         </div>
-        <Footer />
-      </>
+      </EmployerLayout>
     )
   }
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* Sidebar */}
-          <div className="w-64 bg-white shadow-sm border-r">
-            <div className="p-6">
-              <Link href="/" className="text-xl font-bold text-[#0A2540]">
-                Unison AI
-              </Link>
-              <p className="text-sm text-[#333333] mt-1">TechCorp Inc.</p>
+    <EmployerLayout>
+      <div className="p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-[#0A2540]">Candidates</h1>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-500">
+                {filteredCandidates.length} candidates found
+              </div>
             </div>
-            <nav className="px-4 space-y-2">
-              <Link
-                href="/employer/dashboard"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <LayoutDashboard className="w-5 h-5 mr-3" />
-                Dashboard
-              </Link>
-              <Link
-                href="/employer/jobs"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Briefcase className="w-5 h-5 mr-3" />
-                Jobs
-              </Link>
-              <Link
-                href="/employer/company"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Building2 className="w-5 h-5 mr-3" />
-                Company Profile
-              </Link>
-              <Link
-                href="/employer/candidates"
-                className="flex items-center px-4 py-3 text-[#00C49A] bg-[#00C49A]/10 rounded-lg"
-              >
-                <Users className="w-5 h-5 mr-3" />
-                Candidates
-              </Link>
-              <Link
-                href="/employer/settings"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Settings className="w-5 h-5 mr-3" />
-                Settings
-              </Link>
-            </nav>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 p-8">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-[#0A2540]">Candidates</h1>
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-500">
-                    {filteredCandidates.length} candidates found
+          {/* Filters */}
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input 
+                      placeholder="Search candidates by name, title, or skills..." 
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
                 </div>
+                <Select value={filterBy} onValueChange={setFilterBy}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Candidates</SelectItem>
+                    <SelectItem value="tested">With Test Results</SelectItem>
+                    <SelectItem value="not_tested">Without Test Results</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Filters */}
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
+          {/* Candidates Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCandidates.map((candidate) => (
+              <Card key={candidate.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-[#0A2540] text-white">
+                        {getInitials(candidate.first_name, candidate.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input 
-                          placeholder="Search candidates by name, title, or skills..." 
-                          className="pl-10"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+                      <CardTitle className="text-[#0A2540] text-lg">
+                        {candidate.first_name} {candidate.last_name}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">{candidate.title || 'No title specified'}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 line-clamp-3">
+                      {candidate.summary || 'No summary available'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-700 mb-2">Skills</p>
+                    <div className="flex flex-wrap gap-1">
+                      {getSkillsArray(candidate.skills).slice(0, 3).map((skill: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
+                      {getSkillsArray(candidate.skills).length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{getSkillsArray(candidate.skills).length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {candidate.test_results && (
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 mb-2">Test Score</p>
+                      <div className="flex items-center space-x-2">
+                        <Progress 
+                          value={candidate.test_results.overall_score} 
+                          className="flex-1 h-2"
                         />
+                        <span className="text-sm font-medium text-[#00C49A]">
+                          {candidate.test_results.overall_score}%
+                        </span>
                       </div>
                     </div>
-                    <Select value={filterBy} onValueChange={setFilterBy}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Candidates</SelectItem>
-                        <SelectItem value="tested">With Test Results</SelectItem>
-                        <SelectItem value="not_tested">Without Test Results</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  )}
+
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Link href={`/employer/candidates/${candidate.id}`}>
+                      <Button className="flex-1 bg-[#00C49A] hover:bg-[#00A085] text-white text-sm">
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Profile
+                      </Button>
+                    </Link>
+                    <Button variant="outline" size="sm" className="px-3">
+                      <Mail className="w-4 h-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Candidates Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCandidates.map((candidate) => (
-                  <Card key={candidate.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-[#0A2540] text-white">
-                            {getInitials(candidate.first_name, candidate.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <CardTitle className="text-[#0A2540] text-lg">
-                            {candidate.first_name} {candidate.last_name}
-                          </CardTitle>
-                          <p className="text-sm text-gray-600">{candidate.title || 'No title specified'}</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-600 line-clamp-3">
-                          {candidate.summary || 'No summary available'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-medium text-gray-700 mb-2">Skills</p>
-                        <div className="flex flex-wrap gap-1">
-                          {getSkillsArray(candidate.skills).slice(0, 3).map((skill: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {getSkillsArray(candidate.skills).length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{getSkillsArray(candidate.skills).length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {candidate.test_results && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-700 mb-2">Test Score</p>
-                          <div className="flex items-center space-x-2">
-                            <Progress 
-                              value={candidate.test_results.overall_score} 
-                              className="flex-1 h-2"
-                            />
-                            <span className="text-sm font-medium text-[#00C49A]">
-                              {candidate.test_results.overall_score}%
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center space-x-2 pt-2">
-                        <Link href={`/employer/candidates/${candidate.id}`}>
-                          <Button className="flex-1 bg-[#00C49A] hover:bg-[#00A085] text-white text-sm">
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Profile
-                          </Button>
-                        </Link>
-                        <Button variant="outline" size="sm" className="px-3">
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredCandidates.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-[#0A2540] mb-2">No Candidates Found</h3>
-                    <p className="text-[#333333]">Try adjusting your search criteria or filters</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            ))}
           </div>
+
+          {filteredCandidates.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#0A2540] mb-2">No Candidates Found</h3>
+                <p className="text-[#333333]">Try adjusting your search criteria or filters</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
-      <Footer />
-    </>
+    </EmployerLayout>
   )
 }
