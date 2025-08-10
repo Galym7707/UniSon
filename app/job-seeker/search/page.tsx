@@ -414,7 +414,7 @@ export default function JobSearch() {
                 <p className="text-sm text-gray-600">Find your perfect match</p>
               </div>
               
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'date' | 'salary' | 'match')}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
