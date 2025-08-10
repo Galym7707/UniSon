@@ -5,12 +5,14 @@ import { usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { LayoutDashboard, Briefcase, Building2, Users, Settings } from 'lucide-react'
 import { UserProfile } from '@/lib/auth-helpers'
+import { cn } from '@/lib/utils'
 
 interface EmployerNavbarProps {
   userProfile?: UserProfile
+  className?: string
 }
 
-export default function EmployerNavbar({ userProfile }: EmployerNavbarProps) {
+export default function EmployerNavbar({ userProfile, className }: EmployerNavbarProps) {
   const pathname = usePathname()
 
   const isActive = (path: string) => {
@@ -49,7 +51,7 @@ export default function EmployerNavbar({ userProfile }: EmployerNavbarProps) {
   ]
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r">
+    <div className={cn("w-64 bg-white shadow-sm border-r", className)}>
       <div className="p-6">
         <Link href="/employer/dashboard" className="text-xl font-bold text-[#0A2540]">
           Unison AI

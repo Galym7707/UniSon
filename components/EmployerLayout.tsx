@@ -45,13 +45,7 @@ export default function EmployerLayout({ children, userProfile, companyName }: E
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Employer Header */}
-      <EmployerHeader
-        userEmail={userProfile?.email}
-        userName={userProfile?.name || userProfile?.email}
-        userRole={userProfile?.role}
-        companyName={companyName}
-        isAuthenticated={!!userProfile}
-      />
+      <EmployerHeader userProfile={userProfile} />
       
       <div className="flex flex-1">
         {/* Sidebar */}
