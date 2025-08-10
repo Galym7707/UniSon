@@ -1,5 +1,6 @@
 //app/employer/jobs/page.tsx
 
+import { requireAuth } from '@/lib/auth-helpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +24,12 @@ import Link from "next/link"
 import { Header } from "@/components/header-landing"
 import { Footer } from "@/components/footer"
 
-export default function EmployerJobs() {
+export const dynamic = 'force-dynamic'
+
+export default async function EmployerJobs() {
+  // Require authentication and employer role
+  const { user, profile } = await requireAuth({ role: 'employer' })
+
   const jobs = [
     {
       id: 1,
@@ -128,7 +134,13 @@ export default function EmployerJobs() {
               <Link href="/" className="text-xl font-bold text-[#0A2540]">
                 Unison AI
               </Link>
-              <p className="text-sm text-[#333333] mt-1">TechCorp Inc.</p>
+              <p className="text-sm text-[#333333] mt-1">Employer Dashboard</p>
+              <div className="mt-2 text-xs text-gray-500">
+                Welcome, {profile.name || profile.email}
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {profile.role}
+                </Badge>
+              </div>
             </div>
             <nav className="px-4 space-y-2">
               <Link
@@ -152,6 +164,13 @@ export default function EmployerJobs() {
                 <Building2 className="w-5 h-5 mr-3" />
                 Company Profile
               </Link>
+              <Link
+                href="/employer/candidates"
+                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
+              >
+                <Users className="w-5 h-5 mr-3" />
+                Candidates
+              </Link>
             </nav>
           </div>
 
@@ -160,10 +179,12 @@ export default function EmployerJobs() {
             <div className="max-w-6xl mx-auto">
               <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold text-[#0A2540]">Job Management</h1>
-                <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Job
-                </Button>
+                <Link href="/employer/jobs/create">
+                  <Button className="bg-[#FF7A00] hover:bg-[#E66A00] text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Job
+                  </Button>
+                </Link>
               </div>
 
               {/* Filters and Search */}
@@ -181,7 +202,7 @@ export default function EmployerJobs() {
                         <SelectItem value="all">All Statuses</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="paused">Paused</SelectItem>
-                        <SelectItem value="draft">Drafts</SelectItem>
+                        <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>

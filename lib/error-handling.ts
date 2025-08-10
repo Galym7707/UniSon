@@ -120,7 +120,7 @@ export interface HydrationErrorContext extends ErrorContext {
   actualContent?: string
   browserExtensions: string[]
   retryCount: number
-  componentStack?: string
+  componentStack?: string | undefined
   elementType?: string
   renderPhase: 'server' | 'client' | 'unknown'
 }
