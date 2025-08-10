@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { LogOut, Menu, X } from 'lucide-react'
 import {
@@ -159,6 +160,7 @@ export default function JobSeekerNavbar({
     
     if (pathname === href) return true
     if (pathname.startsWith(href + '/')) return true
+    
     return false
   }
 
@@ -174,9 +176,14 @@ export default function JobSeekerNavbar({
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/job-seeker/dashboard" className="flex items-center">
-              <span className="font-bold text-xl text-[#0A2540]">
-                Unison AI
-              </span>
+              <Image
+                src="/LOGO2(1).png"
+                alt="UnisonAI logo"
+                width={140}
+                height={40}
+                className="h-8 sm:h-10 w-auto"
+                priority
+              />
             </Link>
           </div>
 
@@ -246,9 +253,14 @@ export default function JobSeekerNavbar({
                   {/* Mobile Header */}
                   <SheetHeader className="p-6 border-b">
                     <SheetTitle className="text-left">
-                      <span className="font-bold text-lg text-[#0A2540]">
-                        Unison AI
-                      </span>
+                      <Image
+                        src="/LOGO2(1).png"
+                        alt="UnisonAI logo"
+                        width={120}
+                        height={32}
+                        className="h-8 w-auto"
+                        priority
+                      />
                     </SheetTitle>
                   </SheetHeader>
 
