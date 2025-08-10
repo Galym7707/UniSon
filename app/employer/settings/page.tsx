@@ -9,8 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { LayoutDashboard, Briefcase, Building2, Users, Settings, Trash2, Shield, Bell } from "lucide-react"
 import Link from "next/link"
-import { Header } from "@/components/header-landing"
-import { Footer } from "@/components/footer"
+// Employer section layout provides Header and Sidebar
 
 export const dynamic = 'force-dynamic'
 
@@ -19,65 +18,8 @@ export default async function EmployerSettings() {
   const { user, profile } = await requireAuth({ role: 'employer' })
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex">
-          {/* Sidebar */}
-          <div className="w-64 bg-white shadow-sm border-r">
-            <div className="p-6">
-              <Link href="/" className="text-xl font-bold text-[#0A2540]">
-                Unison AI
-              </Link>
-              <p className="text-sm text-[#333333] mt-1">Employer Settings</p>
-              <div className="mt-2 text-xs text-gray-500">
-                Welcome, {profile.name || profile.email}
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {profile.role}
-                </Badge>
-              </div>
-            </div>
-            <nav className="px-4 space-y-2">
-              <Link
-                href="/employer/dashboard"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <LayoutDashboard className="w-5 h-5 mr-3" />
-                Dashboard
-              </Link>
-              <Link
-                href="/employer/jobs"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Briefcase className="w-5 h-5 mr-3" />
-                Jobs
-              </Link>
-              <Link
-                href="/employer/company"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Building2 className="w-5 h-5 mr-3" />
-                Company Profile
-              </Link>
-              <Link
-                href="/employer/candidates"
-                className="flex items-center px-4 py-3 text-[#333333] hover:bg-gray-100 rounded-lg"
-              >
-                <Users className="w-5 h-5 mr-3" />
-                Candidates
-              </Link>
-              <Link
-                href="/employer/settings"
-                className="flex items-center px-4 py-3 text-[#FF7A00] bg-[#FF7A00]/10 rounded-lg"
-              >
-                <Settings className="w-5 h-5 mr-3" />
-                Settings
-              </Link>
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 p-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="ml-64 p-8 pt-16">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -268,10 +210,7 @@ export default async function EmployerSettings() {
                 </Card>
               </div>
             </div>
-          </div>
-        </div>
       </div>
-      <Footer />
-    </>
+    </div>
   )
 }

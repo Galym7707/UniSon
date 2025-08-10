@@ -50,7 +50,7 @@ export default function EmployerSidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-0 z-30 h-screen w-64 bg-white border-r border-gray-200">
+    <aside className="fixed left-0 top-0 z-30 h-screen w-64 bg-white border-r border-gray-200 pt-16">
       <div className="flex flex-col h-full">
         <nav className="flex-1 px-4 py-6">
           <ul className="space-y-1">

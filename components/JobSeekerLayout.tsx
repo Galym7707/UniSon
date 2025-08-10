@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { getSupabaseBrowser } from '@/lib/supabase/browser'
 import { useToast } from '@/hooks/use-toast'
-import { JobSeekerHeader } from '@/components/JobSeekerHeader'
+import { Header } from '@/components/header-landing'
 import { Footer } from '@/components/footer'
 
 interface JobSeekerLayoutProps {
@@ -243,8 +243,8 @@ export default function JobSeekerLayout({
 
   return (
     <div className={`min-h-screen bg-gray-50 flex flex-col ${className}`}>
-      {/* Header */}
-      <JobSeekerHeader user={user} />
+      {/* Shared Header */}
+      <Header />
 
       <div className="flex flex-1">
         {/* Desktop Sidebar */}
@@ -258,7 +258,7 @@ export default function JobSeekerLayout({
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
-          <main className="p-4 lg:p-6">
+          <main className="p-4 lg:p-6 pt-16">
             {children}
           </main>
         </div>
