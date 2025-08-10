@@ -1,3 +1,4 @@
+'use client'
 //app/employer/jobs/create/page.tsx
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
