@@ -170,7 +170,7 @@ export function LoginForm() {
             disabled={isPending || (isFormSubmitted && !isValid)}
             aria-describedby={isPending ? "login-status" : undefined}
           >
-            <LoadingButton isLoading={isPending} loadingText="Logging in...">
+            <LoadingButton isLoading={isPending} loadingText="Logging in..." asChild>
               Sign in
             </LoadingButton>
           </Button>

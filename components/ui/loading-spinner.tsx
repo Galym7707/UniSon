@@ -27,31 +27,33 @@ interface LoadingButtonProps {
   isLoading?: boolean
   children: React.ReactNode
   loadingText?: string
-  type?: "button" | "submit" | "reset"
-  onClick?: () => void
-  disabled?: boolean
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
-  className?: string
+  asChild?: boolean
 }
 
 export function LoadingButton({ 
   isLoading, 
   children, 
   loadingText = "Loading...", 
-  disabled,
-  ...props 
+  asChild = false
 }: LoadingButtonProps) {
+  const content = isLoading ? (
+    <>
+      <LoadingSpinner size="sm" className="mr-2" />
+      {loadingText}
+    </>
+  ) : (
+    children
+  )
+
+  // If used as child of another button, just return the content
+  if (asChild) {
+    return <>{content}</>
+  }
+
+  // Otherwise render as a button
   return (
-    <Button {...props} disabled={isLoading || disabled}>
-      {isLoading ? (
-        <>
-          <LoadingSpinner size="sm" className="mr-2" />
-          {loadingText}
-        </>
-      ) : (
-        children
-      )}
+    <Button disabled={isLoading}>
+      {content}
     </Button>
   )
 }
