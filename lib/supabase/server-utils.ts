@@ -58,18 +58,17 @@ export async function createUserAccount(data: SignupData) {
       id: userId,
       role: data.role,
       email: data.email,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
 
-    // For job seekers, include first_name and last_name
+    // Add role-specific default values
     if (data.role === "job-seeker") {
-      profileData.first_name = data.first_name.trim()
-      profileData.last_name = data.last_name.trim()
-      profileData.company_name = null
-    } else {
-      // For employers, only include company_name, leave names as null
-      profileData.first_name = null
-      profileData.last_name = null
-      profileData.company_name = data.companyName?.trim() || null
+      profileData.experience_level = 'mid' // Default value
+      profileData.remote_preference = true // Default value
+      profileData.availability_status = 'available' // Default value
     }
 
     const { error: profErr } = await supabaseAdmin.from("profiles").insert(profileData)
@@ -213,17 +212,20 @@ export async function createUserAccount(data: SignupData) {
     throw new Error(`Failed to create user profile: ${errorDetails}${errorCode}. Please try again or contact support if the problem persists.`)
   }
 
-  /* ---------- 3. создаём запись в company_profiles, если роль = employer ---------- */
+  /* ---------- 3. создаём запись в companies, если роль = employer ---------- */
   if (data.role === "employer" && data.companyName) {
     try {
-      const { error: companyErr } = await supabaseAdmin.from("company_profiles").insert({
-        user_id: userId,
-        company_name: data.companyName?.trim() || "",
+      const { error: companyErr } = await supabaseAdmin.from("companies").insert({
+        owner_id: userId,
+        name: data.companyName?.trim() || "",
         website: "",
+        logo_url: "",
         industry: "",
-        company_size: "",
+        size: "",
         description: "",
         location: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
 
       if (companyErr) {

@@ -30,15 +30,13 @@ const baseSignupSchema = z.object({
     .min(2, "First name must be at least 2 characters")
     .max(25, "First name must be less than 25 characters")
     .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "First name can only contain letters, spaces, apostrophes, and hyphens")
-    .refine((val) => val.trim().length > 0, "First name is required")
-    .optional(),
+    .refine((val) => val.trim().length > 0, "First name is required"),
   last_name: z
     .string()
     .min(2, "Last name must be at least 2 characters")
     .max(25, "Last name must be less than 25 characters")
     .regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Last name can only contain letters, spaces, apostrophes, and hyphens")
-    .refine((val) => val.trim().length > 0, "Last name is required")
-    .optional(),
+    .refine((val) => val.trim().length > 0, "Last name is required"),
   email: z.string().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
   password: z
     .string()
@@ -61,20 +59,6 @@ const signupSchema = baseSignupSchema
       return true
     },
     { message: "Company name is required for employers", path: ["companyName"] },
-  )
-  .refine(
-    (data) => {
-      if (data.role === "job-seeker" && (!data.first_name || data.first_name.trim().length === 0)) return false
-      return true
-    },
-    { message: "First name is required for job seekers", path: ["first_name"] },
-  )
-  .refine(
-    (data) => {
-      if (data.role === "job-seeker" && (!data.last_name || data.last_name.trim().length === 0)) return false
-      return true
-    },
-    { message: "Last name is required for job seekers", path: ["last_name"] },
   )
 
 type SignupFormData = z.infer<typeof signupSchema>
@@ -121,11 +105,9 @@ export function SignupForm({ signupAction }: SignupFormProps) {
     const formData = new FormData()
     formData.append("role", data.role)
     
-    // Only include name fields for job seekers
-    if (data.role === "job-seeker") {
-      formData.append("first_name", data.first_name?.trim() || "")
-      formData.append("last_name", data.last_name?.trim() || "")
-    }
+    // Include name fields for both job seekers and employers
+    formData.append("first_name", data.first_name?.trim() || "")
+    formData.append("last_name", data.last_name?.trim() || "")
     
     formData.append("email", data.email)
     formData.append("password", data.password)
@@ -140,13 +122,8 @@ export function SignupForm({ signupAction }: SignupFormProps) {
       setRole(newRole)
       setValue("role", newRole)
       
-      // Clear name fields when switching to employer
-      if (newRole === "employer") {
-        resetField("first_name")
-        resetField("last_name")
-      }
-      
-      trigger(["companyName", "first_name", "last_name"]) // Re-validate when role changes
+      // Re-validate fields when role changes
+      trigger(["companyName", "first_name", "last_name"])
     }
   }
 
@@ -157,21 +134,7 @@ export function SignupForm({ signupAction }: SignupFormProps) {
 
   /* ---------- UI helpers ---------- */
 
-  const employerFields = (
-    <div>
-      <Label htmlFor="companyName">Company Name</Label>
-      <Input 
-        id="companyName" 
-        placeholder="Your Company Inc." 
-        disabled={isPending} 
-        {...register("companyName")} 
-        className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
-      />
-      {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
-    </div>
-  )
-
-  const jobSeekerFields = (
+  const nameFields = (
     <div className="grid grid-cols-2 gap-4">
       <div>
         <Label htmlFor="first_name">First Name *</Label>
@@ -197,6 +160,20 @@ export function SignupForm({ signupAction }: SignupFormProps) {
         />
         {errors.last_name && <p className="text-xs text-red-500 mt-1">{errors.last_name.message}</p>}
       </div>
+    </div>
+  )
+
+  const employerFields = (
+    <div>
+      <Label htmlFor="companyName">Company Name *</Label>
+      <Input 
+        id="companyName" 
+        placeholder="Your Company Inc." 
+        disabled={isPending} 
+        {...register("companyName")} 
+        className={errors.companyName ? "border-red-500 focus:border-red-500" : ""}
+      />
+      {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
     </div>
   )
 
@@ -264,7 +241,11 @@ export function SignupForm({ signupAction }: SignupFormProps) {
             </div>
           </div>
 
-          {role === "employer" ? employerFields : jobSeekerFields}
+          {/* Name fields for both roles */}
+          {nameFields}
+
+          {/* Company name field for employers only */}
+          {role === "employer" && employerFields}
 
           {/* email */}
           <div>
