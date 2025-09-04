@@ -215,7 +215,21 @@ export async function createUserAccount(data: SignupData) {
   /* ---------- 3. создаём запись в companies, если роль = employer ---------- */
   if (data.role === "employer" && data.companyName) {
     try {
-      const { error: companyErr } = await supabaseAdmin.from("companies").insert({
+      // Define the company data type explicitly
+      interface CompanyData {
+        owner_id: string;
+        name: string;
+        website?: string;
+        logo_url?: string;
+        industry?: string;
+        size?: string;
+        description?: string;
+        location?: string;
+        created_at: string;
+        updated_at: string;
+      }
+
+      const companyData: CompanyData = {
         owner_id: userId,
         name: data.companyName?.trim() || "",
         website: "",
@@ -226,7 +240,9 @@ export async function createUserAccount(data: SignupData) {
         location: "",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      })
+      }
+
+      const { error: companyErr } = await supabaseAdmin.from("companies").insert(companyData)
 
       if (companyErr) {
         // If company profile creation fails, log the error but don't fail the entire signup
